@@ -47,21 +47,29 @@ test('can import lambda handler from src', async () => {
   expect(typeof lambdaModule.handler).toBe('function')
 }, 10000) // 10 second timeout
 
-test('lambda handler can process requests', async () => {
-  const lambdaModule = await import('../src/lambda.js')
+test('can import createApp function from api', async () => {
+  const { createApp } = await import('../src/api.js')
+  expect(typeof createApp).toBe('function')
   
-  // Create a mock Lambda event
-  const event = {
-    httpMethod: 'GET',
-    path: '/',
-    headers: {},
-    body: null
-  }
+  const app = createApp()
+  expect(app).toBeDefined()
+}, 10000) // 10 second timeout
+
+test('api endpoints work correctly', async () => {
+  const { createApp } = await import('../src/api.js')
+  const app = createApp()
   
-  const context = {}
+  // Test health check
+  const healthResponse = await app.request('/')
+  const healthJson = await healthResponse.json()
   
-  const response = await lambdaModule.handler(event, context)
+  expect(healthJson.message).toBe('Deacon Care System API')
+  expect(healthJson.status).toBe('healthy')
   
-  expect(response).toBeDefined()
-  expect(response.statusCode).toBeDefined()
+  // Test hello endpoint
+  const helloResponse = await app.request('/hello')
+  const helloJson = await helloResponse.json()
+  
+  expect(helloJson.message).toBe('Hello from Deacon Care System!')
+  expect(helloJson.version).toBe('1.0.0')
 }, 10000) // 10 second timeout
