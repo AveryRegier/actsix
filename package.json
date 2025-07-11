@@ -3,15 +3,25 @@
   "version": "1.0.0",
   "description": "Tracking application for Deacon ministry",
   "type": "module",
-  "main": "lambda.js",
+  "main": "src/lambda.js",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
     "test": "vitest run",
-    "dev": "node server.js",
-    "build": "echo 'Build ready for deployment'",
-    "start": "node server.js"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "dev": "node src/server.js",
+    "build": "node scripts/build.js",
+    "build:validate": "npm run test && npm run build",
+    "start": "node src/server.js",
+    "start:prod": "node dist/server.js",
+    "lambda": "node src/lambda.js",
+    "lambda:prod": "node dist/lambda.js",
+    "clean": "rimraf coverage dist",
+    "lint": "echo 'Linting would go here'",
+    "validate": "npm run test && npm run lint",
+    "deploy:prep": "npm run clean && npm run build:validate"
   },
   "keywords": [
     "ministry",

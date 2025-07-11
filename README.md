@@ -33,16 +33,26 @@ npm run dev
 
 The server will start on `http://localhost:3000`
 
-### Testing the API
+### Building
 
-#### Health Check
+Build the production version:
 ```bash
-curl http://localhost:3000/
+npm run build
 ```
 
-#### Hello World
+This will create a `dist/` folder with production-ready files.
+
+### Running Tests
+
 ```bash
-curl http://localhost:3000/hello
+# Run tests once
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
 ```
 
 ## API Endpoints
@@ -76,11 +86,17 @@ For local development, use `server.js` which provides a Node.js server.
 
 ```
 actsix/
-├── lambda.js          # AWS Lambda handler
-├── server.js          # Local development server
-├── package.json       # Dependencies and scripts
+├── src/
+│   ├── lambda.js          # AWS Lambda handler
+│   └── server.js          # Local development server
+├── test/
+│   └── api.test.js        # Test files
+├── scripts/
+│   └── build.js           # Build script
+├── dist/                  # Production build output
+├── package.json           # Dependencies and scripts
 └── docs/
-    └── PLAN.md        # Project requirements and planning
+    └── PLAN.md            # Project requirements and planning
 ```
 
 ## Technology Stack
