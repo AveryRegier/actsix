@@ -1,0 +1,39 @@
+{
+  "name": "actsix",
+  "version": "1.0.0",
+  "description": "Tracking application for Deacon ministry",
+  "type": "module",
+  "main": "lambda.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "dev": "node server.js",
+    "build": "echo 'Build ready for deployment'",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "ministry",
+    "tracking",
+    "deacon",
+    "shut-in",
+    "care"
+  ],
+  "author": "Avery Regier",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@hono/node-server": "^1.15.0",
+    "@types/chance": "^1.1.7",
+    "@types/node": "^24.0.13",
+    "chance": "^1.1.13",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "hono": "^4.8.4",
+    "pino": "^9.7.0",
+    "sengo": "file:../sengo/client"
+  }
+}
