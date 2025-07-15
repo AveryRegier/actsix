@@ -14,27 +14,6 @@ export S3_BUCKET=deacon-care-system
 
 ## API Examples
 
-### Creating a Member
-
-```bash
-curl -X POST http://localhost:3000/api/members \
-  -H "Content-Type: application/json" \
-  -d '{
-    "firstName": "John",
-    "lastName": "Smith",
-    "phone": "(555) 123-4567",
-    "email": "john.smith@example.com",
-    "address": {
-      "street": "123 Main St",
-      "city": "Springfield",
-      "state": "IL",
-      "zipCode": "62701"
-    },
-    "needs": ["prayer", "companionship"],
-    "status": "active"
-  }'
-```
-
 ### Creating a Household
 
 ```bash
@@ -48,20 +27,51 @@ curl -X POST http://localhost:3000/api/households \
       "state": "IL",
       "zipCode": "62701"
     },
-    "members": [
-      {
-        "firstName": "John",
-        "lastName": "Smith",
-        "relationship": "head"
-      },
-      {
-        "firstName": "Jane",
-        "lastName": "Smith",
-        "relationship": "spouse"
-      }
-    ],
     "primaryPhone": "(555) 123-4567",
-    "notes": "Elderly couple, needs regular check-ins"
+    "notes": "Elderly couple, regular check-ins scheduled"
+  }'
+```
+
+### Creating a Member
+
+```bash
+curl -X POST http://localhost:3000/api/members \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "John",
+    "lastName": "Smith",
+    "householdId": "household-id-here",
+    "phone": "(555) 123-4567",
+    "email": "john.smith@example.com",
+    "relationship": "head",
+    "status": "active"
+  }'
+```
+
+### Creating a Deacon
+
+```bash
+curl -X POST http://localhost:3000/api/deacons \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "Pastor",
+    "lastName": "Johnson",
+    "email": "pastor.johnson@church.org",
+    "phone": "(555) 987-6543",
+    "isActive": true
+  }'
+```
+
+### Creating an Assignment
+
+```bash
+curl -X POST http://localhost:3000/api/assignments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "deaconId": "deacon-id-here",
+    "householdId": "household-id-here",
+    "isActive": true,
+    "notes": "Primary assignment for this household"
   }'
 ```
 
@@ -72,38 +82,45 @@ curl -X POST http://localhost:3000/api/contacts \
   -H "Content-Type: application/json" \
   -d '{
     "memberId": "member-id-here",
-    "deaconId": "deacon123",
+    "deaconId": "deacon-id-here",
     "contactType": "phone",
     "summary": "Called to check on health status",
-    "needs": ["prayer for healing", "grocery shopping"],
+    "contactDate": "2025-07-14T10:30:00.000Z",
     "followUpRequired": true,
-    "followUpDate": "2025-07-18T00:00:00.000Z",
-    "notes": "Member is recovering well from surgery but needs help with groceries"
+    "notes": "Member is recovering well from surgery"
   }'
 ```
 
-### Getting All Members
+### Getting All Collections
 
 ```bash
-curl http://localhost:3000/api/members
-```
-
-### Getting All Households
-
-```bash
+# Get all households
 curl http://localhost:3000/api/households
-```
 
-### Getting All Contact Logs
+# Get all members
+curl http://localhost:3000/api/members
 
-```bash
+# Get all deacons
+curl http://localhost:3000/api/deacons
+
+# Get all assignments
+curl http://localhost:3000/api/assignments
+
+# Get all contact logs
 curl http://localhost:3000/api/contacts
 ```
 
-### Getting Deacon Assignments
+### Getting Related Data
 
 ```bash
-curl http://localhost:3000/api/deacons/deacon123/assignments
+# Get all members of a specific household
+curl http://localhost:3000/api/households/household-id-here/members
+
+# Get all contacts for a specific member
+curl http://localhost:3000/api/members/member-id-here/contacts
+
+# Get all assignments for a specific deacon
+curl http://localhost:3000/api/deacons/deacon-id-here/assignments
 ```
 
 ## Data Storage
@@ -118,10 +135,47 @@ All data is stored in AWS S3 using the sengo library, which provides:
 
 The API uses the following collections:
 
-- **members**: Individual church members who need care
-- **households**: Family units with shared addresses and contacts
+- **households**: Family units with shared addresses and contact information
+- **members**: Individual church members who belong to households
+- **deacons**: Deacons who provide care to assigned households
+- **assignments**: Active assignments mapping deacons to households
 - **contacts**: Log of all deacon interactions with members
-- **assignments**: Mapping of deacons to their assigned members
+
+## Field Validation
+
+The API enforces the following validation rules:
+
+### Households
+- `lastName` (required): Primary household surname
+- `address` (required): Complete address object with street, city, state, zipCode
+- `primaryPhone` (required): Main contact number
+
+### Members
+- `firstName` (required): Member's first name
+- `lastName` (required): Member's last name
+- `householdId` (required): Reference to household
+- `relationship` (required): One of 'head', 'spouse', 'child', 'other'
+- `status` (optional): One of 'active', 'inactive', 'deceased', 'moved' (defaults to 'active')
+
+### Deacons
+- `firstName` (required): Deacon's first name
+- `lastName` (required): Deacon's last name
+- `email` (required): Email address
+- `phone` (required): Phone number
+- `isActive` (optional): Boolean, defaults to true
+
+### Assignments
+- `deaconId` (required): Reference to deacon
+- `householdId` (required): Reference to household
+- `isActive` (optional): Boolean, defaults to true
+
+### Contacts
+- `memberId` (required): Reference to member contacted
+- `deaconId` (required): Reference to deacon making contact
+- `contactType` (required): One of 'phone', 'visit', 'email', 'text'
+- `summary` (required): Brief contact summary
+- `contactDate` (required): When contact was made
+- `followUpRequired` (optional): Boolean, defaults to false
 
 ## Error Handling
 
