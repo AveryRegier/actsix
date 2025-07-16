@@ -538,12 +538,10 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="editStatus">Status</label>
-                        <select id="editStatus" name="status">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="deceased">Deceased</option>
-                            <option value="moved">Moved</option>
+                        <label for="editGender">Gender *</label>
+                        <select id="editGender" name="gender" required>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
                         </select>
                     </div>
                 </div>
@@ -555,8 +553,43 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="editPhone">Phone</label>
-                        <input type="tel" id="editPhone" name="phone">
+                        <label for="editAge">Age (if birth date unknown)</label>
+                        <input type="number" id="editAge" name="age" min="0" max="150" placeholder="Enter age">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editPhone">Phone</label>
+                    <input type="tel" id="editPhone" name="phone">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editTags">Tags</label>
+                    <div class="tags-container" id="editTagsContainer">
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="editTags" value="member"> Member
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="editTags" value="attender"> Attender
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="editTags" value="shut-in"> Shut-in
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="editTags" value="cancer"> Cancer
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="editTags" value="long-term-needs"> Long-term Needs
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="editTags" value="widow"> Widow
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="editTags" value="widower"> Widower
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="editTags" value="married"> Married
+                        </label>
                     </div>
                 </div>
                 
@@ -734,7 +767,7 @@
                 lastName: formData.get('lastName'),
                 relationship: formData.get('relationship'),
                 gender: formData.get('gender'),
-                phone: formData.get('phone',
+                phone: formData.get('phone'),
                 email: formData.get('email'),
                 notes: formData.get('notes'),
                 tags: tags
@@ -790,11 +823,18 @@
                 document.getElementById('editFirstName').value = member.firstName;
                 document.getElementById('editLastName').value = member.lastName;
                 document.getElementById('editRelationship').value = member.relationship;
-                document.getElementById('editStatus').value = member.status;
+                document.getElementById('editGender').value = member.gender || '';
                 document.getElementById('editBirthDate').value = member.birthDate || '';
+                document.getElementById('editAge').value = member.age || '';
                 document.getElementById('editPhone').value = member.phone || '';
                 document.getElementById('editEmail').value = member.email || '';
                 document.getElementById('editNotes').value = member.notes || '';
+                
+                // Set tags checkboxes
+                const tagCheckboxes = document.querySelectorAll('input[name="editTags"]');
+                tagCheckboxes.forEach(checkbox => {
+                    checkbox.checked = member.tags && member.tags.includes(checkbox.value);
+                });
                 
                 // Show modal
                 document.getElementById('editMemberModal').style.display = 'block';
@@ -820,10 +860,56 @@
         document.getElementById('editMemberForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Note: This would require an update endpoint in the API
-            // For now, we'll just show a message
-            alert('Member editing will be implemented when the API has an update endpoint');
-            closeEditModal();
+            const formData = new FormData(e.target);
+            const memberId = formData.get('memberId');
+            
+            // Get tags from checkboxes
+            const tags = Array.from(document.querySelectorAll('input[name="editTags"]:checked')).map(cb => cb.value);
+            
+            const memberData = {
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                relationship: formData.get('relationship'),
+                gender: formData.get('gender'),
+                phone: formData.get('phone'),
+                email: formData.get('email'),
+                notes: formData.get('notes'),
+                tags: tags
+            };
+            
+            // Add either age or birthDate, but not both
+            const birthDate = formData.get('birthDate');
+            const age = formData.get('age');
+            
+            if (birthDate) {
+                memberData.birthDate = birthDate;
+            } else if (age) {
+                memberData.age = parseInt(age);
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/members/${memberId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(memberData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showSuccess('editMemberSuccess', 'Member updated successfully!');
+                    setTimeout(() => {
+                        closeEditModal();
+                        loadHouseholdData();
+                    }, 1500);
+                } else {
+                    showError('editMemberError', result.message || 'Failed to update member');
+                }
+            } catch (error) {
+                showError('editMemberError', 'Error connecting to server');
+            }
         });
         
         // Utility functions

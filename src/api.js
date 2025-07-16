@@ -237,6 +237,122 @@ export function createApp() {
     }
   })
 
+  // Update member endpoint
+  app.put('/api/members/:id', async (c) => {
+    try {
+      const memberId = c.req.param('id')
+      const body = await c.req.json()
+      
+      // Validate required fields
+      const requiredFields = ['firstName', 'lastName', 'relationship', 'gender']
+      for (const field of requiredFields) {
+        if (!body[field]) {
+          return c.json({ 
+            error: 'Validation failed',
+            message: `Missing required field: ${field}`
+          }, 400)
+        }
+      }
+      
+      // Validate relationship enum
+      const validRelationships = ['head', 'spouse', 'child', 'other']
+      if (!validRelationships.includes(body.relationship)) {
+        return c.json({ 
+          error: 'Validation failed',
+          message: `Invalid relationship. Must be one of: ${validRelationships.join(', ')}`
+        }, 400)
+      }
+      
+      // Validate gender enum
+      const validGenders = ['male', 'female']
+      if (!validGenders.includes(body.gender)) {
+        return c.json({ 
+          error: 'Validation failed',
+          message: `Invalid gender. Must be one of: ${validGenders.join(', ')}`
+        }, 400)
+      }
+      
+      // Validate tags if provided
+      if (body.tags && Array.isArray(body.tags)) {
+        const validTags = ['member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married']
+        for (const tag of body.tags) {
+          if (!validTags.includes(tag)) {
+            return c.json({ 
+              error: 'Validation failed',
+              message: `Invalid tag "${tag}". Must be one of: ${validTags.join(', ')}`
+            }, 400)
+          }
+        }
+      }
+      
+      // Validate age and birthDate - ensure only one is provided
+      if (body.age && body.birthDate) {
+        return c.json({ 
+          error: 'Validation failed',
+          message: 'Cannot provide both age and birthDate. Please provide only one.'
+        }, 400)
+      }
+      
+      if (body.age && (body.age < 0 || body.age > 150)) {
+        return c.json({ 
+          error: 'Validation failed',
+          message: 'Age must be between 0 and 150'
+        }, 400)
+      }
+      
+      // Get the existing member
+      const members = await safeCollectionFind('members')
+      const existingMember = members.find(m => m._id === memberId)
+      
+      if (!existingMember) {
+        return c.json({ 
+          error: 'Member not found',
+          message: 'The requested member was not found'
+        }, 404)
+      }
+      
+      // Prepare update data
+      const updateData = {
+        ...existingMember,
+        ...body,
+        tags: body.tags || [],
+        updatedAt: new Date().toISOString()
+      }
+      
+      // Remove age or birthDate if the other is provided
+      if (body.birthDate) {
+        delete updateData.age
+      } else if (body.age) {
+        delete updateData.birthDate
+      }
+      
+      // Update member in S3 using sengo
+      const collection = db.collection('members')
+      const result = await collection.updateOne(
+        { _id: memberId },
+        { $set: updateData }
+      )
+      
+      if (result.modifiedCount === 0) {
+        return c.json({ 
+          error: 'Update failed',
+          message: 'No changes were made'
+        }, 400)
+      }
+      
+      return c.json({ 
+        message: 'Member updated successfully',
+        member: updateData
+      })
+    } catch (error) {
+      console.error('Error updating member:', error)
+      return c.json({ 
+        error: 'Failed to update member',
+        message: error.message 
+      }, 500)
+    }
+  })
+
   app.get('/api/households', async (c) => {
     try {
       // Get all households from S3 using sengo
