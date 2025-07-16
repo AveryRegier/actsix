@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Household Details - Deacon Care System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .back-link {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: white;
+            text-decoration: none;
+            font-size: 1.1em;
+            transition: opacity 0.3s ease;
+        }
+        
+        .back-link:hover {
+            opacity: 0.8;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .household-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .household-info h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            color: #333;
+            font-size: 1.1em;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.9em;
+        }
+        
+        .member-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .member-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .member-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .member-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .member-detail {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            color: #333;
+            font-size: 1.1em;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-deceased {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .status-moved {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 8px;
+        }
+        
+        .tag-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 6px 12px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+        }
+        
+        .tag-checkbox:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+        
+        .tag-checkbox input[type="checkbox"] {
+            margin-right: 8px;
+            width: auto;
+        }
+        
+        .tag-checkbox input[type="checkbox"]:checked + span,
+        .tag-checkbox:has(input[type="checkbox"]:checked) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .member-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="households.html" class="back-link">← Back to Households</a>
+            <h1 id="householdTitle">Household Details</h1>
+            <p>Manage household members and information</p>
+        </div>
+        
+        <div class="content">
+            <div class="loading" id="loadingState">
+                <h3>Loading household information...</h3>
+                <p>Please wait while we fetch the data.</p>
+            </div>
+            
+            <div id="householdContent" style="display: none;">
+                <!-- Household Information Section -->
+                <div class="section">
+                    <h2>Household Information</h2>
+                    <div class="household-info" id="householdInfo">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Add Member Section -->
+                <div class="section">
+                    <h2>Add New Member</h2>
+                    <form id="memberForm">
+                        <div id="memberError" class="error" style="display: none;"></div>
+                        <div id="memberSuccess" class="success" style="display: none;"></div>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="firstName">First Name *</label>
+                                <input type="text" id="firstName" name="firstName" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="lastName">Last Name *</label>
+                                <input type="text" id="lastName" name="lastName" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="gender">Gender *</label>
+                                <select id="gender" name="gender" required>
+                                    <option value="">Select gender...</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="relationship">Relationship *</label>
+                                <select id="relationship" name="relationship" required>
+                                    <option value="">Select relationship...</option>
+                                    <option value="head">Head of Household</option>
+                                    <option value="spouse">Spouse</option>
+                                    <option value="child">Child</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="birthDate">Birth Date</label>
+                                <input type="date" id="birthDate" name="birthDate">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="age">Age (if birth date unknown)</label>
+                                <input type="number" id="age" name="age" min="0" max="150" placeholder="Enter age">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Phone</label>
+                            <input type="tel" id="phone" name="phone" placeholder="Individual phone number">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="tags">Tags</label>
+                            <div class="tags-container">
+                                <label class="tag-checkbox">
+                                    <input type="checkbox" name="tags" value="member"> Member
+                                </label>
+                                <label class="tag-checkbox">
+                                    <input type="checkbox" name="tags" value="attender"> Attender
+                                </label>
+                                <label class="tag-checkbox">
+                                    <input type="checkbox" name="tags" value="shut-in"> Shut-in
+                                </label>
+                                <label class="tag-checkbox">
+                                    <input type="checkbox" name="tags" value="cancer"> Cancer
+                                </label>
+                                <label class="tag-checkbox">
+                                    <input type="checkbox" name="tags" value="long-term-needs"> Long-term Needs
+                                </label>
+                                <label class="tag-checkbox">
+                                    <input type="checkbox" name="tags" value="widow"> Widow
+                                </label>
+                                <label class="tag-checkbox">
+                                    <input type="checkbox" name="tags" value="widower"> Widower
+                                </label>
+                                <label class="tag-checkbox">
+                                    <input type="checkbox" name="tags" value="married"> Married
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="notes">Notes</label>
+                            <textarea id="notes" name="notes" rows="3"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn">Add Member</button>
+                    </form>
+                </div>
+                
+                <!-- Members List Section -->
+                <div class="section">
+                    <h2>Household Members</h2>
+                    <div id="membersList">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Member Modal -->
+    <div id="editMemberModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2>Edit Member</h2>
+            <form id="editMemberForm">
+                <div id="editMemberError" class="error" style="display: none;"></div>
+                <div id="editMemberSuccess" class="success" style="display: none;"></div>
+                
+                <input type="hidden" id="editMemberId" name="memberId">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editFirstName">First Name *</label>
+                        <input type="text" id="editFirstName" name="firstName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editLastName">Last Name *</label>
+                        <input type="text" id="editLastName" name="lastName" required>
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editRelationship">Relationship *</label>
+                        <select id="editRelationship" name="relationship" required>
+                            <option value="head">Head of Household</option>
+                            <option value="spouse">Spouse</option>
+                            <option value="child">Child</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editStatus">Status</label>
+                        <select id="editStatus" name="status">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="deceased">Deceased</option>
+                            <option value="moved">Moved</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editBirthDate">Birth Date</label>
+                        <input type="date" id="editBirthDate" name="birthDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editPhone">Phone</label>
+                        <input type="tel" id="editPhone" name="phone">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editEmail">Email</label>
+                    <input type="email" id="editEmail" name="email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editNotes">Notes</label>
+                    <textarea id="editNotes" name="notes" rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="btn">Update Member</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '';
+        let currentHouseholdId = null;
+        let currentHousehold = null;
+        
+        // Get household ID from URL parameters
+        function getHouseholdId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+        
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            currentHouseholdId = getHouseholdId();
+            if (currentHouseholdId) {
+                loadHouseholdData();
+            } else {
+                showError('No household ID provided');
+            }
+        });
+        
+        // Load household data
+        async function loadHouseholdData() {
+            try {
+                const [householdsResponse, membersResponse] = await Promise.all([
+                    fetch(`${API_BASE_URL}/api/households`),
+                    fetch(`${API_BASE_URL}/api/members`)
+                ]);
+                
+                const householdsData = await householdsResponse.json();
+                const membersData = await membersResponse.json();
+                
+                const household = householdsData.households.find(h => h._id === currentHouseholdId);
+                const members = membersData.members.filter(m => m.householdId === currentHouseholdId);
+                
+                if (household) {
+                    currentHousehold = household;
+                    displayHouseholdInfo(household);
+                    displayMembers(members);
+                    
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('householdContent').style.display = 'block';
+                } else {
+                    showError('Household not found');
+                }
+            } catch (error) {
+                showError('Error loading household data');
+            }
+        }
+        
+        // Display household information
+        function displayHouseholdInfo(household) {
+            document.getElementById('householdTitle').textContent = `${household.lastName} Household`;
+            
+            const householdInfo = document.getElementById('householdInfo');
+            householdInfo.innerHTML = `
+                <h3>${household.lastName} Household</h3>
+                <div class="info-grid">
+                    ${household.address ? `
+                    <div class="info-item">
+                        <span class="info-label">Address</span>
+                        <span class="info-value">${household.address.street}${household.address.city ? `<br>${household.address.city}` : ''}${household.address.state ? `, ${household.address.state}` : ''}${household.address.zipCode ? ` ${household.address.zipCode}` : ''}</span>
+                    </div>` : ''}
+                    ${household.primaryPhone ? `
+                    <div class="info-item">
+                        <span class="info-label">Primary Phone</span>
+                        <span class="info-value">${household.primaryPhone}</span>
+                    </div>` : ''}
+                    ${household.email ? `
+                    <div class="info-item">
+                        <span class="info-label">Email</span>
+                        <span class="info-value">${household.email}</span>
+                    </div>` : ''}
+                </div>
+                ${household.notes ? `
+                <div class="info-item">
+                    <span class="info-label">Notes</span>
+                    <span class="info-value">${household.notes}</span>
+                </div>` : ''}
+            `;
+        }
+        
+        // Display members
+        function displayMembers(members) {
+            const membersList = document.getElementById('membersList');
+            
+            if (members.length === 0) {
+                membersList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No members added yet</h3>
+                        <p>Use the form above to add the first member to this household.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            membersList.innerHTML = members.map(member => `
+                <div class="member-card">
+                    <div class="member-header">
+                        <div class="member-name">${member.firstName} ${member.lastName}</div>
+                        <div>
+                            ${member.tags && member.tags.length > 0 ? member.tags.map(tag => `<span class="status-badge status-active">${tag}</span>`).join(' ') : ''}
+                            <button class="btn btn-small" onclick="editMember('${member._id}')">Edit</button>
+                        </div>
+                    </div>
+                    <div class="member-details">
+                        <div class="member-detail">
+                            <span class="detail-label">Relationship</span>
+                            <span class="detail-value">${member.relationship}</span>
+                        </div>
+                        <div class="member-detail">
+                            <span class="detail-label">Gender</span>
+                            <span class="detail-value">${member.gender}</span>
+                        </div>
+                        ${member.birthDate ? `
+                        <div class="member-detail">
+                            <span class="detail-label">Birth Date</span>
+                            <span class="detail-value">${new Date(member.birthDate).toLocaleDateString()}</span>
+                        </div>` : member.age ? `
+                        <div class="member-detail">
+                            <span class="detail-label">Age</span>
+                            <span class="detail-value">${member.age}</span>
+                        </div>` : ''}
+                        ${member.phone ? `
+                        <div class="member-detail">
+                            <span class="detail-label">Phone</span>
+                            <span class="detail-value">${member.phone}</span>
+                        </div>` : ''}
+                        ${member.email ? `
+                        <div class="member-detail">
+                            <span class="detail-label">Email</span>
+                            <span class="detail-value">${member.email}</span>
+                        </div>` : ''}
+                        ${member.notes ? `
+                        <div class="member-detail" style="grid-column: 1 / -1;">
+                            <span class="detail-label">Notes</span>
+                            <span class="detail-value">${member.notes}</span>
+                        </div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Member form submission
+        document.getElementById('memberForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            
+            // Get tags from checkboxes
+            const tags = Array.from(document.querySelectorAll('input[name="tags"]:checked')).map(cb => cb.value);
+            
+            const memberData = {
+                householdId: currentHouseholdId,
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                relationship: formData.get('relationship'),
+                gender: formData.get('gender'),
+                phone: formData.get('phone',
+                email: formData.get('email'),
+                notes: formData.get('notes'),
+                tags: tags
+            };
+            
+            // Add either age or birthDate, but not both
+            const birthDate = formData.get('birthDate');
+            const age = formData.get('age');
+            
+            if (birthDate) {
+                memberData.birthDate = birthDate;
+            } else if (age) {
+                memberData.age = parseInt(age);
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/members`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(memberData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showSuccess('memberSuccess', 'Member added successfully!');
+                    e.target.reset();
+                    loadHouseholdData();
+                } else {
+                    showError('memberError', result.message || 'Failed to add member');
+                }
+            } catch (error) {
+                showError('memberError', 'Error connecting to server');
+            }
+        });
+        
+        // Edit member
+        async function editMember(memberId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/members`);
+                const data = await response.json();
+                
+                const member = data.members.find(m => m._id === memberId);
+                if (!member) {
+                    alert('Member not found');
+                    return;
+                }
+                
+                // Populate edit form
+                document.getElementById('editMemberId').value = memberId;
+                document.getElementById('editFirstName').value = member.firstName;
+                document.getElementById('editLastName').value = member.lastName;
+                document.getElementById('editRelationship').value = member.relationship;
+                document.getElementById('editStatus').value = member.status;
+                document.getElementById('editBirthDate').value = member.birthDate || '';
+                document.getElementById('editPhone').value = member.phone || '';
+                document.getElementById('editEmail').value = member.email || '';
+                document.getElementById('editNotes').value = member.notes || '';
+                
+                // Show modal
+                document.getElementById('editMemberModal').style.display = 'block';
+            } catch (error) {
+                alert('Error loading member data');
+            }
+        }
+        
+        // Close edit modal
+        function closeEditModal() {
+            document.getElementById('editMemberModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('editMemberModal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+        }
+        
+        // Edit member form submission
+        document.getElementById('editMemberForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Note: This would require an update endpoint in the API
+            // For now, we'll just show a message
+            alert('Member editing will be implemented when the API has an update endpoint');
+            closeEditModal();
+        });
+        
+        // Utility functions
+        function showError(elementId, message) {
+            if (typeof elementId === 'string' && elementId.includes('Error')) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = message;
+                    element.style.display = 'block';
+                    setTimeout(() => {
+                        element.style.display = 'none';
+                    }, 5000);
+                }
+            } else {
+                // Show general error
+                document.getElementById('loadingState').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error</h3>
+                        <p>${elementId}</p>
+                        <button class="btn" onclick="location.reload()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+                element.style.display = 'block';
+                setTimeout(() => {
+                    element.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -9,9 +9,10 @@ erDiagram
     HOUSEHOLD {
         string id PK "Unique identifier"
         string lastName "Primary household surname"
-        object address "Complete address object"
-        string primaryPhone "Main contact number"
-        string notes "General household notes"
+        object address "Optional complete address object"
+        string primaryPhone "Optional main contact number"
+        string email "Optional household email"
+        string notes "Optional general household notes"
         datetime createdAt "Record creation timestamp"
         datetime updatedAt "Last modification timestamp"
     }
@@ -21,10 +22,13 @@ erDiagram
         string firstName "Member's first name"
         string lastName "Member's last name"
         string householdId FK "Reference to household"
-        string phone "Personal phone number"
-        string email "Email address"
-        string status "active|inactive|deceased|moved"
+        string phone "Optional personal phone number"
+        string email "Optional email address"
+        string gender "male|female"
+        array tags "Array of tags: member, attender, shut-in, etc."
         string relationship "head|spouse|child|other"
+        number age "Age in years (if birthDate unknown)"
+        date birthDate "Birth date (if age unknown)"
         datetime createdAt "Record creation timestamp"
         datetime updatedAt "Last modification timestamp"
     }
@@ -77,15 +81,16 @@ erDiagram
 ```javascript
 {
   _id: ObjectId,
-  lastName: String,
-  address: {
+  lastName: String, // Required
+  address: {        // Optional
     street: String,
     city: String,
     state: String,
     zipCode: String
   },
-  primaryPhone: String,
-  notes: String,
+  primaryPhone: String, // Optional
+  email: String,        // Optional
+  notes: String,        // Optional
   createdAt: Date,
   updatedAt: Date
 }
@@ -95,13 +100,16 @@ erDiagram
 ```javascript
 {
   _id: ObjectId,
-  firstName: String,
-  lastName: String,
-  householdId: ObjectId, // Reference to household
-  phone: String,
-  email: String,
-  status: String, // 'active', 'inactive', 'deceased', 'moved'
-  relationship: String, // 'head', 'spouse', 'child', 'other'
+  firstName: String,    // Required
+  lastName: String,     // Required
+  householdId: ObjectId, // Required - Reference to household
+  phone: String,        // Optional
+  email: String,        // Optional
+  gender: String,       // Required - 'male' or 'female'
+  tags: [String],       // Optional array - 'member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married'
+  relationship: String, // Required - 'head', 'spouse', 'child', 'other'
+  age: Number,         // Optional - use if birthDate unknown
+  birthDate: Date,     // Optional - use if age unknown
   createdAt: Date,
   updatedAt: Date
 }
@@ -163,8 +171,8 @@ erDiagram
 ## Indexing Strategy for Sengo
 
 Since sengo provides searchability, these fields should be indexed:
-- `households`: lastName, primaryPhone
-- `members`: firstName, lastName, householdId, status
+- `households`: lastName, primaryPhone, email
+- `members`: firstName, lastName, householdId, gender, tags, relationship
 - `contacts`: memberId, deaconId, contactDate
 - `deacons`: email, isActive
 - `assignments`: deaconId, householdId, isActive

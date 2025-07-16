@@ -51,10 +51,11 @@ async function serveStatic(c, filePath) {
   }
 }
 
+const db = sengo.db(process.env.S3_BUCKET || 'deacon-care-system')
 // Helper function to safely get collection data
 async function safeCollectionFind(collectionName, query = {}) {
   try {
-    const collection = sengo.db(process.env.S3_BUCKET || 'deacon-care-system').collection(collectionName)
+    const collection = db.collection(collectionName)
     const result = await collection.find(query).toArray()
     return result || []
   } catch (error) {
@@ -67,12 +68,37 @@ async function safeCollectionFind(collectionName, query = {}) {
 // Helper function to safely insert into collection
 async function safeCollectionInsert(collectionName, data) {
   try {
-    const collection = sengo.db(process.env.S3_BUCKET || 'deacon-care-system').collection(collectionName)
+    const collection = db.collection(collectionName)
     const result = await collection.insertOne(data)
     return result
   } catch (error) {
     console.error(`Error inserting into collection ${collectionName}:`, error)
     throw error
+  }
+}
+
+// Helper function to validate phone number requirement
+async function validatePhoneRequirement(householdId, excludeMemberId = null) {
+  try {
+    // Get household data
+    const households = await safeCollectionFind('households', { _id: householdId });
+    const household = households[0];
+    
+    // If household has a phone, we're good
+    if (household && household.primaryPhone) {
+      return true;
+    }
+    
+    // Check if any member has a phone
+    const members = await safeCollectionFind('members', { householdId });
+    const membersWithPhone = members.filter(member => 
+      member.phone && member._id !== excludeMemberId
+    );
+    
+    return membersWithPhone.length > 0;
+  } catch (error) {
+    console.error('Error validating phone requirement:', error);
+    return false;
   }
 }
 
@@ -119,7 +145,7 @@ export function createApp() {
       const body = await c.req.json()
       
       // Validate required fields according to schema
-      const requiredFields = ['firstName', 'lastName', 'householdId', 'relationship']
+      const requiredFields = ['firstName', 'lastName', 'householdId', 'relationship', 'gender']
       for (const field of requiredFields) {
         if (!body[field]) {
           return c.json({ 
@@ -138,23 +164,60 @@ export function createApp() {
         }, 400)
       }
       
-      // Validate status enum if provided
-      if (body.status) {
-        const validStatuses = ['active', 'inactive', 'deceased', 'moved']
-        if (!validStatuses.includes(body.status)) {
-          return c.json({ 
-            error: 'Validation failed',
-            message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
-          }, 400)
+      // Validate gender enum
+      const validGenders = ['male', 'female']
+      if (!validGenders.includes(body.gender)) {
+        return c.json({ 
+          error: 'Validation failed',
+          message: `Invalid gender. Must be one of: ${validGenders.join(', ')}`
+        }, 400)
+      }
+      
+      // Validate tags if provided
+      if (body.tags && Array.isArray(body.tags)) {
+        const validTags = ['member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married']
+        for (const tag of body.tags) {
+          if (!validTags.includes(tag)) {
+            return c.json({ 
+              error: 'Validation failed',
+              message: `Invalid tag "${tag}". Must be one of: ${validTags.join(', ')}`
+            }, 400)
+          }
         }
+      }
+      
+      // Validate age and birthDate - ensure only one is provided
+      if (body.age && body.birthDate) {
+        return c.json({ 
+          error: 'Validation failed',
+          message: 'Cannot provide both age and birthDate. Please provide only one.'
+        }, 400)
+      }
+      
+      if (body.age && (body.age < 0 || body.age > 150)) {
+        return c.json({ 
+          error: 'Validation failed',
+          message: 'Age must be between 0 and 150'
+        }, 400)
       }
       
       // Add timestamp and default values
       const memberData = {
         ...body,
-        status: body.status || 'active',
+        tags: body.tags || [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
+      }
+      
+      // Validate phone requirement: household must have at least one phone number
+      if (!body.phone) {
+        const hasPhoneNumber = await validatePhoneRequirement(body.householdId);
+        if (!hasPhoneNumber) {
+          return c.json({ 
+            error: 'Validation failed',
+            message: 'At least one phone number is required per household. Please provide a phone number for this member or add one to the household.'
+          }, 400)
+        }
       }
       
       // Insert member into S3 using sengo
@@ -195,8 +258,8 @@ export function createApp() {
     try {
       const body = await c.req.json()
       
-      // Validate required fields according to schema
-      const requiredFields = ['lastName', 'address', 'primaryPhone']
+      // Validate required fields - only lastName is required now
+      const requiredFields = ['lastName']
       for (const field of requiredFields) {
         if (!body[field]) {
           return c.json({ 
@@ -206,21 +269,24 @@ export function createApp() {
         }
       }
       
-      // Validate address structure
-      if (!body.address || typeof body.address !== 'object') {
-        return c.json({ 
-          error: 'Validation failed',
-          message: 'Address must be an object'
-        }, 400)
-      }
-      
-      const requiredAddressFields = ['street', 'city', 'state', 'zipCode']
-      for (const field of requiredAddressFields) {
-        if (!body.address[field]) {
+      // Validate address structure if provided
+      if (body.address) {
+        if (typeof body.address !== 'object') {
           return c.json({ 
             error: 'Validation failed',
-            message: `Missing required address field: ${field}`
+            message: 'Address must be an object'
           }, 400)
+        }
+        
+        // If address is provided, validate it has the required fields
+        const requiredAddressFields = ['street', 'city', 'state', 'zipCode']
+        for (const field of requiredAddressFields) {
+          if (!body.address[field]) {
+            return c.json({ 
+              error: 'Validation failed',
+              message: `Missing required address field: ${field}`
+            }, 400)
+          }
         }
       }
       
@@ -503,6 +569,14 @@ export function createApp() {
 
   app.get('/deacons.html', async (c) => {
     return await serveStatic(c, 'deacons.html')
+  })
+
+  app.get('/households.html', async (c) => {
+    return await serveStatic(c, 'households.html')
+  })
+
+  app.get('/household.html', async (c) => {
+    return await serveStatic(c, 'household.html')
   })
 
   app.get('/favicon.ico', async (c) => {
