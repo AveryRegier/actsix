@@ -59,17 +59,24 @@ test('api endpoints work correctly', async () => {
   const { createApp } = await import('../src/api.js')
   const app = createApp()
   
-  // Test health check
-  const healthResponse = await app.request('/')
+  // Test health check (now at /api)
+  const healthResponse = await app.request('/api')
   const healthJson = await healthResponse.json()
   
   expect(healthJson.message).toBe('Deacon Care System API')
   expect(healthJson.status).toBe('healthy')
   
-  // Test hello endpoint
-  const helloResponse = await app.request('/hello')
+  // Test hello endpoint (now at /api/hello)
+  const helloResponse = await app.request('/api/hello')
   const helloJson = await helloResponse.json()
   
   expect(helloJson.message).toBe('Hello from Deacon Care System!')
   expect(helloJson.version).toBe('1.0.0')
+  
+  // Test that root path serves HTML (not JSON)
+  const rootResponse = await app.request('/')
+  const rootText = await rootResponse.text()
+  
+  expect(rootText).toContain('<!DOCTYPE html>')
+  expect(rootText).toContain('Deacon Care System')
 }, 10000) // 10 second timeout

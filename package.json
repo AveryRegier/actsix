@@ -45,6 +45,6 @@
   "dependencies": {
     "hono": "^4.8.4",
     "pino": "^9.7.0",
-    "sengo": "file:../sengo/client"
+    "sengo": "file:../sengo/client/dist"
   }
 }

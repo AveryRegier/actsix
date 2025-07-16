@@ -1,19 +1,86 @@
 import { Hono } from 'hono'
 import { SengoClient } from 'sengo'
+import { readFileSync } from 'fs'
+import { join, extname, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 // Initialize sengo client for S3 data storage
 const sengo = new SengoClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  bucket: process.env.S3_BUCKET || 'deacon-care-system',
-  // Note: In production, use proper AWS credentials
-  // For local development, you can use AWS CLI credentials
+  logger: { level: 'info' }
 })
+
+// MIME types for static files
+const mimeTypes = {
+  '.html': 'text/html',
+  '.css': 'text/css',
+  '.js': 'application/javascript',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon'
+}
+
+// Static file serving middleware
+async function serveStatic(c, filePath) {
+  try {
+    const siteDir = join(__dirname, '..', 'site')
+    const fullPath = join(siteDir, filePath)
+    
+    // Security check - ensure file is within site directory
+    if (!fullPath.startsWith(siteDir)) {
+      return c.text('403 Forbidden', 403)
+    }
+    
+    const content = readFileSync(fullPath)
+    const ext = extname(filePath).toLowerCase()
+    const contentType = mimeTypes[ext] || 'application/octet-stream'
+    
+    c.header('Content-Type', contentType)
+    return c.body(content)
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return c.text('404 Not Found', 404)
+    }
+    return c.text('500 Internal Server Error', 500)
+  }
+}
+
+// Helper function to safely get collection data
+async function safeCollectionFind(collectionName, query = {}) {
+  try {
+    const collection = sengo.db(process.env.S3_BUCKET || 'deacon-care-system').collection(collectionName)
+    const result = await collection.find(query).toArray()
+    return result || []
+  } catch (error) {
+    console.error(`Error accessing collection ${collectionName}:`, error)
+    // Return empty array if collection doesn't exist or has issues
+    return []
+  }
+}
+
+// Helper function to safely insert into collection
+async function safeCollectionInsert(collectionName, data) {
+  try {
+    const collection = sengo.db(process.env.S3_BUCKET || 'deacon-care-system').collection(collectionName)
+    const result = await collection.insertOne(data)
+    return result
+  } catch (error) {
+    console.error(`Error inserting into collection ${collectionName}:`, error)
+    throw error
+  }
+}
 
 export function createApp() {
   const app = new Hono()
 
-  // Health check endpoint
-  app.get('/', (c) => {
+  // API Health check endpoint
+  app.get('/api', (c) => {
     return c.json({ 
       message: 'Deacon Care System API',
       status: 'healthy',
@@ -22,7 +89,7 @@ export function createApp() {
   })
 
   // Hello world endpoint
-  app.get('/hello', (c) => {
+  app.get('/api/hello', (c) => {
     return c.json({ 
       message: 'Hello from Deacon Care System!',
       version: '1.0.0'
@@ -33,7 +100,7 @@ export function createApp() {
   app.get('/api/members', async (c) => {
     try {
       // Get all members from S3 using sengo
-      const members = await sengo.db().collection('members').find().toArray()
+      const members = await safeCollectionFind('members')
       return c.json({ 
         members,
         count: members.length
@@ -91,7 +158,7 @@ export function createApp() {
       }
       
       // Insert member into S3 using sengo
-      const result = await sengo.db().collection('members').insertOne(memberData)
+      const result = await safeCollectionInsert('members', memberData)
       
       return c.json({ 
         message: 'Member created successfully',
@@ -110,7 +177,7 @@ export function createApp() {
   app.get('/api/households', async (c) => {
     try {
       // Get all households from S3 using sengo
-      const households = await sengo.db().collection('households').find().toArray()
+      const households = await safeCollectionFind('households')
       return c.json({ 
         households,
         count: households.length
@@ -165,7 +232,7 @@ export function createApp() {
       }
       
       // Insert household into S3 using sengo
-      const result = await sengo.db().collection('households').insertOne(householdData)
+      const result = await safeCollectionInsert('households', householdData)
       
       return c.json({ 
         message: 'Household created successfully',
@@ -185,7 +252,7 @@ export function createApp() {
   app.get('/api/contacts', async (c) => {
     try {
       // Get all contact logs from S3 using sengo
-      const contacts = await sengo.db().collection('contacts').find().toArray()
+      const contacts = await safeCollectionFind('contacts')
       return c.json({ 
         contacts,
         count: contacts.length
@@ -231,7 +298,7 @@ export function createApp() {
       }
       
       // Insert contact log into S3 using sengo
-      const result = await sengo.db().collection('contacts').insertOne(contactData)
+      const result = await safeCollectionInsert('contacts', contactData)
       
       return c.json({ 
         message: 'Contact log created successfully',
@@ -251,7 +318,7 @@ export function createApp() {
   app.get('/api/deacons', async (c) => {
     try {
       // Get all deacons from S3 using sengo
-      const deacons = await sengo.db().collection('deacons').find().toArray()
+      const deacons = await safeCollectionFind('deacons')
       return c.json({ 
         deacons,
         count: deacons.length
@@ -289,7 +356,7 @@ export function createApp() {
       }
       
       // Insert deacon into S3 using sengo
-      const result = await sengo.db().collection('deacons').insertOne(deaconData)
+      const result = await safeCollectionInsert('deacons', deaconData)
       
       return c.json({ 
         message: 'Deacon created successfully',
@@ -309,7 +376,7 @@ export function createApp() {
   app.get('/api/assignments', async (c) => {
     try {
       // Get all assignments from S3 using sengo
-      const assignments = await sengo.db().collection('assignments').find().toArray()
+      const assignments = await safeCollectionFind('assignments')
       return c.json({ 
         assignments,
         count: assignments.length
@@ -347,7 +414,7 @@ export function createApp() {
       }
       
       // Insert assignment into S3 using sengo
-      const result = await sengo.db().collection('assignments').insertOne(assignmentData)
+      const result = await safeCollectionInsert('assignments', assignmentData)
       
       return c.json({ 
         message: 'Assignment created successfully',
@@ -369,9 +436,7 @@ export function createApp() {
       const deaconId = c.req.param('deaconId')
       
       // Get assignments for specific deacon from S3 using sengo
-      const assignments = await sengo.db().collection('assignments')
-        .find({ deaconId })
-        .toArray()
+      const assignments = await safeCollectionFind('assignments', { deaconId })
       
       return c.json({ 
         deaconId,
@@ -393,9 +458,7 @@ export function createApp() {
       const householdId = c.req.param('householdId')
       
       // Get members for specific household from S3 using sengo
-      const members = await sengo.db().collection('members')
-        .find({ householdId })
-        .toArray()
+      const members = await safeCollectionFind('members', { householdId })
       
       return c.json({ 
         householdId,
@@ -417,9 +480,7 @@ export function createApp() {
       const memberId = c.req.param('memberId')
       
       // Get contacts for specific member from S3 using sengo
-      const contacts = await sengo.db().collection('contacts')
-        .find({ memberId })
-        .toArray()
+      const contacts = await safeCollectionFind('contacts', { memberId })
       
       return c.json({ 
         memberId,
@@ -435,6 +496,33 @@ export function createApp() {
     }
   })
 
+  // Static file serving routes (serve the site)
+  app.get('/', async (c) => {
+    return await serveStatic(c, 'index.html')
+  })
+
+  app.get('/deacons.html', async (c) => {
+    return await serveStatic(c, 'deacons.html')
+  })
+
+  app.get('/favicon.ico', async (c) => {
+    return await serveStatic(c, 'favicon.ico')
+  })
+
+  // Generic static file handler for other assets
+  app.get('/:filename', async (c) => {
+    const filename = c.req.param('filename')
+    // Only serve specific file types for security
+    const allowedExtensions = ['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico']
+    const ext = extname(filename).toLowerCase()
+    
+    if (allowedExtensions.includes(ext)) {
+      return await serveStatic(c, filename)
+    }
+    
+    return c.text('404 Not Found', 404)
+  })
+
   // Error handling
   app.onError((err, c) => {
     console.error('Error:', err)
@@ -444,7 +532,7 @@ export function createApp() {
     }, 500)
   })
 
-  // 404 handler
+  // 404 handler for unmatched routes
   app.notFound((c) => {
     return c.json({ 
       error: 'Not Found',
