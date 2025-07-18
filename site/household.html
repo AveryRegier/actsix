@@ -370,7 +370,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <a href="households.html" class="back-link">← Back to Households</a>
+            <a href="members.html" class="back-link">← Back to Members</a>
             <h1 id="householdTitle">Household Details</h1>
             <p>Manage household members and information</p>
         </div>
@@ -392,104 +392,7 @@
                 
                 <!-- Add Member Section -->
                 <div class="section">
-                    <h2>Add New Member</h2>
-                    <form id="memberForm">
-                        <div id="memberError" class="error" style="display: none;"></div>
-                        <div id="memberSuccess" class="success" style="display: none;"></div>
-                        
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="firstName">First Name *</label>
-                                <input type="text" id="firstName" name="firstName" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="lastName">Last Name *</label>
-                                <input type="text" id="lastName" name="lastName" required>
-                            </div>
-                        </div>
-                        
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="gender">Gender *</label>
-                                <select id="gender" name="gender" required>
-                                    <option value="">Select gender...</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="relationship">Relationship *</label>
-                                <select id="relationship" name="relationship" required>
-                                    <option value="">Select relationship...</option>
-                                    <option value="head">Head of Household</option>
-                                    <option value="spouse">Spouse</option>
-                                    <option value="child">Child</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="birthDate">Birth Date</label>
-                                <input type="date" id="birthDate" name="birthDate">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="age">Age (if birth date unknown)</label>
-                                <input type="number" id="age" name="age" min="0" max="150" placeholder="Enter age">
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="phone">Phone</label>
-                            <input type="tel" id="phone" name="phone" placeholder="Individual phone number">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="tags">Tags</label>
-                            <div class="tags-container">
-                                <label class="tag-checkbox">
-                                    <input type="checkbox" name="tags" value="member"> Member
-                                </label>
-                                <label class="tag-checkbox">
-                                    <input type="checkbox" name="tags" value="attender"> Attender
-                                </label>
-                                <label class="tag-checkbox">
-                                    <input type="checkbox" name="tags" value="shut-in"> Shut-in
-                                </label>
-                                <label class="tag-checkbox">
-                                    <input type="checkbox" name="tags" value="cancer"> Cancer
-                                </label>
-                                <label class="tag-checkbox">
-                                    <input type="checkbox" name="tags" value="long-term-needs"> Long-term Needs
-                                </label>
-                                <label class="tag-checkbox">
-                                    <input type="checkbox" name="tags" value="widow"> Widow
-                                </label>
-                                <label class="tag-checkbox">
-                                    <input type="checkbox" name="tags" value="widower"> Widower
-                                </label>
-                                <label class="tag-checkbox">
-                                    <input type="checkbox" name="tags" value="married"> Married
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" id="email" name="email">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="notes">Notes</label>
-                            <textarea id="notes" name="notes" rows="3"></textarea>
-                        </div>
-                        
-                        <button type="submit" class="btn">Add Member</button>
-                    </form>
+                    <a href="edit-member.html?householdId=" id="addMemberBtn" class="btn" style="display:inline-block;margin-bottom:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Add New Member</a>
                 </div>
                 
                 <!-- Members List Section -->
@@ -565,30 +468,30 @@
                 
                 <div class="form-group">
                     <label for="editTags">Tags</label>
-                    <div class="tags-container" id="editTagsContainer">
-                        <label class="tag-checkbox">
-                            <input type="checkbox" name="editTags" value="member"> Member
+                    <div class="tags-container" id="editTagsContainer" style="display:flex;flex-wrap:wrap;gap:10px;">
+                        <label class="status-badge tag-checkbox" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="checkbox" name="editTags" value="member" style="margin:0;vertical-align:middle;"> Member
                         </label>
-                        <label class="tag-checkbox">
-                            <input type="checkbox" name="editTags" value="attender"> Attender
+                        <label class="status-badge tag-checkbox" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="checkbox" name="editTags" value="attender" style="margin:0;vertical-align:middle;"> Attender
                         </label>
-                        <label class="tag-checkbox">
-                            <input type="checkbox" name="editTags" value="shut-in"> Shut-in
+                        <label class="status-badge tag-checkbox" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="checkbox" name="editTags" value="shut-in" style="margin:0;vertical-align:middle;"> Shut-in
                         </label>
-                        <label class="tag-checkbox">
-                            <input type="checkbox" name="editTags" value="cancer"> Cancer
+                        <label class="status-badge tag-checkbox" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="checkbox" name="editTags" value="cancer" style="margin:0;vertical-align:middle;"> Cancer
                         </label>
-                        <label class="tag-checkbox">
-                            <input type="checkbox" name="editTags" value="long-term-needs"> Long-term Needs
+                        <label class="status-badge tag-checkbox" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="checkbox" name="editTags" value="long-term-needs" style="margin:0;vertical-align:middle;"> Long-term Needs
                         </label>
-                        <label class="tag-checkbox">
-                            <input type="checkbox" name="editTags" value="widow"> Widow
+                        <label class="status-badge tag-checkbox" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="checkbox" name="editTags" value="widow" style="margin:0;vertical-align:middle;"> Widow
                         </label>
-                        <label class="tag-checkbox">
-                            <input type="checkbox" name="editTags" value="widower"> Widower
+                        <label class="status-badge tag-checkbox" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="checkbox" name="editTags" value="widower" style="margin:0;vertical-align:middle;"> Widower
                         </label>
-                        <label class="tag-checkbox">
-                            <input type="checkbox" name="editTags" value="married"> Married
+                        <label class="status-badge tag-checkbox" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="checkbox" name="editTags" value="married" style="margin:0;vertical-align:middle;"> Married
                         </label>
                     </div>
                 </div>
@@ -625,6 +528,8 @@
             currentHouseholdId = getHouseholdId();
             if (currentHouseholdId) {
                 loadHouseholdData();
+                // Set add member link
+                document.getElementById('addMemberBtn').href = `edit-member.html?householdId=${currentHouseholdId}`;
             } else {
                 showError('No household ID provided');
             }
@@ -694,24 +599,22 @@
         // Display members
         function displayMembers(members) {
             const membersList = document.getElementById('membersList');
-            
             if (members.length === 0) {
                 membersList.innerHTML = `
                     <div class="empty-state">
                         <h3>No members added yet</h3>
-                        <p>Use the form above to add the first member to this household.</p>
+                        <p>Use the button above to add the first member to this household.</p>
                     </div>
                 `;
                 return;
             }
-            
             membersList.innerHTML = members.map(member => `
                 <div class="member-card">
                     <div class="member-header">
                         <div class="member-name">${member.firstName} ${member.lastName}</div>
                         <div>
                             ${member.tags && member.tags.length > 0 ? member.tags.map(tag => `<span class="status-badge status-active">${tag}</span>`).join(' ') : ''}
-                            <button class="btn btn-small" onclick="editMember('${member._id}')">Edit</button>
+                            <a href="edit-member.html?householdId=${member.householdId}&memberId=${member._id}" class="btn btn-small">Edit</a>
                         </div>
                     </div>
                     <div class="member-details">

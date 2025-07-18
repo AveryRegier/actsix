@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add/Edit Member - Deacon Care System</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f9fa; min-height: 100vh; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); padding: 30px; }
+        h1 { font-size: 1.7em; color: #667eea; margin-bottom: 10px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; }
+        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 1em; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; }
+        .tag-checkboxes label { margin-right: 12px; margin-bottom: 6px; display: inline-block; }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; background: #e9ecef; color: #333; margin-right: 4px; }
+        .btn { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 1em; cursor: pointer; }
+        .btn:hover { box-shadow: 0 5px 15px rgba(102,126,234,0.2); }
+        .btn-secondary { background: #6c757d; margin-left: 10px; }
+        .btn-secondary:hover { box-shadow: 0 5px 15px rgba(108,117,125,0.2); }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
+        .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="formTitle">Add Member</h1>
+        <form id="memberForm">
+            <div id="formError" class="error" style="display:none;"></div>
+            <div id="formSuccess" class="success" style="display:none;"></div>
+            <input type="hidden" id="memberId" name="memberId">
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" name="firstName" required>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" name="lastName" required>
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="text" id="phone" name="phone">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email">
+            </div>
+            <div class="form-group">
+                <label for="gender">Gender</label>
+                <select id="gender" name="gender" required>
+                    <option value="">Select</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="relationship">Relationship</label>
+                <select id="relationship" name="relationship" required>
+                    <option value="head">Head</option>
+                    <option value="spouse">Spouse</option>
+                    <option value="child">Child</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Tags</label>
+                <div class="tag-checkboxes">
+                    <label><input type="checkbox" name="tags" value="deacon"> <span class="status-badge">Deacon</span></label>
+                    <label><input type="checkbox" name="tags" value="elder"> <span class="status-badge">Elder</span></label>
+                    <label><input type="checkbox" name="tags" value="staff"> <span class="status-badge">Staff</span></label>
+                    <label><input type="checkbox" name="tags" value="member"> <span class="status-badge">Member</span></label>
+                    <label><input type="checkbox" name="tags" value="attender"> <span class="status-badge">Attender</span></label>
+                    <label><input type="checkbox" name="tags" value="shut-in"> <span class="status-badge">Shut-in</span></label>
+                    <label><input type="checkbox" name="tags" value="cancer"> <span class="status-badge">Cancer</span></label>
+                    <label><input type="checkbox" name="tags" value="long-term-needs"> <span class="status-badge">Long-term Needs</span></label>
+                </div>
+            </div>
+            <button class="btn" type="submit" id="saveBtn">Save Member</button>
+            <a href="#" class="btn btn-secondary" id="cancelBtn">Cancel</a>
+        </form>
+    </div>
+    <script>
+    // Get memberId and householdId from query params
+    function getParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return {
+            memberId: urlParams.get('memberId'),
+            householdId: urlParams.get('householdId')
+        };
+    }
+    const { memberId, householdId } = getParams();
+    // If editing, load member data after DOM is ready
+    if (memberId) {
+        window.onload = function() {
+            document.getElementById('formTitle').textContent = 'Edit Member';
+            fetch(`/api/members/${memberId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const member = data.member || data;
+                    console.log('Loaded member:', member);
+                    document.getElementById('memberId').value = member._id || '';
+                    document.getElementById('firstName').value = member.firstName || '';
+                    document.getElementById('lastName').value = member.lastName || '';
+                    document.getElementById('phone').value = member.phone || '';
+                    document.getElementById('email').value = member.email || '';
+                    document.getElementById('gender').value = member.gender || '';
+                    document.getElementById('relationship').value = member.relationship || '';
+                    // Set tags
+                    var tags = member.tags || [];
+                    Array.from(document.querySelectorAll('input[name="tags"]')).forEach(cb => {
+                        cb.checked = tags.includes(cb.value);
+                    });
+                })
+                .catch(() => {
+                    document.getElementById('formError').textContent = 'Could not load member data.';
+                    document.getElementById('formError').style.display = 'block';
+                });
+        };
+    }
+    // Save handler
+    document.getElementById('memberForm').onsubmit = async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const member = {
+            firstName: form.firstName.value,
+            lastName: form.lastName.value,
+            phone: form.phone.value,
+            email: form.email.value,
+            gender: form.gender.value,
+            relationship: form.relationship.value,
+            tags: Array.from(form.querySelectorAll('input[name="tags"]:checked')).map(cb => cb.value)
+        };
+        let url = '/api/members';
+        let method = 'POST';
+        if (memberId) {
+            url = `/api/members/${memberId}`;
+            method = 'PUT';
+        } else {
+            // For new member, need householdId
+            member.householdId = householdId;
+        }
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(member)
+            });
+            if (res.ok) {
+                document.getElementById('formSuccess').style.display = 'block';
+                setTimeout(() => {
+                    window.location.href = `household.html?id=${householdId}`;
+                }, 800);
+            } else {
+                const data = await res.json();
+                document.getElementById('formError').textContent = data.message || 'Error saving member.';
+                document.getElementById('formError').style.display = 'block';
+            }
+        } catch (err) {
+            document.getElementById('formError').textContent = 'Error saving member.';
+            document.getElementById('formError').style.display = 'block';
+        }
+    };
+    // Cancel handler
+    document.getElementById('cancelBtn').onclick = function(e) {
+        e.preventDefault();
+        window.location.href = `household.html?id=${householdId}`;
+    };
+    </script>
+</body>
+</html>

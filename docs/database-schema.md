@@ -45,34 +45,20 @@ erDiagram
         datetime createdAt "Record creation timestamp"
     }
     
-    DEACON {
-        string id PK "Unique identifier"
-        string firstName "Deacon's first name"
-        string lastName "Deacon's last name"
-        string email "Email address"
-        string phone "Phone number"
-        boolean isActive "Whether deacon is currently active"
-        string notes "Assignment-specific notes"
-        datetime createdAt "Record creation timestamp"
-        datetime updatedAt "Last modification timestamp"
-    }
-    
     ASSIGNMENT {
         string id PK "Unique identifier"
-        string deaconId FK "Reference to assigned deacon"
+        string deaconMemberId FK "Reference to assigned member (tagged 'deacon')"
         string householdId FK "Reference to assigned household"
         boolean isActive "Whether assignment is current"
         string notes "Assignment-specific notes"
         datetime createdAt "Record creation timestamp"
         datetime updatedAt "Last modification timestamp"
     }
-    
+
     %% Relationships
     HOUSEHOLD ||--o{ MEMBER : "contains"
     MEMBER ||--o{ CONTACT : "receives"
-    DEACON ||--o{ CONTACT : "makes"
-    DEACON ||--o{ ASSIGNMENT : "responsible_for"
-    HOUSEHOLD ||--o{ ASSIGNMENT : "assigned_to"
+    MEMBER ||--o{ ASSIGNMENT : "can_be_deacon_assigned"
 ```
 
 ## Collection Schemas for Sengo
@@ -130,25 +116,13 @@ erDiagram
 }
 ```
 
-### Deacons Collection
-```javascript
-{
-  _id: ObjectId,
-  firstName: String,
-  lastName: String,
-  email: String,
-  phone: String,
-  isActive: Boolean,
-  createdAt: Date,
-  updatedAt: Date
-}
-```
+
 
 ### Assignments Collection
 ```javascript
 {
   _id: ObjectId,
-  deaconId: ObjectId, // Reference to deacon
+  deaconMemberId: ObjectId, // Reference to member with tag 'deacon'
   householdId: ObjectId, // Reference to household
   isActive: Boolean,
   notes: String,
@@ -161,7 +135,7 @@ erDiagram
 
 1. **Document-Based Storage**: Optimized for sengo's S3-based document storage
 2. **Denormalized Data**: Some redundancy for read performance (common in NoSQL)
-3. **Flexible Assignment Model**: Deacons are assigned to households, not individual members
+3. **Deacons Are Members**: Deacons are represented as members with a 'deacon' tag; assignments reference member IDs.
 4. **Audit Trail**: CreatedAt/updatedAt timestamps on all entities
 5. **Soft Deletes**: Status fields instead of hard deletes for data integrity
 6. **Contact Tracking**: Simple contact tracking for deacon accountability
@@ -173,6 +147,5 @@ erDiagram
 Since sengo provides searchability, these fields should be indexed:
 - `households`: lastName, primaryPhone, email
 - `members`: firstName, lastName, householdId, gender, tags, relationship
-- `contacts`: memberId, deaconId, contactDate
-- `deacons`: email, isActive
-- `assignments`: deaconId, householdId, isActive
+- `contacts`: memberId, deaconMemberId, contactDate
+- `assignments`: deaconMemberId, householdId, isActive

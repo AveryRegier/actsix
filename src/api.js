@@ -140,6 +140,29 @@ export function createApp() {
     }
   })
 
+  
+  // Get a single member by ID
+  app.get('/api/members/:id', async (c) => {
+    try {
+      const memberId = c.req.param('id');
+      const members = await safeCollectionFind('members', { _id: memberId });
+      const member = members[0];
+      if (!member) {
+        return c.json({
+          error: 'Member not found',
+          message: 'No member found with the given ID.'
+        }, 404);
+      }
+      return c.json({ member });
+    } catch (error) {
+      console.error('Error fetching member:', error);
+      return c.json({
+        error: 'Failed to fetch member',
+        message: error.message
+      }, 500);
+    }
+  });
+
   app.post('/api/members', async (c) => {
     try {
       const body = await c.req.json()
@@ -175,7 +198,7 @@ export function createApp() {
       
       // Validate tags if provided
       if (body.tags && Array.isArray(body.tags)) {
-        const validTags = ['member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married']
+        const validTags = ['deacon', 'elder', 'staff', 'member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married']
         for (const tag of body.tags) {
           if (!validTags.includes(tag)) {
             return c.json({ 
@@ -274,7 +297,7 @@ export function createApp() {
       
       // Validate tags if provided
       if (body.tags && Array.isArray(body.tags)) {
-        const validTags = ['member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married']
+        const validTags = ['deacon', 'elder', 'staff', 'member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married']
         for (const tag of body.tags) {
           if (!validTags.includes(tag)) {
             return c.json({ 
@@ -451,9 +474,8 @@ export function createApp() {
   app.post('/api/contacts', async (c) => {
     try {
       const body = await c.req.json()
-      
       // Validate required fields according to schema
-      const requiredFields = ['memberId', 'deaconId', 'contactType', 'summary', 'contactDate']
+      const requiredFields = ['memberId', 'deaconMemberId', 'contactType', 'summary', 'contactDate']
       for (const field of requiredFields) {
         if (!body[field]) {
           return c.json({ 
@@ -462,7 +484,6 @@ export function createApp() {
           }, 400)
         }
       }
-      
       // Validate contactType enum
       const validContactTypes = ['phone', 'visit', 'email', 'text']
       if (!validContactTypes.includes(body.contactType)) {
@@ -471,17 +492,14 @@ export function createApp() {
           message: `Invalid contactType. Must be one of: ${validContactTypes.join(', ')}`
         }, 400)
       }
-      
       // Add timestamp and generate ID
       const contactData = {
         ...body,
         followUpRequired: body.followUpRequired || false,
         createdAt: new Date().toISOString()
       }
-      
       // Insert contact log into S3 using sengo
       const result = await safeCollectionInsert('contacts', contactData)
-      
       return c.json({ 
         message: 'Contact log created successfully',
         id: result.insertedId,
@@ -496,64 +514,23 @@ export function createApp() {
     }
   })
 
-  // Deacon endpoints
+  // Get members with the 'deacon' tag
   app.get('/api/deacons', async (c) => {
     try {
-      // Get all deacons from S3 using sengo
-      const deacons = await safeCollectionFind('deacons')
-      return c.json({ 
-        deacons,
-        count: deacons.length
+      const members = await safeCollectionFind('members', { tags: { $in: ['deacon'] } })
+      return c.json({
+        deacons: members,
+        count: members.length
       })
     } catch (error) {
       console.error('Error fetching deacons:', error)
-      return c.json({ 
+      return c.json({
         error: 'Failed to fetch deacons',
-        message: error.message 
+        message: error.message
       }, 500)
     }
   })
-
-  app.post('/api/deacons', async (c) => {
-    try {
-      const body = await c.req.json()
-      
-      // Validate required fields according to schema
-      const requiredFields = ['firstName', 'lastName', 'email', 'phone']
-      for (const field of requiredFields) {
-        if (!body[field]) {
-          return c.json({ 
-            error: 'Validation failed',
-            message: `Missing required field: ${field}`
-          }, 400)
-        }
-      }
-      
-      // Add timestamp and default values
-      const deaconData = {
-        ...body,
-        isActive: body.isActive !== undefined ? body.isActive : true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-      
-      // Insert deacon into S3 using sengo
-      const result = await safeCollectionInsert('deacons', deaconData)
-      
-      return c.json({ 
-        message: 'Deacon created successfully',
-        id: result.insertedId,
-        deacon: deaconData
-      })
-    } catch (error) {
-      console.error('Error creating deacon:', error)
-      return c.json({ 
-        error: 'Failed to create deacon',
-        message: error.message 
-      }, 500)
-    }
-  })
-
+  
   // Assignment endpoints
   app.get('/api/assignments', async (c) => {
     try {
@@ -575,9 +552,8 @@ export function createApp() {
   app.post('/api/assignments', async (c) => {
     try {
       const body = await c.req.json()
-      
       // Validate required fields according to schema
-      const requiredFields = ['deaconId', 'householdId']
+      const requiredFields = ['deaconMemberId', 'householdId']
       for (const field of requiredFields) {
         if (!body[field]) {
           return c.json({ 
@@ -586,7 +562,6 @@ export function createApp() {
           }, 400)
         }
       }
-      
       // Add timestamp and default values
       const assignmentData = {
         ...body,
@@ -594,10 +569,8 @@ export function createApp() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
-      
       // Insert assignment into S3 using sengo
       const result = await safeCollectionInsert('assignments', assignmentData)
-      
       return c.json({ 
         message: 'Assignment created successfully',
         id: result.insertedId,
@@ -613,15 +586,13 @@ export function createApp() {
   })
 
   // Deacon assignments endpoint (specific deacon's assignments)
-  app.get('/api/deacons/:deaconId/assignments', async (c) => {
+  app.get('/api/members/:deaconMemberId/assignments', async (c) => {
     try {
-      const deaconId = c.req.param('deaconId')
-      
-      // Get assignments for specific deacon from S3 using sengo
-      const assignments = await safeCollectionFind('assignments', { deaconId })
-      
+      const deaconMemberId = c.req.param('deaconMemberId')
+      // Get assignments for specific deacon-member from S3 using sengo
+      const assignments = await safeCollectionFind('assignments', { deaconMemberId })
       return c.json({ 
-        deaconId,
+        deaconMemberId,
         assignments,
         count: assignments.length
       })
@@ -685,10 +656,6 @@ export function createApp() {
 
   app.get('/deacons.html', async (c) => {
     return await serveStatic(c, 'deacons.html')
-  })
-
-  app.get('/households.html', async (c) => {
-    return await serveStatic(c, 'households.html')
   })
 
   app.get('/household.html', async (c) => {

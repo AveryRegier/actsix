@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Members - Deacon Care System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            padding: 30px;
+        }
+        h1 {
+            font-size: 2em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            text-align: left;
+        }
+        th {
+            background: #f1f3f6;
+            cursor: pointer;
+            font-weight: 600;
+            color: #333;
+        }
+        a.member-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        a.member-link:hover {
+            text-decoration: underline;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            background: #e9ecef;
+            color: #333;
+            margin-right: 4px;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            th, td { padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Members</h1>
+        <p class="subtitle">View and manage church members. Click a name for details and family management.</p>
+        <table id="memberTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable('lastName')">Last Name &#x25B2;&#x25BC;</th>
+                    <th onclick="sortTable('firstName')">First Name &#x25B2;&#x25BC;</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Tags</th>
+                </tr>
+            </thead>
+            <tbody id="memberTableBody"></tbody>
+        </table>
+        <a href="edit-member.html" class="btn" style="display:inline-block;margin-top:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Add New Member</a>
+    </div>
+    <script>
+    let membersCache = [];
+    let currentSort = { key: 'lastName', asc: true };
+    async function fetchMembers() {
+        const res = await fetch('/api/members');
+        const data = await res.json();
+        return data.members || [];
+    }
+    function sortTable(key) {
+        if (currentSort.key === key) {
+            currentSort.asc = !currentSort.asc;
+        } else {
+            currentSort.key = key;
+            currentSort.asc = true;
+        }
+        renderMemberTable();
+    }
+    async function renderMemberTable() {
+        if (!membersCache.length) {
+            membersCache = await fetchMembers();
+        }
+        const tbody = document.getElementById('memberTableBody');
+        if (!membersCache.length) {
+            tbody.innerHTML = '<tr><td colspan="5">No members found.</td></tr>';
+            return;
+        }
+        membersCache.sort((a, b) => {
+            let ka = (a[currentSort.key] || '').toLowerCase();
+            let kb = (b[currentSort.key] || '').toLowerCase();
+            if (ka < kb) return currentSort.asc ? -1 : 1;
+            if (ka > kb) return currentSort.asc ? 1 : -1;
+            // If lastName is equal, sort by firstName
+            if (currentSort.key === 'lastName') {
+                let fa = (a.firstName || '').toLowerCase();
+                let fb = (b.firstName || '').toLowerCase();
+                if (fa < fb) return currentSort.asc ? -1 : 1;
+                if (fa > fb) return currentSort.asc ? 1 : -1;
+            }
+            return 0;
+        });
+        tbody.innerHTML = '';
+        membersCache.forEach(member => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><a class="member-link" href="household.html?id=${member.householdId}">${member.lastName}</a></td>
+                <td><a class="member-link" href="household.html?id=${member.householdId}">${member.firstName}</a></td>
+                <td>${member.phone || ''}</td>
+                <td>${member.email || ''}</td>
+                <td>${(member.tags || []).map(tag => `<span class='status-badge'>${tag}</span>`).join(' ')}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    renderMemberTable();
+    </script>
+</body>
+</html>
