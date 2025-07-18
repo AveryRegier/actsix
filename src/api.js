@@ -166,12 +166,28 @@ export function createApp() {
   app.post('/api/members', async (c) => {
     try {
       const body = await c.req.json()
-      
+      let householdId = body.householdId
+      // If no householdId, create household first
+      if (!householdId) {
+        if (!body.lastName) {
+          return c.json({
+            error: 'Validation failed',
+            message: 'Missing lastName for household creation.'
+          }, 400)
+        }
+        // Create household
+        const householdRes = await safeCollectionInsert('households', {
+          lastName: body.lastName,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        householdId = householdRes.insertedId
+      }
       // Validate required fields according to schema
-      const requiredFields = ['firstName', 'lastName', 'householdId', 'relationship', 'gender']
+      const requiredFields = ['firstName', 'lastName', 'relationship', 'gender']
       for (const field of requiredFields) {
         if (!body[field]) {
-          return c.json({ 
+          return c.json({
             error: 'Validation failed',
             message: `Missing required field: ${field}`
           }, 400)
@@ -227,6 +243,7 @@ export function createApp() {
       // Add timestamp and default values
       const memberData = {
         ...body,
+        householdId,
         tags: body.tags || [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()

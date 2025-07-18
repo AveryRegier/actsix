@@ -147,8 +147,11 @@
             });
             if (res.ok) {
                 document.getElementById('formSuccess').style.display = 'block';
+                const data = await res.json();
+                // Use householdId from API response if available
+                const redirectHouseholdId = data.member && data.member.householdId ? data.member.householdId : householdId;
                 setTimeout(() => {
-                    window.location.href = `household.html?id=${householdId}`;
+                    window.location.href = `household.html?id=${redirectHouseholdId}`;
                 }, 800);
             } else {
                 const data = await res.json();
