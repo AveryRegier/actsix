@@ -621,8 +621,80 @@ export function createApp() {
       }, 500)
     }
   })
+  // Household deacon assignments endpoint (specific deacon's assignments)
+  app.get('/api/households/:householdId/assignments', async (c) => {
+    try {
+      const householdId = c.req.param('householdId');
+      // Get assignments for specific household from S3 using sengo
+      const assignments = await safeCollectionFind('assignments', { householdId, isActive: true })
+      return c.json({ 
+        householdId,
+        assignments,
+        count: assignments.length
+      })
+    } catch (error) {
+      console.error('Error fetching household assignments:', error)
+      return c.json({ 
+        error: 'Failed to fetch household assignments',
+        message: error.message 
+      }, 500)
+    }
+  })
 
+  
   // Household members endpoint (get all members of a household)
+  // Assign deacons to a household (replace all assignments for this household)
+  app.post('/api/households/:householdId/assignments', async (c) => {
+    try {
+      const householdId = c.req.param('householdId');
+      const body = await c.req.json();
+      const deaconIds = Array.isArray(body.deaconIds) ? body.deaconIds : [];
+      // find existing assignmnents for this household
+      const existingAssignments = await safeCollectionFind('assignments', { householdId, isActive: true });
+      // loop through existing assignments.  
+      for (const assignment of existingAssignments) {
+        // If the deacon is no longer assigned, make the assignment inactive
+        if (!deaconIds.includes(assignment.deaconMemberId)) {
+          // Deactivate this assignment
+          db.collection('assignments').updateOne(
+            { _id: assignment._id },
+            { $set: { isActive: false, updatedAt: new Date().toISOString() } }
+          )
+        } // otherwise, remove the deacon from the list of deaconIds to be assigned
+        else {
+          const index = deaconIds.indexOf(assignment.deaconMemberId);
+          if (index > -1) {
+            deaconIds.splice(index, 1); // Remove this deacon from the list
+          }
+        }
+      }
+
+      // Add new assignments
+      for (const deaconMemberId of deaconIds) {
+        const assignmentData = {
+          deaconMemberId,
+          householdId,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        const result = await safeCollectionInsert('assignments', assignmentData);
+        if (!result.insertedId) {
+          return c.json({ 
+            error: 'Failed to create assignment',
+            message: 'Could not insert new assignment into database'
+          }, 500);
+        }
+      }
+      return c.json({ 
+        message: 'Assignments updated', 
+        assignments: await safeCollectionFind('assignments', { householdId, isActive: true }) 
+      });
+    } catch (error) {
+      console.error('Error updating assignments:', error);
+      return c.json({ error: 'Failed to update assignments', message: error.message }, 500);
+    }
+  });
   app.get('/api/households/:householdId/members', async (c) => {
     try {
       const householdId = c.req.param('householdId')

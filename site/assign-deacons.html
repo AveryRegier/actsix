@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Assign Deacons</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h2>Assign Deacons to Household</h2>
+    <div id="deaconList"></div>
+    <button id="assignBtn">Assign Selected Deacons</button>
+    <button id="cancelBtn">Cancel</button>
+    <script>
+    // Get householdId from query params
+    const urlParams = new URLSearchParams(window.location.search);
+    const householdId = urlParams.get('householdId');
+    if (!householdId) {
+        document.body.innerHTML = '<p>Error: No householdId provided.</p>';
+        throw new Error('No householdId');
+    }
+
+    // Fetch all deacons
+    async function fetchDeacons() {
+        const res = await fetch('/api/members');
+        const data = await res.json();
+        return data.members.filter(m => m.tags && m.tags.includes('deacon'));
+    }
+
+    // Fetch current assignments
+    async function fetchAssignments() {
+        const res = await fetch(`/api/households/${householdId}/assignments`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.assignments || [];
+    }
+
+    // Render deacon list with checkboxes
+    async function renderDeaconList() {
+        const deacons = await fetchDeacons();
+        const assignments = await fetchAssignments();
+        const assignedIds = assignments.map(a => a.deaconMemberId);
+        const container = document.getElementById('deaconList');
+        container.innerHTML = '';
+        deacons.forEach(deacon => {
+            const div = document.createElement('div');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = deacon._id;
+            checkbox.checked = assignedIds.includes(deacon._id);
+            div.appendChild(checkbox);
+            div.appendChild(document.createTextNode(`${deacon.firstName} ${deacon.lastName}`));
+            container.appendChild(div);
+        });
+    }
+
+    renderDeaconList();
+
+    // Assign selected deacons
+    document.getElementById('assignBtn').onclick = async function() {
+        const checked = Array.from(document.querySelectorAll('#deaconList input:checked')).map(cb => cb.value);
+        // Send assignments to API
+        const res = await fetch(`/api/households/${householdId}/assignments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ deaconIds: checked })
+        });
+        if (res.ok) {
+            window.location.href = `household.html?id=${householdId}`;
+        } else {
+            alert('Failed to assign deacons');
+        }
+    };
+    document.getElementById('cancelBtn').onclick = function() {
+        window.location.href = `household.html?id=${householdId}`;
+    };
+    </script>
+</body>
+</html>
