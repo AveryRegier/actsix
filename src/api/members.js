@@ -11,6 +11,17 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  app.get('/api/households/:householdId/members', async (c) => {
+    try {
+      const householdId = c.req.param('householdId');
+      const members = await safeCollectionFind('members', { householdId });
+      return c.json({ members, count: members.length });
+    } catch (error) {
+      console.error('Error fetching members:', error);
+      return c.json({ error: 'Failed to fetch members', message: error.message }, 500);
+    }
+  });
+
   app.get('/api/members/:id', async (c) => {
     try {
       const memberId = c.req.param('id');
@@ -39,7 +50,7 @@ export default function registerMemberRoutes(app) {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
-        householdId = householdRes.insertedId;
+        householdId = householdRes.insertedId?.toString(); // Ensure householdId is correctly assigned
       }
 
       const requiredFields = ['firstName', 'lastName', 'relationship', 'gender'];

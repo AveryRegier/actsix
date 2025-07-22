@@ -105,8 +105,8 @@ erDiagram
 ```javascript
 {
   _id: ObjectId,
-  memberId: ObjectId, // Reference to member
-  deaconId: ObjectId, // Reference to deacon
+  memberId: [ObjectId], // Array of references to members
+  deaconId: [ObjectId], // Array of references to deacons
   contactType: String, // 'phone', 'visit', 'email', 'text'
   summary: String,
   followUpRequired: Boolean,

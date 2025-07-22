@@ -11,6 +11,16 @@ export default function registerHouseholdRoutes(app) {
     }
   });
 
+    app.get('/api/households/:householdId', async (c) => {
+    try {
+      const household = await safeCollectionFind('households', { _id: c.req.param('householdId') });
+      return c.json(household[0] || { error: 'Household not found' });
+    } catch (error) {
+      console.error('Error fetching households:', error);
+      return c.json({ error: 'Failed to fetch households', message: error.message }, 500);
+    }
+  });
+
   app.post('/api/households', async (c) => {
     try {
       const body = await c.req.json();

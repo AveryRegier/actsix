@@ -14,7 +14,7 @@ export default function registerContactRoutes(app) {
   app.post('/api/contacts', async (c) => {
     try {
       const body = await c.req.json();
-      const requiredFields = ['memberId', 'deaconMemberId', 'contactType', 'summary', 'contactDate'];
+      const requiredFields = ['memberId', 'deaconId', 'contactType', 'summary', 'contactDate'];
       for (const field of requiredFields) {
         if (!body[field]) {
           return c.json({ error: 'Validation failed', message: `Missing required field: ${field}` }, 400);
@@ -28,6 +28,8 @@ export default function registerContactRoutes(app) {
 
       const contactData = {
         ...body,
+        memberId: Array.isArray(body.memberId) ? body.memberId : [body.memberId],
+        deaconId: Array.isArray(body.deaconId) ? body.deaconId : [body.deaconId],
         followUpRequired: body.followUpRequired || false,
         createdAt: new Date().toISOString(),
       };

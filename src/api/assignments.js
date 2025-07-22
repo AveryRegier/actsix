@@ -1,4 +1,4 @@
-import { safeCollectionFind, safeCollectionInsert } from '../helpers.js';
+import { safeCollectionFind, safeCollectionInsert, db } from '../helpers.js';
 
 export default function registerAssignmentRoutes(app) {
   app.get('/api/assignments', async (c) => {
@@ -36,7 +36,7 @@ export default function registerAssignmentRoutes(app) {
     }
   });
 
-  app.get('/api/members/:deaconMemberId/assignments', async (c) => {
+  app.get('/api/deacons/:deaconMemberId/assignments', async (c) => {
     try {
       const deaconMemberId = c.req.param('deaconMemberId');
       const assignments = await safeCollectionFind('assignments', { deaconMemberId });
@@ -51,6 +51,13 @@ export default function registerAssignmentRoutes(app) {
     try {
       const householdId = c.req.param('householdId');
       const assignments = await safeCollectionFind('assignments', { householdId, isActive: true });
+      const deaconInfo = await safeCollectionFind('members', { _id: { $in: assignments.map(a => a.deaconMemberId) } });
+      assignments.forEach(assignment => {
+        const deacon = deaconInfo.find(d => d._id === assignment.deaconMemberId);
+        if (deacon) {
+          assignment.deacon = deacon;
+        }
+      });
       return c.json({ householdId, assignments, count: assignments.length });
     } catch (error) {
       console.error('Error fetching household assignments:', error);

@@ -398,6 +398,12 @@
                 <div class="section">
                     <a href="edit-member.html?householdId=" id="addMemberBtn" class="btn" style="display:inline-block;margin-bottom:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Add New Member</a>
                 </div>
+                <!-- Record Contact Section -->
+                <div class="section">
+                    <div class="btn-container">
+                        <a href="record-contact.html?householdId=" class="btn">Record Contact</a>
+                    </div>
+                </div>
                 <!-- Members List Section -->
                 <div class="section">
                     <h2>Household Members</h2>
@@ -408,6 +414,74 @@
             </div>
         </div>
     </div>
+
+    <!-- Add Member Form -->
+    <form id="memberForm" style="display:none;">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="firstName">First Name *</label>
+                <input type="text" id="firstName" name="firstName" required>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name *</label>
+                <input type="text" id="lastName" name="lastName" required>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="relationship">Relationship *</label>
+                <select id="relationship" name="relationship" required>
+                    <option value="head">Head of Household</option>
+                    <option value="spouse">Spouse</option>
+                    <option value="child">Child</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="gender">Gender *</label>
+                <select id="gender" name="gender" required>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="birthDate">Birth Date</label>
+            <input type="date" id="birthDate" name="birthDate">
+        </div>
+        <div class="form-group">
+            <label for="age">Age (if birth date unknown)</label>
+            <input type="number" id="age" name="age" min="0" max="150" placeholder="Enter age">
+        </div>
+        <div class="form-group">
+            <label for="phone">Phone</label>
+            <input type="tel" id="phone" name="phone">
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email">
+        </div>
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="tags">Tags</label>
+            <div class="tags-container">
+                <label class="tag-checkbox">
+                    <input type="checkbox" name="tags" value="member"> Member
+                </label>
+                <label class="tag-checkbox">
+                    <input type="checkbox" name="tags" value="attender"> Attender
+                </label>
+                <label class="tag-checkbox">
+                    <input type="checkbox" name="tags" value="shut-in"> Shut-in
+                </label>
+            </div>
+        </div>
+        <button type="submit" class="btn">Add Member</button>
+    </form>
+    <!-- End of Member Form -->
 
     <!-- Edit Member Modal -->
     <div id="editMemberModal" class="modal">
@@ -537,38 +611,61 @@
                 document.getElementById('assignDeaconBtn').onclick = function() {
                     window.location.href = `assign-deacons.html?householdId=${currentHouseholdId}`;
                 };
+                // Set record contact link
+                document.querySelector('a[href="record-contact.html?householdId="]').href = `record-contact.html?householdId=${currentHouseholdId}`;
             } else {
                 showError('No household ID provided');
             }
         });
         
+        // Debugging: Log currentHouseholdId
+        console.log('Current Household ID:', currentHouseholdId);
+
         // Load household data
         async function loadHouseholdData() {
             try {
-                const [householdsResponse, membersResponse, assignmentsResponse] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/households`),
-                    fetch(`${API_BASE_URL}/api/members`),
-                    fetch(`${API_BASE_URL}/api/households/${currentHouseholdId}/assignments`)
+                // Debugging: Log API URLs
+                console.log('Fetching households from:', `${API_BASE_URL}/api/households`);
+                console.log('Fetching assignments from:', `http://localhost:3001/api/households/${currentHouseholdId}/assignments`);
+
+                const [householdsResponse, assignmentsResponse, membersResponse] = await Promise.all([
+                    fetch(`/api/households/${currentHouseholdId}`),
+                    fetch(`/api/households/${currentHouseholdId}/assignments`),
+                    fetch(`/api/households/${currentHouseholdId}/members`)
                 ]);
-                const householdsData = await householdsResponse.json();
-                const membersData = await membersResponse.json();
+
+                const household = await householdsResponse.json();
                 let assignmentsData = { assignments: [] };
+
+                // Debugging: Log response status
+                console.log('Households Response Status:', householdsResponse.status);
+                console.log('Assignments Response Status:', assignmentsResponse.status);
+                console.log('Members Response Status:', membersResponse.status);
+
                 if (assignmentsResponse.ok) {
                     assignmentsData = await assignmentsResponse.json();
                 }
-                const household = householdsData.households.find(h => h._id === currentHouseholdId);
-                const members = membersData.members.filter(m => m.householdId === currentHouseholdId);
+
+                // Debugging: Log fetched data
+                console.log('Households Data:', household);
+                console.log('Assignments Data:', assignmentsData);
+
+                const memberData = await membersResponse.json();
+                console.log('Members Data:', memberData);
+
                 if (household) {
                     currentHousehold = household;
                     displayHouseholdInfo(household);
-                    displayMembers(members);
-                    displayAssignedDeacons(assignmentsData.assignments, membersData.members);
+                    displayAssignedDeacons(assignmentsData.assignments);
+                    displayMembers(memberData.members);
                     document.getElementById('loadingState').style.display = 'none';
                     document.getElementById('householdContent').style.display = 'block';
                 } else {
                     showError('Household not found');
                 }
             } catch (error) {
+                // Debugging: Log error
+                console.error('Error loading household data:', error);
                 showError('Error loading household data');
             }
         }
@@ -607,18 +704,22 @@
         
         // Display members
         // Display assigned deacons
-        function displayAssignedDeacons(assignments, allMembers) {
+        function displayAssignedDeacons(assignments) {
             const section = document.getElementById('assignedDeaconsSection');
             if (!assignments || assignments.length === 0) {
                 section.innerHTML = '<em>No deacons assigned to this household.</em>';
                 return;
             }
-            // Find deacon members by assignment
-            const deaconNames = assignments.map(a => {
-                const deacon = allMembers.find(m => m._id === a.deaconMemberId);
-                return deacon ? `${deacon.firstName} ${deacon.lastName}` : '(Unknown)';
-            });
-            section.innerHTML = `<strong>Assigned Deacons:</strong> <ul>${deaconNames.map(n => `<li>${n}</li>`).join('')}</ul>`;
+            // Debugging: Log assignments to verify data structure
+            console.log('Assignments:', assignments);
+            section.innerHTML = `<strong>Assigned Deacons:</strong> <ul>${assignments.map(a => {
+                if (a.deacon && a.deacon.firstName && a.deacon.lastName) {
+                    return `<li>${a.deacon.firstName} ${a.deacon.lastName}</li>`;
+                } else {
+                    console.warn('Invalid assignment object:', a);
+                    return '<li>Unknown Deacon</li>';
+                }
+            }).join('')}</ul>`;
         }
         function displayMembers(members) {
             const membersList = document.getElementById('membersList');

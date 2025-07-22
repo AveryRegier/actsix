@@ -130,8 +130,8 @@
         membersCache.forEach(member => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><a class="member-link" href="household.html?id=${member.householdId}">${member.lastName}</a></td>
-                <td><a class="member-link" href="household.html?id=${member.householdId}">${member.firstName}</a></td>
+                <td><a class="member-link" href="household.html?id=${encodeURIComponent(member.householdId)}">${member.lastName}</a></td>
+                <td><a class="member-link" href="household.html?id=${encodeURIComponent(member.householdId)}">${member.firstName}</a></td>
                 <td>${member.phone || ''}</td>
                 <td>${member.email || ''}</td>
                 <td>${(member.tags || []).map(tag => `<span class='status-badge'>${tag}</span>`).join(' ')}</td>
