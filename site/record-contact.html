@@ -339,6 +339,44 @@
             });
             closeParticipantModal();
         }
+
+        document.getElementById('contact-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+
+            // Format the body to match the requirements of the /api/contacts REST API
+            const contactData = {
+                memberId: Array.from(document.querySelectorAll('#membersSection input:checked')).map(input => input.value),
+                deaconId: Array.from(document.querySelectorAll('#deaconsSection input:checked')).map(input => input.value),
+                contactType: formData.get('contactType'),
+                summary: formData.get('summary'),
+                contactDate: new Date(formData.get('contactDate')).toISOString(),
+                followUpRequired: false, // Default value
+            };
+
+            try {
+                const response = await fetch('/api/contacts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(contactData),
+                });
+
+                if (response.ok) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const currentHouseholdId = urlParams.get('householdId');
+                    window.location.href = `/household.html?id=${currentHouseholdId}`;
+                } else {
+                    console.error('Failed to submit contact:', response.statusText);
+                    alert('Failed to submit contact. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error submitting contact:', error);
+                alert('An error occurred while submitting the contact. Please try again.');
+            }
+        });
     </script>
 </body>
 </html>
