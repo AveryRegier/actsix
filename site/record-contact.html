@@ -81,6 +81,10 @@
             transition: border-color 0.3s ease;
         }
 
+        .form-group input[type="checkbox"] {
+            width: auto;
+        }
+
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus {
@@ -106,16 +110,22 @@
 
         .member-list {
             margin-bottom: 20px;
+            text-align: left;
         }
 
         .member-item {
             display: flex;
             align-items: center;
+            justify-content: flex-start;
             margin-bottom: 10px;
         }
 
         .member-item input {
             margin-right: 10px;
+        }
+
+        .member-item label {
+            white-space: nowrap;
         }
 
         .member-card {
@@ -125,6 +135,11 @@
             margin-bottom: 10px;
             display: flex;
             flex-direction: column;
+            cursor: pointer;
+        }
+
+        .member-card input {
+            margin-right: 10px;
         }
 
         .member-name {
@@ -145,6 +160,45 @@
 
         .detail-value {
             margin-bottom: 10px;
+        }
+
+        /* Modal styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -180,11 +234,27 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Assigned Deacons</label>
+                    <label>Contacted by</label>
                     <div class="member-list" id="deaconsSection">
-                        <!-- Assigned deacons will be populated by JavaScript -->
+                        <!-- Deacons will be populated by JavaScript -->
                     </div>
                 </div>
+                <div class="form-group">
+                    <button type="button" class="btn" id="addParticipantBtn" onclick="showParticipantModal()">Add Participant</button>
+                </div>
+
+                <!-- Participant Modal -->
+                <div id="participantModal" class="modal" style="display:none;">
+                    <div class="modal-content">
+                        <span class="close" onclick="closeParticipantModal()">&times;</span>
+                        <h2>Select Participant</h2>
+                        <div id="participantList">
+                            <!-- Participants will be populated by JavaScript -->
+                        </div>
+                        <button type="button" class="btn" onclick="addSelectedParticipant()">Add Selected</button>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn">Submit Contact</button>
             </form>
         </div>
@@ -204,15 +274,16 @@
 
             // Populate members section
             const membersSection = document.getElementById('membersSection');
-            membersSection.innerHTML = members.map(member => `
-                <div class="member-card">
-                    <div class="member-name">${member.firstName} ${member.lastName}</div>
-                    <div class="member-details">
-                        <span class="detail-label">Relationship</span>
-                        <span class="detail-value">${member.relationship}</span>
+            membersSection.innerHTML = members.map(member => {
+                const isSelected = member.tags && member.tags.some(tag => ['cancer', 'shut-in', 'long-term-needs'].includes(tag));
+                const displayName = member.relationship === 'head' ? `${member.firstName} ${member.lastName}` : `${member.firstName} ${member.lastName} (${member.relationship})`;
+                return `
+                    <div class="member-item">
+                        <input type="checkbox" id="member-${member._id}" name="memberId" value="${member._id}" ${isSelected ? 'checked' : ''}>
+                        <label for="member-${member._id}">${displayName}</label>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             // Fetch assigned deacons
             const assignmentsResponse = await fetch(`/api/households/${currentHouseholdId}/assignments`);
@@ -228,6 +299,46 @@
                 </div>
             `).join('');
         });
+
+        function showParticipantModal() {
+            document.getElementById('participantModal').style.display = 'block';
+            loadParticipants();
+        }
+
+        function closeParticipantModal() {
+            document.getElementById('participantModal').style.display = 'none';
+        }
+
+        async function loadParticipants() {
+            const response = await fetch('/api/participants');
+            const participants = await response.json();
+            const participantList = document.getElementById('participantList');
+            participantList.innerHTML = participants.participants.map(p => `
+                <div class="member-item">
+                    <input type="checkbox" id="participant-${p._id}" name="participantId" value="${p._id}">
+                    <label for="participant-${p._id}">${p.firstName} ${p.lastName} (${p.role})</label>
+                </div>
+            `).join('');
+        }
+
+        function addSelectedParticipant() {
+            const selectedParticipants = Array.from(document.querySelectorAll('#participantList input:checked'));
+            const deaconsSection = document.getElementById('deaconsSection');
+            const existingIds = Array.from(deaconsSection.querySelectorAll('input')).map(input => input.value);
+
+            selectedParticipants.forEach(sp => {
+                if (!existingIds.includes(sp.value)) {
+                    const participantName = document.querySelector(`label[for="${sp.id}"]`).textContent;
+                    deaconsSection.innerHTML += `
+                        <div class="member-item">
+                            <input type="checkbox" id="${sp.id}" name="deaconId" value="${sp.value}" checked>
+                            <label for="${sp.id}">${participantName}</label>
+                        </div>
+                    `;
+                }
+            });
+            closeParticipantModal();
+        }
     </script>
 </body>
 </html>
