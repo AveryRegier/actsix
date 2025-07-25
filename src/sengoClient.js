@@ -1,4 +1,4 @@
-import { SengoClient } from 'sengo';
+import { SengoClient, SengoDb } from 'sengo';
 
 export const sengo = new SengoClient({
   logger: { level: 'info' },
