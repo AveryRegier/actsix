@@ -16,7 +16,7 @@ export default function registerContactRoutes(app) {
       const body = await c.req.json();
       const requiredFields = ['memberId', 'deaconId', 'contactType', 'summary', 'contactDate'];
       for (const field of requiredFields) {
-        if (!body[field]) {
+        if (!body[field] || body[field] === null || body[field] === '' || body[field] === undefined) {
           return c.json({ error: 'Validation failed', message: `Missing required field: ${field}` }, 400);
         }
       }

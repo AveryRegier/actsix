@@ -345,6 +345,22 @@
 
             const formData = new FormData(event.target);
 
+            // Get all members and selected members
+            const allMembers = Array.from(document.querySelectorAll('#membersSection input'));
+            let selectedMembers = Array.from(document.querySelectorAll('#membersSection input:checked'));
+
+            // Automatically select the single member if only one exists
+            if (selectedMembers.length === 0 && allMembers.length === 1) {
+                allMembers[0].checked = true;
+            }
+            selectedMembers = Array.from(document.querySelectorAll('#membersSection input:checked'));
+            
+            // Require at least one member to be selected
+            if (selectedMembers.length === 0) {
+                alert('Please select at least one member.');
+                return;
+            }
+
             // Format the body to match the requirements of the /api/contacts REST API
             const contactData = {
                 memberId: Array.from(document.querySelectorAll('#membersSection input:checked')).map(input => input.value),
