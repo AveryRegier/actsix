@@ -1,4 +1,20 @@
-import { safeCollectionFind, safeCollectionInsert } from '../helpers.js';
+import { db, safeCollectionFind, safeCollectionInsert } from '../helpers.js';
+
+function validateAddress(address) {
+    if (address.street && typeof address.street !== 'string') {
+        return { error: 'Validation failed', message: 'Street must be a string' };
+    }
+    if (address.city && typeof address.city !== 'string') {
+        return { error: 'Validation failed', message: 'City must be a string' };
+    }
+    if (address.state && typeof address.state !== 'string') {
+        return { error: 'Validation failed', message: 'State must be a string' };
+    }
+    if (address.zipCode && !/^[0-9]{5}(?:-[0-9]{4})?$/.test(address.zipCode)) {
+        return { error: 'Validation failed', message: 'Zip Code must be a valid US zip code' };
+    }
+    return null;
+}
 
 export default function registerHouseholdRoutes(app) {
   app.get('/api/households', async (c) => {
@@ -36,11 +52,9 @@ export default function registerHouseholdRoutes(app) {
           return c.json({ error: 'Validation failed', message: 'Address must be an object' }, 400);
         }
 
-        const requiredAddressFields = ['street', 'city', 'state', 'zipCode'];
-        for (const field of requiredAddressFields) {
-          if (!body.address[field]) {
-            return c.json({ error: 'Validation failed', message: `Missing required address field: ${field}` }, 400);
-          }
+        const addressValidationError = validateAddress(body.address);
+        if (addressValidationError) {
+          return c.json(addressValidationError, 400);
         }
       }
 
@@ -57,4 +71,55 @@ export default function registerHouseholdRoutes(app) {
       return c.json({ error: 'Failed to create household', message: error.message }, 500);
     }
   });
+
+  app.patch('/api/households/:householdId', async (c) => {
+    const householdId = c.req.param('householdId');
+    const body = await c.req.json();
+
+    // Validate required fields
+    if (!body.lastName) {
+        return c.json({ error: 'Validation failed', message: 'Last name is required' }, 400);
+    }
+
+    // Validate address fields
+    const address = body.address || {};
+    if (address.street && typeof address.street !== 'string') {
+        return c.json({ error: 'Validation failed', message: 'Street must be a string' }, 400);
+    }
+    if (address.city && typeof address.city !== 'string') {
+        return c.json({ error: 'Validation failed', message: 'City must be a string' }, 400);
+    }
+    if (address.state && typeof address.state !== 'string') {
+        return c.json({ error: 'Validation failed', message: 'State must be a string' }, 400);
+    }
+    if (address.zipCode && !/^[0-9]{5}(?:-[0-9]{4})?$/.test(address.zipCode)) {
+        return c.json({ error: 'Validation failed', message: 'Zip Code must be a valid US zip code' }, 400);
+    }
+
+    try {
+        const updateData = {
+            lastName: body.lastName,
+            address: {
+                street: address.street || '',
+                city: address.city || '',
+                state: address.state || '',
+                zipCode: address.zipCode || ''
+            },
+            primaryPhone: body.primaryPhone || '',
+            email: body.email || '',
+            notes: body.notes || ''
+        };
+
+        const result = await db.collection('households').updateOne({ _id: householdId }, { $set: updateData });
+
+        if (result.modifiedCount > 0) {
+            return c.json({ message: 'Household updated successfully', householdId });
+        } else {
+            return c.json({ error: 'Update failed', message: 'No changes made to the household' }, 400);
+        }
+    } catch (error) {
+        console.error('Error updating household:', error);
+        return c.json({ error: 'Failed to update household', message: error.message }, 500);
+    }
+});
 }

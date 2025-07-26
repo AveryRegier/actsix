@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Household</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Edit Household</h1>
+        <form id="edit-household-form">
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" name="lastName" required>
+            </div>
+            <div class="form-group">
+                <label for="addressStreet">Street</label>
+                <input type="text" id="addressStreet" name="addressStreet" required>
+            </div>
+            <div class="form-group">
+                <label for="addressCity">City</label>
+                <input type="text" id="addressCity" name="addressCity" required>
+            </div>
+            <div class="form-group">
+                <label for="addressState">State</label>
+                <input type="text" id="addressState" name="addressState" required>
+            </div>
+            <div class="form-group">
+                <label for="addressZipCode">Zip Code</label>
+                <input type="text" id="addressZipCode" name="addressZipCode" required>
+            </div>
+            <div class="form-group">
+                <label for="primaryPhone">Primary Phone</label>
+                <input type="tel" id="primaryPhone" name="primaryPhone">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email">
+            </div>
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn">Save Changes</button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const householdId = urlParams.get('householdId');
+
+            if (!householdId) {
+                alert('No household ID provided');
+                return;
+            }
+
+            let zipCodeData;
+            try {
+                const zipResponse = await fetch('/iowa_zip_codes.json');
+                zipCodeData = await zipResponse.json();
+            } catch (error) {
+                console.warn('Zip code data is not available:', error);
+            }
+
+            try {
+                const response = await fetch(`/api/households/${householdId}`);
+                const household = await response.json();
+
+                document.getElementById('lastName').value = household.lastName || '';
+                document.getElementById('addressStreet').value = household.address?.street || '';
+                document.getElementById('addressCity').value = household.address?.city || '';
+                document.getElementById('addressState').value = household.address?.state || '';
+                document.getElementById('addressZipCode').value = household.address?.zipCode || '';
+
+                if (zipCodeData) {
+                    // Prefill zip code if city matches and has only one zip code
+                    const city = household.address?.city;
+                    if (city) {
+                        for (const county in zipCodeData) {
+                            const cityEntries = zipCodeData[county];
+                            if (Array.isArray(cityEntries)) {
+                                const cityData = cityEntries.find(entry => entry.city === city);
+                                if (cityData && Array.isArray(cityData.zips) && cityData.zips.length === 1) {
+                                    document.getElementById('addressZipCode').value = cityData.zips[0];
+                                }
+                            }
+                        }
+                    }
+
+                    // Override city if zip code matches and city does not match any valid cities for the zip code
+                    const zipCode = household.address?.zipCode;
+                    const currentCity = household.address?.city;
+                    if (zipCode) {
+                        for (const county in zipCodeData) {
+                            const cityEntries = zipCodeData[county];
+                            if (Array.isArray(cityEntries)) {
+                                const validCities = cityEntries.filter(entry => Array.isArray(entry.zips) && entry.zips.includes(zipCode)).map(entry => entry.city);
+                                if (validCities.length > 0 && !validCities.includes(currentCity)) {
+                                    document.getElementById('addressCity').value = validCities[0];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching household data:', error);
+                alert('Failed to load household data');
+            }
+
+            const zipField = document.getElementById('addressZipCode');
+            const cityField = document.getElementById('addressCity');
+
+            zipField.addEventListener('blur', () => {
+                if (zipCodeData) {
+                    const zipCode = zipField.value;
+                    const currentCity = cityField.value;
+                    if (zipCode) {
+                        for (const county in zipCodeData) {
+                            const cityEntries = zipCodeData[county];
+                            if (Array.isArray(cityEntries)) {
+                                const validCities = cityEntries.filter(entry => Array.isArray(entry.zips) && entry.zips.includes(zipCode)).map(entry => entry.city);
+                                if (validCities.length > 0 && !validCities.includes(currentCity)) {
+                                    cityField.value = validCities[0];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            cityField.addEventListener('blur', () => {
+                if (zipCodeData) {
+                    const city = cityField.value;
+                    if (city) {
+                        for (const county in zipCodeData) {
+                            const cityEntries = zipCodeData[county];
+                            if (Array.isArray(cityEntries)) {
+                                const cityData = cityEntries.find(entry => entry.city === city);
+                                if (cityData && Array.isArray(cityData.zips) && cityData.zips.length === 1) {
+                                    zipField.value = cityData.zips[0];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('edit-household-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const formData = new FormData(event.target);
+
+                const householdData = {
+                    lastName: formData.get('lastName'),
+                    address: {
+                        street: formData.get('addressStreet') || '',
+                        city: formData.get('addressCity') || '',
+                        state: formData.get('addressState') || '',
+                        zipCode: formData.get('addressZipCode') || ''
+                    },
+                    primaryPhone: formData.get('primaryPhone'),
+                    email: formData.get('email'),
+                    notes: formData.get('notes')
+                };
+
+                try {
+                    const response = await fetch(`/api/households/${householdId}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(householdData),
+                    });
+
+                    if (response.ok) {
+                        window.location.href = `household.html?id=${householdId}`;
+                    } else {
+                        console.error('Failed to update household:', response.statusText);
+                        alert('Failed to update household. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error updating household:', error);
+                    alert('An error occurred while updating the household. Please try again.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

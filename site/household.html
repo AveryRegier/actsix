@@ -408,6 +408,10 @@
                 <div class="section">
                     <a href="edit-member.html?householdId=" id="addMemberBtn" class="btn" style="display:inline-block;margin-bottom:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Add New Member</a>
                 </div>
+                <!-- Edit Household Section -->
+                <div class="section">
+                    <a href="edit-household.html?householdId=" id="editHouseholdBtn" class="btn" style="display:inline-block;margin-bottom:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Edit Household</a>
+                </div>
                 <!-- Record Contact Section -->
                 <div class="section">
                     <div class="btn-container">
@@ -623,6 +627,8 @@
                 };
                 // Set record contact link
                 document.querySelector('a[href="record-contact.html?householdId="]').href = `record-contact.html?householdId=${currentHouseholdId}`;
+                // Set edit household link
+                document.getElementById('editHouseholdBtn').href = `edit-household.html?householdId=${currentHouseholdId}`;
             } else {
                 showError('No household ID provided');
             }

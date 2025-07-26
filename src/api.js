@@ -97,7 +97,7 @@ export function createApp() {
   app.get('/:filename', async (c) => {
     const filename = c.req.param('filename')
     // Only serve specific file types for security
-    const allowedExtensions = ['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico']
+    const allowedExtensions = ['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.json']
     const ext = extname(filename).toLowerCase()
     
     if (allowedExtensions.includes(ext)) {
