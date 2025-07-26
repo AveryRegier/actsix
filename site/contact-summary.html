@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Summary Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .yellow {
+            background-color: #fff3cd;
+        }
+
+        .red {
+            background-color: #f8d7da;
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid #888;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .popup .close {
+            float: right;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .container {
+                box-shadow: none;
+            }
+
+            table {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Contact Summary Report</h1>
+        <table id="summaryTable">
+            <thead>
+                <tr>
+                    <th>Last Name</th>
+                    <th>First Name</th>
+                    <th>Phone</th>
+                    <th>Assigned Deacons</th>
+                    <th>Last Contact</th>
+                    <th>Contact Method</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <div id="addressPopup" class="popup">
+        <span class="close" onclick="closePopup()">&times;</span>
+        <h2>Address Details</h2>
+        <p id="addressDetails"></p>
+    </div>
+
+    <script>
+        async function fetchSummary() {
+            const response = await fetch('/api/reports/summary');
+            const data = await response.json();
+            const tableBody = document.getElementById('summaryTable').querySelector('tbody');
+
+            data.summary.sort((a, b) => a.household.lastName.localeCompare(b.household.lastName));
+
+            tableBody.innerHTML = data.summary.map(item => {
+                const householdName = item.household?.members?.map(m => m.firstName).join(' & ');
+                let phoneNumbers = item.household?.members?.map(m => `${m.firstName?.charAt(0)}: ${m.phone}`).join('<br>') || '';
+                if(item.household?.primaryPhone) {
+                    phoneNumbers += (phoneNumbers ? "<br>" : "") + `P: ${item.household.primaryPhone}`;
+                }
+                const deacons = item.assignedDeacons?.map(d => `${d.firstName} ${d.lastName}`).join(', ');
+                const lastContactDate = item.lastContact?.contactDate ? new Date(item.lastContact.contactDate) : null;
+                let contactedBy = "";
+                switch (item.lastContact?.contactType) {
+                    case 'phone':
+                        contactedBy = "Called"
+                        break;
+                    case 'visit':
+                        contactedBy = "Visited"
+                        break;
+                    case 'voicemail':
+                        contactedBy = "Left voicemail"
+                        break;
+                    case 'church':
+                        contactedBy = "Spoke at church"
+                        break;
+                }
+                if (item.lastContact?.contactedBy?.length) {
+                    if(contactedBy) contactedBy += " by ";
+                    contactedBy += item.lastContact.contactedBy.map(c => `${c.firstName} ${c.lastName}`).join(', ');
+                }
+                let contactDateClass = '';
+                if (lastContactDate) {
+                    const weeksAgo = (Date.now() - lastContactDate.getTime()) / (1000 * 60 * 60 * 24 * 7);
+                    if (weeksAgo > 6) {
+                        contactDateClass = 'red';
+                    } else if (weeksAgo > 3) {
+                        contactDateClass = 'yellow';
+                    }
+                }
+
+                return `
+                    <tr>
+                        <td>${item.household.lastName}</td>
+                        <td>${householdName}</td>
+                        <td>${phoneNumbers}</td>
+                        <td>${deacons}</td>
+                        <td class="${contactDateClass}">${lastContactDate ? lastContactDate.toLocaleDateString() : ''}</td>
+                        <td>${contactedBy}</td>
+                        <td>${item.summary}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function showPopup(address) {
+            const popup = document.getElementById('addressPopup');
+            document.getElementById('addressDetails').textContent = address;
+            popup.style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('addressPopup').style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchSummary);
+    </script>
+</body>
+</html>

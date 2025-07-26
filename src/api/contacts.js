@@ -21,7 +21,7 @@ export default function registerContactRoutes(app) {
         }
       }
 
-      const validContactTypes = ['phone', 'visit', 'email', 'text'];
+      const validContactTypes = ['phone', 'visit', 'church', 'voicemail'];
       if (!validContactTypes.includes(body.contactType)) {
         return c.json({ error: 'Validation failed', message: `Invalid contactType. Must be one of: ${validContactTypes.join(', ')}` }, 400);
       }
@@ -59,6 +59,8 @@ export default function registerContactRoutes(app) {
         const deaconMembers = deacons.filter(d => assignedDeacons.some(a => a.deaconMemberId === d._id));
         const lastContact = contacts.find(c => c.memberId.some(id => householdMemberIds.includes(id))) || {};
         const summary = lastContact?.summary || 'No contact logged';
+        household.members = householdMembers;
+        lastContact.contactedBy = deacons?.filter(d => lastContact?.deaconId?.includes(d._id));
         
         return {
           household,
@@ -84,8 +86,8 @@ export default function registerContactRoutes(app) {
           assignedDeacons: deaconMembers,
           lastContact,
           // lastContact: {
-          //   date: '2023-10-01',
-          //   type: 'phone',
+          //   contactDate: '2023-10-01',
+          //   contactType: 'phone',
           //   summary: 'Called to check in',
           //   contactedBy: [{ memberId: '1', firstName: 'John', lastName: 'Doe' }],
           // },
