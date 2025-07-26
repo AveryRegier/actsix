@@ -98,12 +98,16 @@
         <table id="summaryTable">
             <thead>
                 <tr>
-                    <th>Last Name</th>
-                    <th>First Name</th>
-                    <th>Phone</th>
-                    <th>Assigned Deacons</th>
-                    <th>Last Contact</th>
-                    <th>Contact Method</th>
+                    <th colspan="2">Name</th>
+                    <th colspan="2">Assignment</th>
+                    <th colspan="3">Last Contact</th>
+                <tr>
+                    <th>Last</th>
+                    <th>First</th>
+                    <th>Make Contact</th>
+                    <th>Deacons</th>
+                    <th>When</th>
+                    <th>Who & How</th>
                     <th>Notes</th>
                 </tr>
             </thead>
@@ -128,6 +132,7 @@
             data.summary.sort((a, b) => a.household.lastName.localeCompare(b.household.lastName));
 
             tableBody.innerHTML = data.summary.map(item => {
+                const currentHouseholdId = item.household._id;
                 const householdName = item.household?.members?.map(m => m.firstName).join(' & ');
                 let phoneNumbers = item.household?.members?.map(m => `${m.firstName?.charAt(0)}: ${m.phone}`).join('<br>') || '';
                 if(item.household?.primaryPhone) {
@@ -166,10 +171,10 @@
 
                 return `
                     <tr>
-                        <td>${item.household.lastName}</td>
-                        <td>${householdName}</td>
-                        <td>${phoneNumbers}</td>
-                        <td>${deacons}</td>
+                        <td><a class="member-link" href="household.html?id=${currentHouseholdId}">${item.household.lastName}</a></td>
+                        <td><a class="member-link" href="household.html?id=${currentHouseholdId}">${householdName}</a></td>
+                        <td><a href="record-contact.html?householdId=${currentHouseholdId}">${phoneNumbers}</a></td>
+                        <td><a href="assign-deacons.html?householdId=${currentHouseholdId}">${deacons}</a></td>
                         <td class="${contactDateClass}">${lastContactDate ? lastContactDate.toLocaleDateString() : ''}</td>
                         <td>${contactedBy}</td>
                         <td>${item.summary}</td>

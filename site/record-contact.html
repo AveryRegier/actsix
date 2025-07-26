@@ -281,6 +281,7 @@
                     <div class="member-item">
                         <input type="checkbox" id="member-${member._id}" name="memberId" value="${member._id}" ${isSelected ? 'checked' : ''}>
                         <label for="member-${member._id}">${displayName}</label>
+                        &nbsp;<p>${member.phone}</p>
                     </div>
                 `;
             }).join('');
@@ -298,6 +299,25 @@
                     <label for="deacon-${assignment.deacon._id}">${assignment.deacon.firstName} ${assignment.deacon.lastName}</label>
                 </div>
             `).join('');
+
+            // Fetch household details
+            const householdResponse = await fetch(`/api/households/${currentHouseholdId}`);
+            const household = await householdResponse.json();
+
+            // Display household phone numbers and address
+            const contactTypeSection = document.getElementById('contact-type').parentElement;
+            const householdInfo = document.createElement('div');
+            householdInfo.innerHTML = (household.primaryPhone ?`
+                <div class="form-group">
+                    <label>Household Phone</label>
+                    <p>${household.primaryPhone}</p>
+                </div>` : '') + 
+                (household.address ? `
+                <div class="form-group">
+                    <label>Address</label>
+                    <p>${household.address.street}, ${household.address.city}, ${household.address.state} ${household.address.zipCode}</p>
+                </div>` : '');
+            contactTypeSection.insertAdjacentElement('afterend', householdInfo);
         });
 
         function showParticipantModal() {
