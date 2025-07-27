@@ -89,7 +89,7 @@ async function createHouseholdsAndMembers() {
                 console.warn(`Deacon not found for name: ${deaconName}`);
             }
 
-            const lastContactDate = moment(row['Last Contact']);
+            const lastContactDate = moment("1900-01-01").add(row['Last Contact'] - 2, 'days');
             const lastContactDeaconName = row['Last Contact Deacon'];
             const lastContactDeacon = deaconResponse.data.deacons.find(
                 (d) => `${d.firstName} ${d.lastName}`.toLowerCase() === lastContactDeaconName.toLowerCase()
