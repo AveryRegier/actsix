@@ -127,9 +127,9 @@ async function createDeacons() {
             const deaconResponse = await axios.post(`${apiBaseUrl}/members`, deaconData);
 
             // Add spouse as a separate member
-            const spouseName = row["Wife's Name"];
+            const spouseName = row["Wife's name"];
             const spousePhone = row["Wife's Phone"];
-            const spouseEmail = row["Wife's Email"];
+            const spouseEmail = row["Wife's email"];
 
             if (spouseName) {
                 const spouseData = {
