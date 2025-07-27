@@ -46,10 +46,11 @@ async function createHouseholdsAndMembers() {
             console.log('phoneMap:', phoneMap);
             const tag = row['Need']?.split(' ').join('-').toLowerCase() || 'other-needs';
 
-            const notes = row["__EMPTY"]?.toLowerCase() || '';
+            const notes = row["__EMPTY"] || '';
+            const notesLower = notes.toLowerCase();
             let relationships = ["head", "spouse"];
             let gender = ["male", "female"];
-            if(notes.indexOf(' she ') !== -1 || notes.indexOf(" her ") !== -1) {
+            if(notesLower.indexOf(' she ') !== -1 || notesLower.indexOf(" her ") !== -1) {
                 gender = ["female", "male"];
                 relationships = ["spouse", "head"];
             }
@@ -84,6 +85,24 @@ async function createHouseholdsAndMembers() {
                 await axios.post(`${apiBaseUrl}/assignments`, assignmentData);
             } else {
                 console.warn(`Deacon not found for name: ${deaconName}`);
+            }
+
+            const lastContactDate = moment(row['Last Contact']);
+            const lastContactDeaconName = row['Last Contact Deacon'];
+            const lastContactDeacon = deaconResponse.data.deacons.find(
+                (d) => `${d.firstName} ${d.lastName}`.toLowerCase() === lastContactDeaconName.toLowerCase()
+            );
+            if (lastContactDate && lastContactDeacon) {
+                const contactData = {
+                    memberId: [memberId],
+                    deaconId: [lastContactDeacon._id],
+                    contactType: notesLower.includes('visit') ? 'visit' : 'phone',
+                    summary: notes,
+                    contactDate: lastContactDate.format(),// ISO format
+                    followUpRequired: false
+                };
+                console.log(`Creating contact log: ${JSON.stringify(contactData)}`);
+                await axios.post(`${apiBaseUrl}/contacts`, contactData);
             }
         } catch (error) {
             console.error('Failed to create household, member, or assignment:', error.response?.data || error.message);
