@@ -22,7 +22,8 @@
     "clean": "rimraf coverage dist",
     "lint": "echo 'Linting would go here'",
     "validate": "npm run test && npm run lint",
-    "deploy:prep": "npm run clean && npm run build:validate"
+    "deploy:prep": "npm run clean && npm run build:validate",
+    "generate": "node scripts/generate_data.cjs"
   },
   "keywords": [
     "ministry",
@@ -43,8 +44,11 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "axios": "^1.11.0",
     "hono": "^4.8.4",
     "pino": "^9.7.0",
-    "sengo": "file:../sengo/client/dist"
+    "sengo": "file:../sengo/client/dist",
+    "xlsx": "^0.18.5",
+    "xslx": "^1.0.0"
   }
 }

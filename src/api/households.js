@@ -27,7 +27,7 @@ export default function registerHouseholdRoutes(app) {
     }
   });
 
-    app.get('/api/households/:householdId', async (c) => {
+  app.get('/api/households/:householdId', async (c) => {
     try {
       const household = await safeCollectionFind('households', { _id: c.req.param('householdId') });
       return c.json(household[0] || { error: 'Household not found' });

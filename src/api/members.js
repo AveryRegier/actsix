@@ -71,7 +71,7 @@ export default function registerMemberRoutes(app) {
       }
 
       if (body.tags && Array.isArray(body.tags)) {
-        const validTags = ['deacon', 'elder', 'staff', 'member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married'];
+        const validTags = ['deacon', 'elder', 'staff', 'member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married', 'other-needs'];
         for (const tag of body.tags) {
           if (!validTags.includes(tag)) {
             return c.json({ error: 'Validation failed', message: `Invalid tag "${tag}". Must be one of: ${validTags.join(', ')}` }, 400);
@@ -95,12 +95,12 @@ export default function registerMemberRoutes(app) {
         updatedAt: new Date().toISOString(),
       };
 
-      if (!body.phone) {
-        const hasPhoneNumber = await validatePhoneRequirement(body.householdId);
-        if (!hasPhoneNumber) {
-          return c.json({ error: 'Validation failed', message: 'At least one phone number is required per household.' }, 400);
-        }
-      }
+      // if (!body.phone) {
+      //   const hasPhoneNumber = await validatePhoneRequirement(body.householdId);
+      //   if (!hasPhoneNumber) {
+      //     return c.json({ error: 'Validation failed', message: 'At least one phone number is required per household.' }, 400);
+      //   }
+      // }
 
       const result = await safeCollectionInsert('members', memberData);
       return c.json({ message: 'Member created successfully', id: result.insertedId, member: memberData });
