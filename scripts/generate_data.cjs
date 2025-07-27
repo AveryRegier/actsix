@@ -95,7 +95,17 @@ async function createDeacons() {
     console.log('Creating deacons...');
     for (const row of deaconsSheet) {
         console.log(row);
-        const [deaconFirstName, deaconLastName] = row[" Deacon's Name"].split(' ').map(name => name.trim());
+        let [deaconFirstName, deaconUnknown, deaconLastName] = row[" Deacon's Name"].split(' ').map(name => name.trim());
+        if(!deaconLastName) {
+            deaconLastName = deaconUnknown;
+        } else {
+            if(deaconUnknown.indexOf("(") !== -1) {
+                deaconFirstName = deaconFirstName + ' ' + deaconUnknown;
+            } else {
+                deaconLastName = deaconUnknown + ' ' + deaconLastName;
+            }
+        }
+
 
         const householdData = {
             lastName: deaconLastName.trim(),
