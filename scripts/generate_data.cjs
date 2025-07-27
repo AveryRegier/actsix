@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const xlsx = require('xlsx');
+const moment = require('moment');
 
 // Load the Excel file
 const filePath = path.join(__dirname, '../hidden/grace-deacon-care-list.xlsx');
@@ -55,6 +56,7 @@ async function createHouseholdsAndMembers() {
                 relationships = ["spouse", "head"];
             }
 
+            let memberId;
             for (const name of names) {
                 const memberData = {
                     householdId,
@@ -67,7 +69,7 @@ async function createHouseholdsAndMembers() {
                 };
                 console.log(`Creating member: ${JSON.stringify(memberData)}`);
                 const memberResponse = await axios.post(`${apiBaseUrl}/members`, memberData);
-                const memberId = memberResponse.data.id;
+                memberId = memberId || memberResponse.data.id;
             }
             // Find the deacon ID by name
             const deaconName = row['Assigned Deacon'];
