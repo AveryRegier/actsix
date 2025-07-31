@@ -21,7 +21,7 @@
 
     // Fetch all deacons
     async function fetchDeacons() {
-        const res = await fetch('/api/deacons');
+        const res = await fetch('/api/deacons?add=deaconess,staff');
         const data = await res.json();
         return data.deacons;
     }
