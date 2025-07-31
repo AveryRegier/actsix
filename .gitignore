@@ -7,3 +7,4 @@ coverage
 npm-debug.log
 hidden
 scripts/generate_data.js
+*.ipynb

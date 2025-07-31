@@ -10,19 +10,19 @@ const workbook = xlsx.readFile(filePath);
 
 // Extract relevant sheets
 const householdsMembersSheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-const deaconsSheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[3]]);
+const deaconsSheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[1]]);
 
 // API base URL
 const apiBaseUrl = 'http://localhost:3001/api';
 
 async function createHouseholdsAndMembers() {
 
-    const deaconResponse = await axios.get(`${apiBaseUrl}/deacons`);
+    const deaconResponse = await axios.get(`${apiBaseUrl}/deacons?add=deaconess,elder,staff`);
 
     for (const row of householdsMembersSheet) {
         const householdData = {
             lastName: row['Last Name'],
-            notes: row['Need']
+            notes: row['Location']
         };
 
         try {
@@ -31,10 +31,12 @@ async function createHouseholdsAndMembers() {
             const householdId = householdResponse.data.id;
 
             // Split names if multiple people are listed in the DEACON CARE  LIST field
-            const names = row['DEACON CARE  LIST'].split('&').map(name => name.trim());
+            const names = splitNames(row['DEACON CARE  LIST']);
 
             // Process phone field
-            const phoneEntries = row['Phone']?.split(',').map(entry => entry.trim());
+            let phone = row['Phone'];
+            if(!phone) phone = '';
+            const phoneEntries = phone.split(',').map(entry => entry.trim());
             const phoneMap = {};
             phoneEntries?.forEach(entry => {
                 const match = entry.match(/^(\w+):\s*(\d{10})$/);
@@ -72,32 +74,34 @@ async function createHouseholdsAndMembers() {
                 memberId = memberId || memberResponse.data.id;
             }
             // Find the deacon ID by name
-            const deaconName = row['Assigned Deacon'];
+            splitNames(row['Assigned Deacon']).forEach(async name => {
+                const deacon = deaconResponse.data.deacons.find(
+                    (d) => `${d.firstName} ${d.lastName}`.toLowerCase() === name.toLowerCase()
+                );
 
-            const deacon = deaconResponse.data.deacons.find(
-                (d) => `${d.firstName} ${d.lastName}`.toLowerCase() === deaconName.toLowerCase()
-            );
-
-            if (deacon) {
-                const assignmentData = {
-                    deaconMemberId: deacon._id,
-                    householdId
-                };
-                console.log(`Creating assignment: ${JSON.stringify(assignmentData)}`);
-                await axios.post(`${apiBaseUrl}/assignments`, assignmentData);
-            } else {
-                console.warn(`Deacon not found for name: ${deaconName}`);
-            }
+                if (deacon) {
+                    const assignmentData = {
+                        deaconMemberId: deacon._id,
+                        householdId
+                    };
+                    console.log(`Creating assignment: ${JSON.stringify(assignmentData)}`);
+                    await axios.post(`${apiBaseUrl}/assignments`, assignmentData);
+                } else {
+                    console.warn(`Deacon not found for name: ${name}`);
+                }
+            });
 
             const lastContactDate = moment("1900-01-01").add(row['Last Contact'] - 2, 'days');
-            const lastContactDeaconName = row['Last Contact Deacon'];
-            const lastContactDeacon = deaconResponse.data.deacons.find(
-                (d) => `${d.firstName} ${d.lastName}`.toLowerCase() === lastContactDeaconName.toLowerCase()
-            );
-            if (lastContactDate && lastContactDeacon) {
+            const lastContactDeaconNames = row['Last Contact Deacon'];
+            const lastContactDeacons = splitNames(lastContactDeaconNames).map(lastContactDeaconName => {
+                return deaconResponse.data.deacons.find(
+                    (d) => `${d.firstName} ${d.lastName}`.toLowerCase() === lastContactDeaconName.toLowerCase()
+                );
+            });
+            if (lastContactDate) {
                 const contactData = {
                     memberId: [memberId],
-                    deaconId: [lastContactDeacon._id],
+                    deaconId: lastContactDeacons?.map(d => d._id) || [],
                     contactType: notesLower.includes('visit') ? 'visit' : 'phone',
                     summary: notes,
                     contactDate: lastContactDate.format(),// ISO format
@@ -110,6 +114,10 @@ async function createHouseholdsAndMembers() {
             console.error('Failed to create household, member, or assignment:', error.response?.data || error.message);
         }
     }
+}
+
+function splitNames(names) {
+    return names.split(/[,&\/\\:|]+/).map(name => name.trim());
 }
 
 async function createDeacons() {
@@ -171,7 +179,7 @@ async function createDeacons() {
                     email: spouseEmail || '',
                     relationship: 'spouse',
                     gender: "female",
-                    tags: ['member']
+                    tags: ['deaconess', 'member']
                 };
                 console.log(`Creating spouse: ${JSON.stringify(spouseData)}`);
                 await axios.post(`${apiBaseUrl}/members`, spouseData);

@@ -3,7 +3,12 @@ import { safeCollectionFind } from '../helpers.js';
 export default function registerDeaconRoutes(app) {
   app.get('/api/deacons', async (c) => {
     try {
-      const members = await safeCollectionFind('members', { tags: { $in: ['deacon'] } });
+      let tags = ['deacon'];
+      const other = c.req.query('add')?.split(',').map(tag => tag.trim());
+      if(other) {
+        tags.push(...other);
+      }
+      const members = await safeCollectionFind('members', { tags: { $in: tags } });
       return c.json({ deacons: members, count: members.length });
     } catch (error) {
       console.error('Error fetching deacons:', error);

@@ -49,7 +49,7 @@ export default function registerContactRoutes(app) {
       const householdIds = Array.from(new Set(assignments.map(a => a.householdId)));
       const households = await safeCollectionFind('households', { _id: { $in: householdIds } });
       const members = await safeCollectionFind('members', { householdId: { $in: householdIds } });
-      const deacons = await safeCollectionFind('members', { tags: { $in: ['deacon'] } });
+      const deacons = await safeCollectionFind('members', { tags: { $in: ['deacon', 'deaconess', 'staff'] } });
       let contacts = await safeCollectionFind('contacts', { memberId: { $in: members.map(m => m._id) } }) || [];
       contacts = contacts.sort((a, b) => new Date(b.contactDate) - new Date(a.contactDate));
       const summary = households.map(household => {
