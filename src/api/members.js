@@ -1,4 +1,10 @@
+import { ApiError, handleApiError } from '../error.js';
 import { safeCollectionFind, safeCollectionInsert, validatePhoneRequirement, db } from '../helpers.js';
+
+function validationErrorResponse(c, message, statusCode = 400) {
+  throw new ApiError(message, statusCode);
+  // return c.json({ error: 'Validation failed', message }, statusCode); 
+}
 
 export default function registerMemberRoutes(app) {
   app.get('/api/members', async (c) => {
@@ -118,42 +124,42 @@ export default function registerMemberRoutes(app) {
       const requiredFields = ['firstName', 'lastName', 'relationship', 'gender'];
       for (const field of requiredFields) {
         if (!body[field]) {
-          return c.json({ error: 'Validation failed', message: `Missing required field: ${field}` }, 400);
+          validationErrorResponse(c, `Missing required field: ${field}`);
         }
       }
 
       const validRelationships = ['head', 'spouse', 'child', 'other'];
       if (!validRelationships.includes(body.relationship)) {
-        return c.json({ error: 'Validation failed', message: `Invalid relationship. Must be one of: ${validRelationships.join(', ')}` }, 400);
+        validationErrorResponse(c, `Invalid relationship. Must be one of: ${validRelationships.join(', ')}`);
       }
 
       const validGenders = ['male', 'female'];
       if (!validGenders.includes(body.gender)) {
-        return c.json({ error: 'Validation failed', message: `Invalid gender. Must be one of: ${validGenders.join(', ')}` }, 400);
+        validationErrorResponse(c, `Invalid gender. Must be one of: ${validGenders.join(', ')}`);
       }
 
       if (body.tags && Array.isArray(body.tags)) {
         const validTags = ['deacon', 'elder', 'staff', 'member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married'];
         for (const tag of body.tags) {
           if (!validTags.includes(tag)) {
-            return c.json({ error: 'Validation failed', message: `Invalid tag "${tag}". Must be one of: ${validTags.join(', ')}` }, 400);
+            validationErrorResponse(c, `Invalid tag "${tag}". Must be one of: ${validTags.join(', ')}`);
           }
         }
       }
 
       if (body.age && body.birthDate) {
-        return c.json({ error: 'Validation failed', message: 'Cannot provide both age and birthDate. Please provide only one.' }, 400);
+        validationErrorResponse(c, 'Cannot provide both age and birthDate. Please provide only one.');
       }
 
       if (body.age && (body.age < 0 || body.age > 150)) {
-        return c.json({ error: 'Validation failed', message: 'Age must be between 0 and 150' }, 400);
+        validationErrorResponse(c, 'Age must be between 0 and 150');
       }
 
-      const members = await safeCollectionFind('members');
-      const existingMember = members.find(m => m._id === memberId);
+      const members = await safeCollectionFind('members', { _id: memberId });
+      const existingMember = members.pop();
 
       if (!existingMember) {
-        return c.json({ error: 'Member not found', message: 'The requested member was not found' }, 404);
+        validationErrorResponse(c, 'The requested member was not found', 404);
       }
 
       const updateData = {
@@ -176,13 +182,12 @@ export default function registerMemberRoutes(app) {
       );
 
       if (result.modifiedCount === 0) {
-        return c.json({ error: 'Update failed', message: 'No changes were made' }, 400);
+        validationErrorResponse(c, 'No changes were made', 400);
       }
 
       return c.json({ message: 'Member updated successfully', member: updateData });
     } catch (error) {
-      console.error('Error updating member:', error);
-      return c.json({ error: 'Failed to update member', message: error.message }, 500);
+      return handleApiError(c, error);
     }
   });
 }
