@@ -110,6 +110,7 @@ async function createHouseholdsAndMembers() {
                 console.log(`Creating contact log: ${JSON.stringify(contactData)}`);
                 await axios.post(`${apiBaseUrl}/contacts`, contactData);
             }
+            processNotesForContacts(row, householdId, memberId, deaconResponse);
         } catch (error) {
             console.error('Failed to create household, member, or assignment:', error.response?.data || error.message);
         }
@@ -190,10 +191,47 @@ async function createDeacons() {
     }
 }
 
+async function processNotesForContacts(row, householdId, memberId, deaconResponse) {
+    const notes = row['__EMPTY']; // Assuming column I is labeled 'Notes'
+    const updates = notes.split(/(?=\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/).map(note => note.trim());
 
-async function main() {
-    await createDeacons();
-    await createHouseholdsAndMembers();
+    for (const update of updates) {
+        const dateMatch = update.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/);
+        const deaconMatch = update.match(/(?:AVW|Deacon:|Initials:|\b)([A-Za-z]+(?:\s[A-Za-z]+)?)/);
+        const summary = update.replace(dateMatch?.[0] || '', '').replace(deaconMatch?.[0] || '', '').trim();
+
+        const contactDate = dateMatch ? moment(dateMatch[0], ['MM/DD/YYYY', 'MM-DD-YYYY']).format() : null;
+        const deaconName = deaconMatch ? deaconMatch[1]?.trim() : null;
+
+        const deacon = deaconName ? deaconResponse.data.deacons.find(
+            (d) => `${d.firstName} ${d.lastName}`.toLowerCase() === deaconName.toLowerCase()
+        ) : null;
+
+        if (contactDate && deacon) {
+            const contactData = {
+                memberId: [memberId],
+                deaconId: [deacon._id],
+                contactType: summary.toLowerCase().includes('visit') ? 'visit' : 'phone',
+                summary,
+                contactDate,
+                followUpRequired: false
+            };
+            console.log(`Creating contact log: ${JSON.stringify(contactData)}`);
+            await axios.post(`${apiBaseUrl}/contacts`, contactData);
+        } else {
+            console.warn(`Skipping contact creation for update: ${update}`);
+        }
+    }
 }
 
-main().catch((error) => console.error('Error in script execution:', error));
+async function main() {
+    try {
+        await createDeacons();
+        await createHouseholdsAndMembers();
+        console.log('Data generation completed successfully.');
+    } catch (error) {
+        console.error('Error during data generation:', error.message);
+    }
+}
+
+main();

@@ -392,6 +392,10 @@
             </div>
             
             <div id="householdContent" style="display: none;">
+                <!-- Edit Household Section -->
+                <div class="section">
+                    <a href="edit-household.html?householdId=" id="editHouseholdBtn" class="btn" style="display:inline-block;margin-bottom:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Edit Household</a>
+                </div>
                 <!-- Household Information Section -->
                 <div class="section">
                     <h2>Household Information</h2>
@@ -399,30 +403,28 @@
                         <!-- Will be populated by JavaScript -->
                     </div>
                 </div>
-                <!-- Assign Deacon Section -->
-                <div class="section">
-                    <button id="assignDeaconBtn" class="btn" style="margin-bottom:10px;">Assign Deacon</button>
-                    <div id="assignedDeaconsSection" style="margin-top:15px;"></div>
-                </div>
                 <!-- Add Member Section -->
                 <div class="section">
                     <a href="edit-member.html?householdId=" id="addMemberBtn" class="btn" style="display:inline-block;margin-bottom:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Add New Member</a>
-                </div>
-                <!-- Edit Household Section -->
-                <div class="section">
-                    <a href="edit-household.html?householdId=" id="editHouseholdBtn" class="btn" style="display:inline-block;margin-bottom:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Edit Household</a>
-                </div>
-                <!-- Record Contact Section -->
-                <div class="section">
-                    <div class="btn-container">
-                        <a href="record-contact.html?householdId=" class="btn">Record Contact</a>
-                    </div>
                 </div>
                 <!-- Members List Section -->
                 <div class="section">
                     <h2>Household Members</h2>
                     <div id="membersList">
                         <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Assign Deacon Section -->
+                <div class="section">
+                    <button id="assignDeaconBtn" class="btn" style="margin-bottom:10px;">Assign Deacon</button>
+                    <div id="assignedDeaconsSection" style="margin-top:15px;"></div>
+                </div>
+                
+                <!-- Record Contact Section -->
+                <div class="section">
+                    <div class="btn-container">
+                        <a href="record-contact.html?householdId=" class="btn">Record Contact</a>
                     </div>
                 </div>
             </div>
@@ -619,6 +621,7 @@
             currentHouseholdId = getHouseholdId();
             if (currentHouseholdId) {
                 loadHouseholdData();
+                loadContactHistory();
                 // Set add member link
                 document.getElementById('addMemberBtn').href = `edit-member.html?householdId=${currentHouseholdId}`;
                 // Set assign deacon button link
@@ -686,6 +689,71 @@
             }
         }
         
+        // Load contact history
+        async function loadContactHistory() {
+            try {
+                const contactsResponse = await fetch(`/api/households/${currentHouseholdId}/contacts`);
+                const contacts = await contactsResponse.json();
+
+                const contactsSection = document.createElement('div');
+                contactsSection.className = 'section';
+                contactsSection.innerHTML = '<h2>Contact History</h2>';
+
+                if (contacts.count > 0) {
+                    const contactsTable = document.createElement('table');
+                    contactsTable.style.width = '100%';
+                    contactsTable.style.borderCollapse = 'collapse';
+                    contactsTable.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">When</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">Who & How</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${contacts.contacts.map(contact => {
+                                const contactDate = contact.contactDate ? new Date(contact.contactDate).toLocaleDateString() : '';
+                                let contactedBy = '';
+                                switch (contact.contactType) {
+                                    case 'phone':
+                                        contactedBy = 'Called';
+                                        break;
+                                    case 'visit':
+                                        contactedBy = 'Visited';
+                                        break;
+                                    case 'voicemail':
+                                        contactedBy = 'Left voicemail';
+                                        break;
+                                    case 'church':
+                                        contactedBy = 'Spoke at church';
+                                        break;
+                                }
+                                if (contact.contactedBy?.length) {
+                                    if (contactedBy) contactedBy += ' by ';
+                                    contactedBy += contact.contactedBy.map(c => `${c.firstName} ${c.lastName}`).join(', ');
+                                }
+                                return `
+                                    <tr>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${contactDate}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${contactedBy}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px;">${contact.summary || 'No notes available'}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    `;
+                    contactsSection.appendChild(contactsTable);
+                } else {
+                    contactsSection.innerHTML += '<p>No contact history available.</p>';
+                }
+
+                document.getElementById('householdContent').appendChild(contactsSection);
+            } catch (error) {
+                console.error('Error fetching contact history:', error);
+            }
+        }
+
         // Display household information
         function displayHouseholdInfo(household) {
             document.getElementById('householdTitle').textContent = `${household.lastName} Household`;

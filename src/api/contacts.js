@@ -42,6 +42,28 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  app.get('/api/households/:householdId/contacts', async (c) => {
+    try {
+      const members = await safeCollectionFind('members', { householdId: c.req.param('householdId') });
+      if (!members || members.length === 0) {
+        return c.json({ error: 'Household not found or has no members' }, 404);
+      }
+      const contacts = await safeCollectionFind('contacts', { memberId: { $in: members.map(m => m._id) } });
+      await Promise.all(contacts.map(async element => {
+        element.contactedBy = await Promise.all(element.deaconId.map(async deaconId => {
+          let deacon = await safeCollectionFind('members', { _id: deaconId });
+          console.log('Deacon:', deacon);
+          deacon = deacon[0];
+          return deacon ? { memberId: deacon._id, firstName: deacon.firstName, lastName: deacon.lastName } : null;
+        }));
+      }));
+      return c.json({ contacts, count: contacts.length });
+    } catch (error) {
+      console.error('Error fetching households:', error);
+      return c.json({ error: 'Failed to fetch households', message: error.message }, 500);
+    }
+  });
+
   app.get('/api/reports/summary', async (c) => {
     try {
       // Fetch households with members and assigned deacons
