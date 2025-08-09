@@ -7,6 +7,7 @@ import registerHouseholdRoutes from './api/households.js'
 import registerAssignmentRoutes from './api/assignments.js'
 import registerDeaconRoutes from './api/deacons.js'
 import registerContactRoutes from './api/contacts.js'
+import { sengo } from './sengoClient.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -52,6 +53,13 @@ async function serveStatic(c, filePath) {
 
 export function createApp() {
   const app = new Hono()
+
+  // Middleware to log every request
+  app.use('*', (c, next) => {
+    const logger = sengo.logger;
+    logger?.info({ method: c.req.method, url: c.req.url }, 'Incoming request');
+    return next();
+  });
 
   // API Health check endpoint
   app.get('/api', (c) => {
@@ -120,7 +128,9 @@ export function createApp() {
   app.notFound((c) => {
     return c.json({ 
       error: 'Not Found',
-      message: 'The requested endpoint was not found'
+      message: 'The requested endpoint was not found',
+      method: c.req.method, 
+      url: c.req.url
     }, 404)
   })
 

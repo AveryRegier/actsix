@@ -134,9 +134,17 @@
             tableBody.innerHTML = data.summary.map(item => {
                 const currentHouseholdId = item.household._id;
                 const householdName = item.household?.members?.map(m => m.firstName).join(' & ');
-                let phoneNumbers = item.household?.members?.map(m => `${m.firstName?.charAt(0)}: ${m.phone}`).join('<br>') || '';
+                let phoneNumbers = "";
+                if(item.household?.members?.length) {
+                    phoneNumbers = item.household.members
+                        .filter(m => m.phone)
+                        .map(m => `${m.firstName?.charAt(0)}: ${m.phone}`).join('<br>');
+                }
                 if(item.household?.primaryPhone) {
                     phoneNumbers += (phoneNumbers ? "<br>" : "") + `P: ${item.household.primaryPhone}`;
+                }
+                if(!phoneNumbers && item.household.address?.street) {
+                    phoneNumbers = `${item.household.address.street}<br>${item.household.address.city}`;
                 }
                 const deacons = item.assignedDeacons?.map(d => `${d.firstName} ${d.lastName}`).join(', ');
                 const lastContactDate = item.lastContact?.contactDate ? new Date(item.lastContact.contactDate) : null;

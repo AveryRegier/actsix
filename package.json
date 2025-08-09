@@ -23,7 +23,9 @@
     "lint": "echo 'Linting would go here'",
     "validate": "npm run test && npm run lint",
     "deploy:prep": "npm run clean && npm run build:validate",
-    "generate": "node scripts/generate_data.cjs"
+    "generate": "node scripts/generate_data.cjs",
+    "dist": "node scripts/dist.cjs",
+    "deploy": "powershell.exe -File scripts/deploy-cloudformation.ps1"
   },
   "keywords": [
     "ministry",
@@ -38,6 +40,8 @@
     "@hono/node-server": "^1.15.0",
     "@types/chance": "^1.1.7",
     "@types/node": "^24.0.13",
+    "archiver": "^7.0.1",
+    "aws-sdk": "^2.1692.0",
     "chance": "^1.1.13",
     "rimraf": "^6.0.1",
     "typescript": "^5.8.3",
@@ -48,8 +52,6 @@
     "hono": "^4.8.4",
     "moment": "^2.30.1",
     "pino": "^9.7.0",
-    "sengo": "file:../sengo/client/dist",
-    "xlsx": "^0.18.5",
-    "xslx": "^1.0.0"
+    "xlsx": "^0.18.5"
   }
 }
