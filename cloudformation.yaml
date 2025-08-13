@@ -59,6 +59,9 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: !Ref S3BucketName
+          COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
+          API_GATEWAY_URL: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
+          AWS_REGION: !Ref AWS::Region
 
   ApiGateway:
     Type: AWS::ApiGatewayV2::Api
@@ -95,6 +98,112 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway.ApiId}/*
 
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: actsix-user-pool
+      AutoVerifiedAttributes:
+        - email
+        - phone_number
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+        - Name: phone_number
+          Required: true
+          Mutable: true
+        - Name: custom:member_id
+          Required: false
+          Mutable: true
+
+  CognitoUserPoolGroupDeacon:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: deacon
+      UserPoolId: !Ref CognitoUserPool
+
+  CognitoUserPoolGroupStaff:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: staff
+      UserPoolId: !Ref CognitoUserPool
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: actsix-app-client
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/cognito
+
+  CognitoPreSignUpTrigger:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: actsix-pre-signup-trigger
+      Handler: src/preSignUp.handler
+      Role: !GetAtt LambdaRole.Arn
+      Code:
+        S3Bucket: !Ref S3BucketName
+        S3Key: pre-signup-trigger.zip
+      Runtime: nodejs22.x
+      Timeout: 30
+
+  CognitoPostConfirmationTrigger:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: actsix-post-confirmation-trigger
+      Handler: src/postConfirmation.handler
+      Role: !GetAtt LambdaRole.Arn
+      Code:
+        S3Bucket: !Ref S3BucketName
+        S3Key: post-confirmation-trigger.zip
+      Runtime: nodejs22.x
+      Timeout: 30
+
+  CognitoUserInitializationLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: actsix-user-initialization
+      Handler: src/userInitialization.handler
+      Role: !GetAtt LambdaRole.Arn
+      Code:
+        S3Bucket: !Ref S3BucketName
+        S3Key: user-initialization.zip
+      Runtime: nodejs22.x
+      Timeout: 30
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref S3BucketName
+          AWS_REGION: !Ref AWS::Region
+
+  CognitoUserPoolLambdaConfig:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      LambdaConfig:
+        PreSignUp: !GetAtt CognitoUserInitializationLambda.Arn
+
+  LambdaInvokePermissionForCognito:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CognitoUserInitializationLambda
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPool}
+
 Outputs:
   ApiUrl:
     Description: API Gateway endpoint
@@ -105,3 +214,9 @@ Outputs:
   LambdaRoleArn:
     Description: Lambda IAM Role ARN
     Value: !GetAtt LambdaRole.Arn
+  CognitoClientId:
+    Description: Cognito App Client ID
+    Value: !Ref CognitoUserPoolClient
+  ApiGatewayUrl:
+    Description: API Gateway URL
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com

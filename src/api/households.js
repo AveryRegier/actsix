@@ -18,6 +18,10 @@ function validateAddress(address) {
 
 export default function registerHouseholdRoutes(app) {
   app.get('/api/households', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon' && role !== 'staff') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       const households = await safeCollectionFind('households');
       return c.json({ households, count: households.length });
@@ -28,8 +32,16 @@ export default function registerHouseholdRoutes(app) {
   });
 
   app.get('/api/households/:householdId', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    let householdId = c.req.param('householdId');
+    if (role !== 'deacon' && role !== 'staff') {
+      const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
+      if(!members.map(m=>m.householdId).includes(householdId)) {
+        return c.json({ error: 'Unauthorized access' }, 403);
+      }
+    }
     try {
-      const household = await safeCollectionFind('households', { _id: c.req.param('householdId') });
+      const household = await safeCollectionFind('households', { _id: householdId });
       return c.json(household[0] || { error: 'Household not found' });
     } catch (error) {
       console.error('Error fetching households:', error);
@@ -73,7 +85,14 @@ export default function registerHouseholdRoutes(app) {
   });
 
   app.patch('/api/households/:householdId', async (c) => {
-    const householdId = c.req.param('householdId');
+    const role = c.req.role; // Assuming role is set in the request
+    let householdId = c.req.param('householdId');
+    if (role !== 'deacon' && role !== 'staff') {
+      const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
+      if(!members.map(m=>m.householdId).includes(householdId)) {
+        return c.json({ error: 'Unauthorized access' }, 403);
+      }
+    }
     const body = await c.req.json();
 
     // Validate required fields

@@ -2,6 +2,10 @@ import { safeCollectionFind, safeCollectionInsert, db } from '../helpers.js';
 
 export default function registerAssignmentRoutes(app) {
   app.get('/api/assignments', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon' && role !== 'staff') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       const assignments = await safeCollectionFind('assignments');
       return c.json({ assignments, count: assignments.length });
@@ -12,6 +16,10 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.post('/api/assignments', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       const body = await c.req.json();
       const requiredFields = ['deaconMemberId', 'householdId'];
@@ -37,6 +45,10 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.get('/api/deacons/:deaconMemberId/assignments', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       const deaconMemberId = c.req.param('deaconMemberId');
       const assignments = await safeCollectionFind('assignments', { deaconMemberId });
@@ -48,6 +60,10 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.get('/api/households/:householdId/assignments', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon' && role !== 'staff') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       const householdId = c.req.param('householdId');
       const assignments = await safeCollectionFind('assignments', { householdId, isActive: true });
@@ -66,6 +82,10 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.post('/api/households/:householdId/assignments', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       const householdId = c.req.param('householdId');
       const body = await c.req.json();

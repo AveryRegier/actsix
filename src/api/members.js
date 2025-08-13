@@ -18,8 +18,15 @@ export default function registerMemberRoutes(app) {
   });
 
   app.get('/api/households/:householdId/members', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    let householdId = c.req.param('householdId');
+    if (role !== 'deacon' && role !== 'staff') {
+      const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
+      if(!members.map(m=>m.householdId).includes(householdId)) {
+        return c.json({ error: 'Unauthorized access' }, 403);
+      }
+    }
     try {
-      const householdId = c.req.param('householdId');
       const members = await safeCollectionFind('members', { householdId });
       return c.json({ members, count: members.length });
     } catch (error) {
@@ -36,6 +43,12 @@ export default function registerMemberRoutes(app) {
       if (!member) {
         return c.json({ error: 'Member not found', message: 'No member found with the given ID.' }, 404);
       }
+      const role = c.req.role; // Assuming role is set in the request
+      if (role !== 'deacon' && role !== 'staff') {
+        if(c.req.memberId !== member._id) {
+          return c.json({ error: 'Unauthorized access' }, 403);
+        }
+      }
       return c.json({ member });
     } catch (error) {
       console.error('Error fetching member:', error);
@@ -48,6 +61,13 @@ export default function registerMemberRoutes(app) {
       const body = await c.req.json();
       let householdId = body.householdId;
       if (!householdId) {
+        const role = c.req.role; // Assuming role is set in the request
+        if (role !== 'deacon' && role !== 'staff') {
+          const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
+          if(!members.map(m=>m.householdId).includes(householdId)) {
+            return c.json({ error: 'Unauthorized access' }, 403);
+          }
+        }
         if (!body.lastName) {
           return c.json({ error: 'Validation failed', message: 'Missing lastName for household creation.' }, 400);
         }
@@ -96,17 +116,14 @@ export default function registerMemberRoutes(app) {
       const memberData = {
         ...body,
         householdId,
-        tags: body.tags || [],
+        
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-
-      // if (!body.phone) {
-      //   const hasPhoneNumber = await validatePhoneRequirement(body.householdId);
-      //   if (!hasPhoneNumber) {
-      //     return c.json({ error: 'Validation failed', message: 'At least one phone number is required per household.' }, 400);
-      //   }
-      // }
+      // only other deacons can modify tags as they allow secure access to the site
+      if(role === 'deacon' || role === 'staff') {
+        memberData.tags = body.tags || [];
+      }
 
       const result = await safeCollectionInsert('members', memberData);
       return c.json({ message: 'Member created successfully', id: result.insertedId, member: memberData });
@@ -165,9 +182,12 @@ export default function registerMemberRoutes(app) {
       const updateData = {
         ...existingMember,
         ...body,
-        tags: body.tags || [],
         updatedAt: new Date().toISOString(),
       };
+      // only other deacons can modify tags as they allow secure access to the site
+      if(role === 'deacon' || role === 'staff') {
+        updateData.tags = body.tags || [];
+      }
 
       if (body.birthDate) {
         delete updateData.age;

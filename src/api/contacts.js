@@ -2,6 +2,10 @@ import { safeCollectionFind, safeCollectionInsert } from '../helpers.js';
 
 export default function registerContactRoutes(app) {
   app.get('/api/contacts', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon' && role !== 'staff') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       const contacts = await safeCollectionFind('contacts');
       return c.json({ contacts, count: contacts.length });
@@ -12,6 +16,10 @@ export default function registerContactRoutes(app) {
   });
 
   app.post('/api/contacts', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon' && role !== 'staff') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       const body = await c.req.json();
       const requiredFields = ['memberId', 'deaconId', 'contactType', 'summary', 'contactDate'];
@@ -43,6 +51,10 @@ export default function registerContactRoutes(app) {
   });
 
   app.get('/api/households/:householdId/contacts', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon' && role !== 'staff') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       const members = await safeCollectionFind('members', { householdId: c.req.param('householdId') });
       if (!members || members.length === 0) {
@@ -65,6 +77,10 @@ export default function registerContactRoutes(app) {
   });
 
   app.get('/api/reports/summary', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon' && role !== 'staff') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       // Fetch households with members and assigned deacons
       const assignments = await safeCollectionFind('assignments', { isActive: true });

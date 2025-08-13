@@ -2,6 +2,10 @@ import { safeCollectionFind } from '../helpers.js';
 
 export default function registerDeaconRoutes(app) {
   app.get('/api/deacons', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon' && role !== 'staff') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       let tags = ['deacon'];
       const other = c.req.query('add')?.split(',').map(tag => tag.trim());
@@ -17,6 +21,10 @@ export default function registerDeaconRoutes(app) {
   });
 
   app.get('/api/participants', async (c) => {
+    const role = c.req.role; // Assuming role is set in the request
+    if (role !== 'deacon' && role !== 'staff') {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
     try {
       const members = await safeCollectionFind('members', { tags: { $in: ['deacon', 'elder', 'staff'] } })
       .then(members => members.map(member => ({
