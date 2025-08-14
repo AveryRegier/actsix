@@ -266,7 +266,7 @@
             const currentHouseholdId = urlParams.get('householdId');
 
             // Use the new API to fetch members
-            const membersResponse = await fetch(`/api/households/${currentHouseholdId}/members`);
+            const membersResponse = await fetch(`api/households/${currentHouseholdId}/members`);
             console.log('Members Response Status:', membersResponse.status);
             const membersData = await membersResponse.json();
             console.log('Members Response:', membersData);
@@ -287,7 +287,7 @@
             }).join('');
 
             // Fetch assigned deacons
-            const assignmentsResponse = await fetch(`/api/households/${currentHouseholdId}/assignments`);
+            const assignmentsResponse = await fetch(`api/households/${currentHouseholdId}/assignments`);
             const assignmentsData = await assignmentsResponse.json();
             const assignedDeacons = assignmentsData.assignments;
 
@@ -301,7 +301,7 @@
             `).join('');
 
             // Fetch household details
-            const householdResponse = await fetch(`/api/households/${currentHouseholdId}`);
+            const householdResponse = await fetch(`api/households/${currentHouseholdId}`);
             const household = await householdResponse.json();
 
             // Display household phone numbers and address
@@ -330,7 +330,7 @@
         }
 
         async function loadParticipants() {
-            const response = await fetch('/api/participants');
+            const response = await fetch('api/participants');
             const participants = await response.json();
             const participantList = document.getElementById('participantList');
             participantList.innerHTML = participants.participants.map(p => `
@@ -392,7 +392,7 @@
             };
 
             try {
-                const response = await fetch('/api/contacts', {
+                const response = await fetch('api/contacts', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -414,5 +414,6 @@
             }
         });
     </script>
+    <script src="redirect-handler.js"></script>
 </body>
 </html>

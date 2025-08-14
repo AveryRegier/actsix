@@ -61,7 +61,6 @@ Resources:
           S3_BUCKET: !Ref S3BucketName
           COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
           API_GATEWAY_URL: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
-          AWS_REGION: !Ref AWS::Region
 
   ApiGateway:
     Type: AWS::ApiGatewayV2::Api
@@ -104,7 +103,6 @@ Resources:
       UserPoolName: actsix-user-pool
       AutoVerifiedAttributes:
         - email
-        - phone_number
       Policies:
         PasswordPolicy:
           MinimumLength: 8
@@ -120,8 +118,12 @@ Resources:
           Required: true
           Mutable: true
         - Name: custom:member_id
+          AttributeDataType: String
           Required: false
           Mutable: true
+      SmsConfiguration:
+        SnsCallerArn: !GetAtt CognitoSMSRole.Arn
+        ExternalId: CognitoSMS
 
   CognitoUserPoolGroupDeacon:
     Type: AWS::Cognito::UserPoolGroup
@@ -153,11 +155,11 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: actsix-pre-signup-trigger
-      Handler: src/preSignUp.handler
+      Handler: src/userInitialization.handler
       Role: !GetAtt LambdaRole.Arn
       Code:
         S3Bucket: !Ref S3BucketName
-        S3Key: pre-signup-trigger.zip
+        S3Key: site-lambda.zip
       Runtime: nodejs22.x
       Timeout: 30
 
@@ -165,11 +167,11 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: actsix-post-confirmation-trigger
-      Handler: src/postConfirmation.handler
+      Handler: src/userInitialization.handler
       Role: !GetAtt LambdaRole.Arn
       Code:
         S3Bucket: !Ref S3BucketName
-        S3Key: post-confirmation-trigger.zip
+        S3Key: site-lambda.zip
       Runtime: nodejs22.x
       Timeout: 30
 
@@ -181,13 +183,12 @@ Resources:
       Role: !GetAtt LambdaRole.Arn
       Code:
         S3Bucket: !Ref S3BucketName
-        S3Key: user-initialization.zip
+        S3Key: site-lambda.zip
       Runtime: nodejs22.x
       Timeout: 30
       Environment:
         Variables:
           S3_BUCKET: !Ref S3BucketName
-          AWS_REGION: !Ref AWS::Region
 
   CognitoUserPoolLambdaConfig:
     Type: AWS::Cognito::UserPool
@@ -195,6 +196,7 @@ Resources:
       UserPoolId: !Ref CognitoUserPool
       LambdaConfig:
         PreSignUp: !GetAtt CognitoUserInitializationLambda.Arn
+        PostConfirmation: !GetAtt CognitoUserInitializationLambda.Arn
 
   LambdaInvokePermissionForCognito:
     Type: AWS::Lambda::Permission
@@ -204,10 +206,28 @@ Resources:
       Principal: cognito-idp.amazonaws.com
       SourceArn: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPool}
 
+  CognitoSMSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: Cognito-SMS-Role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cognito-idp.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AllowSNSPublish
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: '*'
+
 Outputs:
-  ApiUrl:
-    Description: API Gateway endpoint
-    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
   LambdaName:
     Description: Lambda function name
     Value: !Ref ActsixLambda

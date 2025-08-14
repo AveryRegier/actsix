@@ -138,6 +138,7 @@
         </form>
     </div>
 
+    <script src="redirect-handler.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -150,14 +151,14 @@
 
             let zipCodeData;
             try {
-                const zipResponse = await fetch('/iowa_zip_codes.json');
+                const zipResponse = await fetch('iowa_zip_codes.json');
                 zipCodeData = await zipResponse.json();
             } catch (error) {
                 console.warn('Zip code data is not available:', error);
             }
 
             try {
-                const response = await fetch(`/api/households/${householdId}`);
+                const response = await fetch(`api/households/${householdId}`);
                 const household = await response.json();
 
                 document.getElementById('lastName').value = household.lastName || '';
@@ -260,7 +261,7 @@
                 };
 
                 try {
-                    const response = await fetch(`/api/households/${householdId}`, {
+                    const response = await fetch(`api/households/${householdId}`, {
                         method: 'PATCH',
                         headers: {
                             'Content-Type': 'application/json',

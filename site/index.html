@@ -168,7 +168,7 @@
         // Check API status on page load
         async function checkApiStatus() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api`);
+                const response = await fetch(`api`);
                 const data = await response.json();
                 
                 if (data.status === 'healthy') {
@@ -193,5 +193,6 @@
         // Recheck every 30 seconds
         setInterval(checkApiStatus, 30000);
     </script>
+    <script src="redirect-handler.js"></script>
 </body>
 </html>

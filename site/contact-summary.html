@@ -123,9 +123,10 @@
         <p id="addressDetails"></p>
     </div>
 
+    <script src="redirect-handler.js"></script>
     <script>
         async function fetchSummary() {
-            const response = await fetch('/api/reports/summary');
+            const response = await fetch('api/reports/summary');
             const data = await response.json();
             const tableBody = document.getElementById('summaryTable').querySelector('tbody');
 

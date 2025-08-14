@@ -4,53 +4,34 @@ const AWS = require('aws-sdk');
 const cognito = new AWS.CognitoIdentityServiceProvider();
 
 exports.handler = async (event) => {
-  logger.info({event}, 'Cognito PreSignUp Trigger Event');
+  logger.info({event}, 'Cognito Trigger Event');
 
-  const email = event.request.userAttributes.email;
-  const phoneNumber = event.request.userAttributes.phone_number;
+  const email = event.request.userAttributes?.email;
+  const phoneNumber = event.request.userAttributes?.phone_number;
+
+  if (!email && !phoneNumber) {
+    logger.warn('No email or phone number provided.');
+    event.response.autoConfirmUser = false;
+    return event;
+  }
 
   try {
-    // Search for member by email
-    let member = await db.findOne('members', { email });
+    // Search for member by email or phone number
+    let member = email ? await db.findOne('members', { email }) : null;
 
-    if (member) {
-      // Add phone number to the member record if not already present
-      if (!member.phoneNumbers.includes(phoneNumber)) {
-        member.phoneNumbers.push(phoneNumber);
-        await db.update('members', member.id, member);
-      }
-
-      // Add the user to the correct Cognito group based on tags
-      const tags = member.tags || [];
-      if (tags.includes('deacon')) {
-        await cognito.adminAddUserToGroup({
-          UserPoolId: event.userPoolId,
-          Username: event.userName,
-          GroupName: 'deacon',
-        }).promise();
-      } else if (tags.includes('staff')) {
-        await cognito.adminAddUserToGroup({
-          UserPoolId: event.userPoolId,
-          Username: event.userName,
-          GroupName: 'staff',
-        }).promise();
-      }
-
-      // Set the custom:member_id attribute
-      event.response.autoConfirmUser = true;
-      event.request.userAttributes['custom:member_id'] = member.id;
-      return event;
+    if (!member && phoneNumber) {
+      member = await db.findOne('members', { phoneNumbers: phoneNumber });
     }
 
-    // Search for member by phone number
-    member = await db.findOne('members', { phoneNumbers: phoneNumber });
-
     if (member) {
-      // Add email to the member record if not already present
-      if (!member.email) {
+      // Update member record with missing attributes
+      if (email && !member.email) {
         member.email = email;
-        await db.update('members', member.id, member);
       }
+      if (phoneNumber && !member.phoneNumbers.includes(phoneNumber)) {
+        member.phoneNumbers.push(phoneNumber);
+      }
+      await db.update('members', member.id, member);
 
       // Add the user to the correct Cognito group based on tags
       const tags = member.tags || [];
@@ -81,6 +62,6 @@ exports.handler = async (event) => {
     logger.error(error, 'Error during user initialization:');
     throw error;
   } finally {
-    logger.info({event}, 'Cognito PreSignUp Trigger Event Response');
+    logger.info({event}, 'Cognito Trigger Event Response');
   }
 };

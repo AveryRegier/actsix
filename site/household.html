@@ -605,6 +605,7 @@
         </div>
     </div>
 
+    <script src="redirect-handler.js"></script>
     <script>
         const API_BASE_URL = '';
         let currentHouseholdId = null;
@@ -648,9 +649,9 @@
                 console.log('Fetching assignments from:', `http://localhost:3001/api/households/${currentHouseholdId}/assignments`);
 
                 const [householdsResponse, assignmentsResponse, membersResponse] = await Promise.all([
-                    fetch(`/api/households/${currentHouseholdId}`),
-                    fetch(`/api/households/${currentHouseholdId}/assignments`),
-                    fetch(`/api/households/${currentHouseholdId}/members`)
+                    fetch(`api/households/${currentHouseholdId}`),
+                    fetch(`api/households/${currentHouseholdId}/assignments`),
+                    fetch(`api/households/${currentHouseholdId}/members`)
                 ]);
 
                 const household = await householdsResponse.json();
@@ -692,7 +693,7 @@
         // Load contact history
         async function loadContactHistory() {
             try {
-                const contactsResponse = await fetch(`/api/households/${currentHouseholdId}/contacts`);
+                const contactsResponse = await fetch(`api/households/${currentHouseholdId}/contacts`);
                 const contacts = await contactsResponse.json();
 
                 const contactsSection = document.createElement('div');
@@ -895,7 +896,7 @@
             }
             
             try {
-                const response = await fetch(`${API_BASE_URL}/api/members`, {
+                const response = await fetch(`api/members`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -920,7 +921,7 @@
         // Edit member
         async function editMember(memberId) {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/members`);
+                const response = await fetch(`api/members`);
                 const data = await response.json();
                 
                 const member = data.members.find(m => m._id === memberId);
@@ -999,7 +1000,7 @@
             }
             
             try {
-                const response = await fetch(`${API_BASE_URL}/api/members/${memberId}`, {
+                const response = await fetch(`api/members/${memberId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',

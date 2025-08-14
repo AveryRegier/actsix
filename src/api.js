@@ -61,7 +61,9 @@ export function createApp() {
     const logger = sengo.logger;
 
     // Extract JWT from Authorization header
-    const authHeader = c.req.headers['authorization'];
+    // Ensure headers exist before accessing authorization
+    c.req.headers = c.req.headers || {};
+    const authHeader = c.req.headers?.['authorization'];
     let memberId = null;
     let role = null;
 
@@ -70,12 +72,18 @@ export function createApp() {
       try {
         const decoded = jwt.decode(token);
         memberId = decoded['custom:member_id'];
-        role = decoded['cognito:groups'] ? decoded['cognito:groups'][0] : null; // Extract the first group
+        role = decoded['cognito:groups'] ? decoded['cognito:groups'][0] : null; // Extract the first group as role
         c.req.memberId = memberId; // Save memberId as an attribute on the request
-        c.req.role = role; // Save cognitoGroup as an attribute on the request
+        c.req.role = role; // Save role as an attribute on the request
       } catch (error) {
         logger?.warn({ error: error.message }, 'Failed to decode JWT');
       }
+    }
+
+    if (!authHeader || !memberId) {
+      // Redirect to Cognito login if no valid token is found
+      const cognitoLoginUrl = `https://actsix.auth.${process.env.AWS_REGION}.amazoncognito.com/login?client_id=${process.env.COGNITO_CLIENT_ID}&response_type=code&redirect_uri=https://${process.env.API_GATEWAY_URL}/cognito`;
+      return c.redirect(cognitoLoginUrl, 302);
     }
 
     logger?.info({ method: c.req.method, url: c.req.url, memberId, role }, 'Incoming request');

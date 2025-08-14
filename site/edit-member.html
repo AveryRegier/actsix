@@ -94,7 +94,7 @@
     if (memberId) {
         window.onload = function() {
             document.getElementById('formTitle').textContent = 'Edit Member';
-            fetch(`/api/members/${memberId}`)
+            fetch(`api/members/${memberId}`)
                 .then(res => res.json())
                 .then(data => {
                     const member = data.member || data;
@@ -170,5 +170,6 @@
         window.location.href = `household.html?id=${householdId}`;
     };
     </script>
+    <script src="redirect-handler.js"></script>
 </body>
 </html>
