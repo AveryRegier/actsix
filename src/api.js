@@ -82,7 +82,8 @@ export function createApp() {
 
     if (!authHeader || !memberId) {
       // Redirect to Cognito login if no valid token is found
-      const cognitoLoginUrl = `https://actsix.auth.${process.env.AWS_REGION}.amazoncognito.com/login?client_id=${process.env.COGNITO_CLIENT_ID}&response_type=code&redirect_uri=https://${process.env.API_GATEWAY_URL}/cognito`;
+      const encodedRedirectUri = encodeURIComponent(`${process.env.API_GATEWAY_URL}/cognito`);
+      const cognitoLoginUrl = `https://actsix.auth.${process.env.AWS_REGION}.amazoncognito.com/login?client_id=${process.env.COGNITO_CLIENT_ID}&response_type=code&redirect_uri=${encodedRedirectUri}`;
       return c.redirect(cognitoLoginUrl, 302);
     }
 

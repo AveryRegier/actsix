@@ -6,6 +6,12 @@ Parameters:
     Type: String
     Default: deacon-care-system
     Description: S3 bucket for Lambda access
+  CognitoUserPoolId:
+    Type: String
+    Default: ""
+  CognitoAppClientId:
+    Type: String
+    Default: ""
 
 Resources:
   LambdaRole:
@@ -53,13 +59,14 @@ Resources:
       Code:
         S3Bucket: !Ref S3BucketName
         S3Key: site-lambda.zip
+        S3ObjectVersion: <latest-version-id>
       Runtime: nodejs22.x
       Timeout: 30
       MemorySize: 128
       Environment:
         Variables:
           S3_BUCKET: !Ref S3BucketName
-          COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
+          COGNITO_CLIENT_ID: !Ref CognitoAppClientId
           API_GATEWAY_URL: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
 
   ApiGateway:
@@ -100,7 +107,6 @@ Resources:
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: actsix-user-pool
       AutoVerifiedAttributes:
         - email
       Policies:
@@ -124,6 +130,12 @@ Resources:
       SmsConfiguration:
         SnsCallerArn: !GetAtt CognitoSMSRole.Arn
         ExternalId: CognitoSMS
+      LambdaConfig:
+        PreSignUp: !GetAtt CognitoUserInitializationLambda.Arn
+        PostConfirmation: !GetAtt CognitoUserInitializationLambda.Arn
+      LogDeliveryConfiguration:
+        LogLevel: INFO # Options: ERROR, INFO
+        LogGroupArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/cognito-idp/${CognitoUserPool}:*
 
   CognitoUserPoolGroupDeacon:
     Type: AWS::Cognito::UserPoolGroup
@@ -190,14 +202,6 @@ Resources:
         Variables:
           S3_BUCKET: !Ref S3BucketName
 
-  CognitoUserPoolLambdaConfig:
-    Type: AWS::Cognito::UserPool
-    Properties:
-      UserPoolId: !Ref CognitoUserPool
-      LambdaConfig:
-        PreSignUp: !GetAtt CognitoUserInitializationLambda.Arn
-        PostConfirmation: !GetAtt CognitoUserInitializationLambda.Arn
-
   LambdaInvokePermissionForCognito:
     Type: AWS::Lambda::Permission
     Properties:
@@ -205,6 +209,9 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: cognito-idp.amazonaws.com
       SourceArn: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPool}
+    DependsOn:
+      - CognitoUserPool
+      - CognitoUserPoolClient
 
   CognitoSMSRole:
     Type: AWS::IAM::Role
@@ -226,6 +233,12 @@ Resources:
                 Action:
                   - sns:Publish
                 Resource: '*'
+
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: actsix
+      UserPoolId: !Ref CognitoUserPool
 
 Outputs:
   LambdaName:
