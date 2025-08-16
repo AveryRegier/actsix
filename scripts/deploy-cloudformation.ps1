@@ -21,9 +21,32 @@ aws cloudformation deploy `
 $CognitoUserPoolId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text
 $CognitoAppClientId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='AppClientId'].OutputValue" --output text
 
+# Debugging: Log Cognito stack outputs
+Write-Host "CognitoUserPoolId: $CognitoUserPoolId"
+Write-Host "CognitoAppClientId: $CognitoAppClientId"
+
+
+# Delete stack if in ROLLBACK_COMPLETE state
+$StackStatus = aws cloudformation describe-stacks --stack-name $StackName --query "Stacks[0].StackStatus" --output text
+if ($StackStatus -eq "ROLLBACK_COMPLETE") {
+    Write-Host "Stack is in ROLLBACK_COMPLETE state. Deleting stack..."
+    aws cloudformation delete-stack --stack-name $StackName
+    Write-Host "Waiting for stack deletion to complete..."
+    aws cloudformation wait stack-delete-complete --stack-name $StackName
+}
+
 # Deploy application stack
 Write-Host "Uploading Lambda zip to S3..."
 $S3ObjectVersion = aws s3api put-object --bucket $S3Bucket --key $S3Key --body "dist/site-lambda.zip" --query VersionId --output text
+
+# Handle missing S3ObjectVersion
+if (-not $S3ObjectVersion -or $S3ObjectVersion -eq "null") {
+    Write-Host "S3ObjectVersion not returned or invalid. Using default value."
+    $S3ObjectVersion = "null"
+}
+
+# Log the S3 Object Version ID
+Write-Host "Using S3 Object Version ID: $S3ObjectVersion"
 
 Write-Host "Deploying Application CloudFormation stack..."
 aws cloudformation deploy `
@@ -31,6 +54,13 @@ aws cloudformation deploy `
     --template-file $TemplateFile `
     --parameter-overrides S3BucketName=$S3Bucket S3ObjectVersion=$S3ObjectVersion CognitoUserPoolId=$CognitoUserPoolId CognitoAppClientId=$CognitoAppClientId `
     --capabilities CAPABILITY_NAMED_IAM
+
+# Debugging: Log application stack parameters
+Write-Host "Deploying Application CloudFormation stack with parameters:"
+Write-Host "S3BucketName=$S3Bucket"
+Write-Host "S3ObjectVersion=$S3ObjectVersion"
+Write-Host "CognitoUserPoolId=$CognitoUserPoolId"
+Write-Host "CognitoAppClientId=$CognitoAppClientId"
 
 Write-Host "Deployment complete."
 aws cloudformation describe-stacks --stack-name $StackName --query "Stacks[0].Outputs" --output table
@@ -42,19 +72,30 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-# Retrieve ApiGateway URL dynamically
+# Wait for Application CloudFormation stack to be fully deployed
+Write-Host "Waiting for Application CloudFormation stack deployment to complete..."
+aws cloudformation wait stack-create-complete --stack-name $StackName
+
+# Retrieve ApiGatewayUrl after stack deployment
 $ApiGatewayUrl = aws cloudformation describe-stacks --stack-name $StackName --query "Stacks[0].Outputs[?OutputKey=='ApiGatewayUrl'].OutputValue" --output text
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Failed to retrieve ApiGateway URL. Exiting..."
-    exit $LASTEXITCODE
+Write-Host "Retrieved ApiGatewayUrl: $ApiGatewayUrl"
+
+# Validate ApiGatewayUrl
+if (-not $ApiGatewayUrl -or $ApiGatewayUrl -eq "None") {
+    Write-Host "ApiGatewayUrl not retrieved or invalid. Exiting..."
+    exit 1
 }
+
 
 # Configure CallbackURLs after application stack deployment
 Write-Host "Configuring Cognito CallbackURLs..."
+$CallbackURLs = "$ApiGatewayUrl/cognito"
+# Log the Callback URL
+Write-Host "Configuring Cognito CallbackURLs with: $CallbackURLs"
 aws cognito-idp update-user-pool-client `
     --user-pool-id $CognitoUserPoolId `
     --client-id $CognitoAppClientId `
-    --callback-urls $ApiGatewayUrl/cognito
+    --callback-urls $CallbackURLs
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to configure CallbackURLs. Exiting..."
     exit $LASTEXITCODE
