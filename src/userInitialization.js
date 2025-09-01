@@ -1,10 +1,10 @@
 const { db } = require('./sengoClient');
 const { logger } = require("./logger.js");
-const AWS = require('aws-sdk');
-const cognito = new AWS.CognitoIdentityServiceProvider();
+const { CognitoIdentityProviderClient, AdminAddUserToGroupCommand } = require('@aws-sdk/client-cognito-identity-provider');
+const cognito = new CognitoIdentityProviderClient({});
 
 exports.handler = async (event) => {
-  logger.info({event}, 'Cognito Trigger Event');
+  logger.info('Cognito Trigger Event', {event});
 
   const email = event.request.userAttributes?.email;
   const phoneNumber = event.request.userAttributes?.phone_number;
@@ -36,17 +36,17 @@ exports.handler = async (event) => {
       // Add the user to the correct Cognito group based on tags
       const tags = member.tags || [];
       if (tags.includes('deacon')) {
-        await cognito.adminAddUserToGroup({
+        await cognito.send(new AdminAddUserToGroupCommand({
           UserPoolId: event.userPoolId,
           Username: event.userName,
           GroupName: 'deacon',
-        }).promise();
+        }));
       } else if (tags.includes('staff')) {
-        await cognito.adminAddUserToGroup({
+        await cognito.send(new AdminAddUserToGroupCommand({
           UserPoolId: event.userPoolId,
           Username: event.userName,
           GroupName: 'staff',
-        }).promise();
+        }));
       }
 
       // Set the custom:member_id attribute
@@ -59,9 +59,9 @@ exports.handler = async (event) => {
     event.response.autoConfirmUser = false;
     return event;
   } catch (error) {
-    logger.error(error, 'Error during user initialization:');
+    logger.error('Error during user initialization:', error);
     throw error;
   } finally {
-    logger.info({event}, 'Cognito Trigger Event Response');
+    logger.info('Cognito Trigger Event Response', {event});
   }
 };

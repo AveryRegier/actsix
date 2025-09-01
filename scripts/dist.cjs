@@ -41,7 +41,7 @@ function prepareDistFolder() {
 function createZip() {
     const output = fs.createWriteStream(OUTPUT_ZIP);
     const archive = archiver('zip', {
-        zlib: { level: 9 } // Maximum compression
+        zlib: { level: 6 } // Balanced compression for speed and size
     });
 
     output.on('close', () => {

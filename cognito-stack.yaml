@@ -25,11 +25,17 @@ Resources:
           AttributeDataType: String
           Required: false
           Mutable: true
+      UserPoolName: actsix-user-pool
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailMessage: "Your verification code is {####}"
+        EmailSubject: "Verify your email for ActSix"
+        SmsMessage: "Your ActSix verification code is {####}"
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: actsix-app-client
+      ClientName: actsix-user-pool-client
       UserPoolId: !Ref CognitoUserPool
       GenerateSecret: false
       ExplicitAuthFlows:
@@ -37,12 +43,89 @@ Resources:
         - ALLOW_REFRESH_TOKEN_AUTH
       SupportedIdentityProviders:
         - COGNITO
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+        - https://sxg47kmwff.execute-api.us-west-2.amazonaws.com/cognito
+      LogoutURLs:
+        - https://sxg47kmwff.execute-api.us-west-2.amazonaws.com/logout
 
   CognitoUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
     Properties:
-      Domain: actsix
+      Domain: actsix-user-pool-domain
       UserPoolId: !Ref CognitoUserPool
+
+  CognitoIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: actsix-identity-pool
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref CognitoUserPoolClient
+          ProviderName: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}"
+
+  CognitoIdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref CognitoIdentityPool
+      Roles:
+        authenticated: !GetAtt AuthenticatedRole.Arn
+        unauthenticated: !GetAtt UnauthenticatedRole.Arn
+
+  AuthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref CognitoIdentityPool
+              "ForAnyValue:StringLike":
+                cognito-identity.amazonaws.com:amr: authenticated
+      Policies:
+        - PolicyName: AuthenticatedPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: sts:AssumeRole
+                Resource: '*'
+
+  UnauthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref CognitoIdentityPool
+              "ForAnyValue:StringLike":
+                cognito-identity.amazonaws.com:amr: unauthenticated
+      Policies:
+        - PolicyName: UnauthenticatedPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: sts:AssumeRole
+                Resource: '*'
 
 Outputs:
   UserPoolId:
@@ -57,3 +140,7 @@ Outputs:
     Value: !Ref CognitoUserPoolDomain
     Export:
       Name: CognitoUserPoolDomain
+  CognitoLoginUrl:
+    Value: !Sub "https://${CognitoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${CognitoUserPoolClient}&response_type=code&redirect_uri=https://sxg47kmwff.execute-api.${AWS::Region}.amazonaws.com/cognito"
+    Export:
+      Name: CognitoLoginUrl

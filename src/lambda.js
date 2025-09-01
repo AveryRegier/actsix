@@ -4,4 +4,4 @@ import { createApp } from './api.js'
 const app = createApp()
 
 // Export the handler for AWS Lambda
-export const handler = handle(app)
+export const handler = handle(app);

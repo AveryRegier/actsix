@@ -46,6 +46,7 @@ async function serveStatic(c, filePath) {
     c.header('Content-Type', contentType)
     return c.body(content)
   } catch (error) {
+    console.error('Error serving static file:', error);
     if (error.code === 'ENOENT') {
       return c.text('404 Not Found', 404)
     }
@@ -56,18 +57,20 @@ async function serveStatic(c, filePath) {
 export function createApp() {
   const app = new Hono()
 
-  // Middleware to log every request
+  // Middleware to log every request and handle authentication
   app.use('*', async (c, next) => {
+    try {
+    console.log('Incoming request:', c.req.method, c.req.url, c.req.path);
     const logger = sengo.logger;
 
     // Extract JWT from Authorization header
-    // Ensure headers exist before accessing authorization
     c.req.headers = c.req.headers || {};
     const authHeader = c.req.headers?.['authorization'];
     let memberId = null;
     let role = null;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
+      console.log('Authorization header found:', authHeader);
       const token = authHeader.slice(7); // Remove 'Bearer '
       try {
         const decoded = jwt.decode(token);
@@ -76,19 +79,33 @@ export function createApp() {
         c.req.memberId = memberId; // Save memberId as an attribute on the request
         c.req.role = role; // Save role as an attribute on the request
       } catch (error) {
-        logger?.warn({ error: error.message }, 'Failed to decode JWT');
+        console.warn('Failed to decode JWT:', error);
+        logger?.warn('Failed to decode JWT', error);
       }
     }
 
+    const safeLogger = logger || console;
+    safeLogger.info('Incoming request', { method: c.req.method, url: c.req.url, memberId, role });
+
+    // Exclude the /cognito route from authentication checks
+    if (c.req.path === '/cognito') {
+      console.log('Skipping authentication for /cognito route');
+      return next();
+    }
+
     if (!authHeader || !memberId) {
+      console.warn('No valid JWT found in request headers');
       // Redirect to Cognito login if no valid token is found
-      const encodedRedirectUri = encodeURIComponent(`${process.env.API_GATEWAY_URL}/cognito`);
-      const cognitoLoginUrl = `https://actsix.auth.${process.env.AWS_REGION}.amazoncognito.com/login?client_id=${process.env.COGNITO_CLIENT_ID}&response_type=code&redirect_uri=${encodedRedirectUri}`;
+      const cognitoLoginUrl = process.env.COGNITO_LOGIN_URL;
       return c.redirect(cognitoLoginUrl, 302);
     }
 
-    logger?.info({ method: c.req.method, url: c.req.url, memberId, role }, 'Incoming request');
+    console.log("calling next");
     return next();
+  } catch (error) {
+    console.error('Error handling request:', error);
+    return c.text('500 Internal Server Error', 500);
+  }
   });
 
   // API Health check endpoint
@@ -131,6 +148,71 @@ export function createApp() {
     return await serveStatic(c, 'favicon.ico')
   })
 
+
+  // // Cognito callback route (GET)
+  // app.get('/cognito', async (c) => {
+  //   const code = c.req.query('code');
+  //   if (!code) {
+  //     return c.json({ error: 'Authorization code is missing' }, 400);
+  //   }
+
+  //   // Redirect to the POST endpoint with the code
+  //   return c.redirect(`/cognito?code=${code}`, 302);
+  // });
+
+  // Cognito callback route (POST)
+  app.get('/cognito', async (c) => {
+    console.log('Handling Cognito callback...');
+    try {
+      const code = c.req.query('code');
+      if (!code) {
+        return c.json({ error: 'Authorization code is missing' }, 400);
+      }
+
+      // Exchange the code for tokens
+      const awsRegion = process.env.AWS_REGION || c.env.AWS_REGION;
+      console.log('Token exchange request details:', {
+        url: `https://${process.env.COGNITO_USER_POOL_DOMAIN}.auth.${awsRegion}.amazoncognito.com/oauth2/token`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          grant_type: 'authorization_code',
+          client_id: process.env.COGNITO_CLIENT_ID,
+          code,
+          redirect_uri: `https://${process.env.API_GATEWAY_URL}/cognito`,
+        },
+      });
+      const tokenResponse = await fetch(`https://${process.env.COGNITO_USER_POOL_DOMAIN}.auth.${awsRegion}.amazoncognito.com/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: process.env.COGNITO_CLIENT_ID,
+          code,
+          redirect_uri: `https://${process.env.API_GATEWAY_URL}/cognito`,
+        }),
+      });
+      console.log('Token response:', tokenResponse.status, tokenResponse.statusText);
+
+      if (!tokenResponse.ok) {
+        const error = await tokenResponse.json();
+        logger.error('Error exchanging code for tokens:', error);
+        return c.json({ error: 'Failed to exchange code for tokens' }, 500);
+      }
+
+      const tokens = await tokenResponse.json();
+      return c.json(tokens);
+    } catch (error) {
+      console.error('Error handling Cognito callback:', error);
+      logger.error('Error handling Cognito callback:', error);
+      return c.json({ error: 'Internal server error' }, 500);
+    }
+  });
+
   // Generic static file handler for other assets
   app.get('/:filename', async (c) => {
     const filename = c.req.param('filename')
@@ -144,61 +226,6 @@ export function createApp() {
     
     return c.text('404 Not Found', 404)
   })
-
-  // Cognito callback route
-  app.post('/cognito', async (c) => {
-    try {
-      const body = await c.req.json();
-      logger.info({body}, 'Cognito callback received');
-
-      // Extract the authorization code
-      const { code } = body;
-      if (!code) {
-        return c.json({ error: 'Authorization code is missing' }, 400);
-      }
-
-      // Exchange the code for tokens
-      const awsRegion = process.env.AWS_REGION || c.env.AWS_REGION;
-      const tokenResponse = await fetch(`https://actsix.auth.${awsRegion}.amazoncognito.com/oauth2/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          client_id: process.env.COGNITO_CLIENT_ID,
-          code,
-          redirect_uri: `https://${process.env.API_GATEWAY_URL}/cognito`,
-        }),
-      });
-
-      if (!tokenResponse.ok) {
-        const error = await tokenResponse.json();
-        logger.error(error, 'Error exchanging code for tokens:');
-        return c.json({ error: 'Failed to exchange code for tokens' }, 500);
-      }
-
-      const tokens = await tokenResponse.json();
-      logger.info({tokens}, 'Tokens received:');
-
-      // Validate the ID token (optional, for additional security)
-      // You can use a library like `jsonwebtoken` to decode and verify the token
-      const decodedToken = jwt.decode(tokens.id_token);
-      const memberId = decodedToken['custom:member_id'];
-      const role = decodedToken['cognito:groups'] ? decodedToken['cognito:groups'][0] : null;
-
-      let member = await db.findOne('members', { _id: memberId });
-      if (!member) {
-        logger.warn({ memberId }, 'Member not found');
-        return c.json({ error: 'Member not found' }, 401);
-      }
-
-      return c.json({ message: 'Cognito callback processed', tokens });
-    } catch (error) {
-      logger.error(error, 'Error handling Cognito callback');
-      return c.json({ error: 'Internal Server Error' }, 500);
-    }
-  });
 
   // Error handling
   app.onError((err, c) => {

@@ -17,13 +17,24 @@ aws cloudformation deploy `
     --template-file $CognitoTemplateFile `
     --capabilities CAPABILITY_NAMED_IAM
 
+# Pass CognitoUserPoolId and CognitoAppClientId to the Cognito stack deployment
+aws cloudformation deploy `
+    --template-file cognito-stack.yaml `
+    --stack-name actsix-cognito-stack `
+    --parameter-overrides CognitoUserPoolId=$CognitoUserPoolId CognitoAppClientId=$CognitoAppClientId `
+    --capabilities CAPABILITY_NAMED_IAM
+
 # Retrieve Cognito stack outputs
 $CognitoUserPoolId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text
 $CognitoAppClientId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='AppClientId'].OutputValue" --output text
+$CognitoLoginUrl = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='CognitoLoginUrl'].OutputValue" --output text
+$CognitoUserPoolDomain = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='UserPoolDomain'].OutputValue" --output text
 
 # Debugging: Log Cognito stack outputs
 Write-Host "CognitoUserPoolId: $CognitoUserPoolId"
 Write-Host "CognitoAppClientId: $CognitoAppClientId"
+Write-Host "CognitoLoginUrl: $CognitoLoginUrl"
+Write-Host "CognitoUserPoolDomain: $CognitoUserPoolDomain"
 
 
 # Delete stack if in ROLLBACK_COMPLETE state
@@ -52,7 +63,7 @@ Write-Host "Deploying Application CloudFormation stack..."
 aws cloudformation deploy `
     --stack-name $StackName `
     --template-file $TemplateFile `
-    --parameter-overrides S3BucketName=$S3Bucket S3ObjectVersion=$S3ObjectVersion CognitoUserPoolId=$CognitoUserPoolId CognitoAppClientId=$CognitoAppClientId `
+    --parameter-overrides S3BucketName=$S3Bucket S3ObjectVersion=$S3ObjectVersion CognitoUserPoolId=$CognitoUserPoolId CognitoAppClientId=$CognitoAppClientId CognitoLoginUrl=$CognitoLoginUrl CognitoUserPoolDomain=$CognitoUserPoolDomain `
     --capabilities CAPABILITY_NAMED_IAM
 
 # Debugging: Log application stack parameters
@@ -61,6 +72,8 @@ Write-Host "S3BucketName=$S3Bucket"
 Write-Host "S3ObjectVersion=$S3ObjectVersion"
 Write-Host "CognitoUserPoolId=$CognitoUserPoolId"
 Write-Host "CognitoAppClientId=$CognitoAppClientId"
+Write-Host "CognitoLoginUrl=$CognitoLoginUrl"
+Write-Host "CognitoUserPoolDomain=$CognitoUserPoolDomain"
 
 Write-Host "Deployment complete."
 aws cloudformation describe-stacks --stack-name $StackName --query "Stacks[0].Outputs" --output table

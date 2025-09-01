@@ -15,6 +15,12 @@ Parameters:
   S3ObjectVersion:
     Type: String
     Description: The version ID of the S3 object for the Lambda function
+  CognitoLoginUrl:
+    Type: String
+    Description: The login URL for the Cognito User Pool
+  CognitoUserPoolDomain:
+    Type: String
+    Description: The domain of the Cognito User Pool
 
 Resources:
   LambdaRole:
@@ -70,7 +76,9 @@ Resources:
         Variables:
           S3_BUCKET: !Ref S3BucketName
           COGNITO_CLIENT_ID: !Ref CognitoAppClientId
+          COGNITO_LOGIN_URL: !Ref CognitoLoginUrl
           API_GATEWAY_URL: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
+          COGNITO_USER_POOL_DOMAIN: !Ref CognitoUserPoolDomain
 
   ApiGateway:
     Type: AWS::ApiGatewayV2::Api
