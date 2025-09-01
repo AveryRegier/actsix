@@ -208,3 +208,6 @@ Outputs:
   ApiGatewayUrl:
     Description: API Gateway URL
     Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
+  CognitoLoginUrl:
+    Description: Cognito Login URL
+    Value: !Ref CognitoLoginUrl

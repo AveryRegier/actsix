@@ -7,9 +7,11 @@ import registerHouseholdRoutes from './api/households.js'
 import registerAssignmentRoutes from './api/assignments.js'
 import registerDeaconRoutes from './api/deacons.js'
 import registerContactRoutes from './api/contacts.js'
-import { sengo } from './sengoClient.js'
-import { logger } from "./logger.js";
+// import { logger } from "./logger.js";
 import jwt from 'jsonwebtoken';
+import qs from 'qs';
+import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
+import { safeCollectionFind } from './helpers.js';
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -61,43 +63,85 @@ export function createApp() {
   app.use('*', async (c, next) => {
     try {
     console.log('Incoming request:', c.req.method, c.req.url, c.req.path);
-    const logger = sengo.logger;
+    // const logger = sengo.logger;
 
-    // Extract JWT from Authorization header
-    c.req.headers = c.req.headers || {};
-    const authHeader = c.req.headers?.['authorization'];
-    let memberId = null;
+    // fixme: verify the token
+
+    // extract user information from the cookies in the request
+    let memberId = getCookie(c, 'member_id');
     let role = null;
+    if(!memberId) {
+      const idToken = getCookie(c, 'id_token');
+      if (idToken) {
+        try {
+          const decoded = jwt.decode(idToken);
+          const email = decoded.email; // for lookup of member record
+          const emailVerified = decoded.email_verified;
+          const phoneVerified = decoded.phone_number_verified;
+          const phoneNumber = decoded.phone_number;
+          const userName = decoded['cognito:username']; // for logging
+          memberId = decoded['custom:member_id'];
+          if(!memberId) {
+            // look it up
+            // FIXME: only look up member if the email is verified by cognito
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      console.log('Authorization header found:', authHeader);
-      const token = authHeader.slice(7); // Remove 'Bearer '
-      try {
-        const decoded = jwt.decode(token);
-        memberId = decoded['custom:member_id'];
-        role = decoded['cognito:groups'] ? decoded['cognito:groups'][0] : null; // Extract the first group as role
-        c.req.memberId = memberId; // Save memberId as an attribute on the request
-        c.req.role = role; // Save role as an attribute on the request
-      } catch (error) {
-        console.warn('Failed to decode JWT:', error);
-        logger?.warn('Failed to decode JWT', error);
+             // Search for member by email or phone number
+            let members = emailVerified ? await safeCollectionFind('members', { email }) : null;
+            
+            if (members.length == 0 && phoneVerified) {
+              members = await safeCollectionFind('members',{ phoneNumbers: phoneNumber });
+            }
+            if(members.length > 0) {
+              memberId = members[0]._id;
+              console.log('Found member ID from user lookup:', memberId);
+            } else {
+              console.warn("did not find member")
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to parse user cookie:', error);
+        }
+      } else {
+        // Extract JWT from Authorization header
+        c.req.headers = c.req.headers || {};
+        const authHeader = c.req.headers?.['authorization'];
+
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          console.log('Authorization header found:', authHeader);
+          const token = authHeader.slice(7); // Remove 'Bearer '
+          try {
+            const decoded = jwt.decode(token);
+            memberId = decoded['custom:member_id'];
+            role = decoded['cognito:groups'] ? decoded['cognito:groups'][0] : null; // Extract the first group as role
+
+          } catch (error) {
+            console.warn('Failed to decode JWT:', error);
+            // logger?.warn('Failed to decode JWT', error);
+          }
+        }
       }
     }
-
-    const safeLogger = logger || console;
-    safeLogger.info('Incoming request', { method: c.req.method, url: c.req.url, memberId, role });
+    c.req.memberId = memberId; // Save memberId as an attribute on the request
+    c.req.role = role; // Save role as an attribute on the request
+    console.log('Incoming request', { method: c.req.method, url: c.req.url, memberId, role });
 
     // Exclude the /cognito route from authentication checks
-    if (c.req.path === '/cognito') {
+    if (c.req.path === '/cognito' || c.req.path === '/favicon.ico') {
       console.log('Skipping authentication for /cognito route');
       return next();
     }
 
-    if (!authHeader || !memberId) {
-      console.warn('No valid JWT found in request headers');
+    if (!memberId) {
+      console.warn('No valid member found in request headers');
       // Redirect to Cognito login if no valid token is found
-      const cognitoLoginUrl = process.env.COGNITO_LOGIN_URL;
-      return c.redirect(cognitoLoginUrl, 302);
+      let params = {
+        client_id: process.env.COGNITO_CLIENT_ID,
+        response_type: 'code',
+        scope: 'email openid phone',
+        redirect_uri: `${process.env.API_GATEWAY_URL}/cognito`,
+      }
+      let url = `${process.env.COGNITO_LOGIN_URL}?${qs.stringify(params, { encode: true })}`;
+      return c.redirect(url, 302);
     }
 
     console.log("calling next");
@@ -193,24 +237,55 @@ export function createApp() {
           grant_type: 'authorization_code',
           client_id: process.env.COGNITO_CLIENT_ID,
           code,
-          redirect_uri: `https://${process.env.API_GATEWAY_URL}/cognito`,
+          redirect_uri: `${process.env.API_GATEWAY_URL}/cognito`,
         }),
       });
       console.log('Token response:', tokenResponse.status, tokenResponse.statusText);
 
       if (!tokenResponse.ok) {
         const error = await tokenResponse.json();
-        logger.error('Error exchanging code for tokens:', error);
+        console.error('Error exchanging code for tokens:', error);
         return c.json({ error: 'Failed to exchange code for tokens' }, 500);
       }
 
       const tokens = await tokenResponse.json();
-      return c.json(tokens);
+      console.log('Received tokens:', tokens);
+      // c.req.session.user = {
+      //     accessToken: tokens.access_token,
+      //     email: userInfo.email,
+      //     emailVerified: userInfo.email_verified,
+      //     id: userInfo.username,
+      //   };
+
+      // set cookies on the response and redirect to the index
+      setCookie(c, 'access_token', tokens.access_token, { httpOnly: true, secure: true, sameSite: 'Lax', path: '/' });
+      setCookie(c, 'id_token', tokens.id_token, { httpOnly: true, secure: true, sameSite: 'Lax', path: '/' });
+      setCookie(c, 'refresh_token', tokens.refresh_token, { httpOnly: true, secure: true, sameSite: 'Lax', path: '/' });
+      // setCookie(c, 'user', JSON.stringify(c.req.session.user), { httpOnly: true, secure: true, sameSite: 'Lax', path: '/' });
+      return c.redirect('/');
     } catch (error) {
       console.error('Error handling Cognito callback:', error);
-      logger.error('Error handling Cognito callback:', error);
+      // logger.error('Error handling Cognito callback:', error);
       return c.json({ error: 'Internal server error' }, 500);
     }
+  });
+
+  // Example: Setting a cookie
+  app.get('/set-cookie', (c) => {
+    setCookie(c, 'example_cookie', 'example_value', { path: '/', httpOnly: true });
+    return c.text('Cookie set!');
+  });
+
+  // Example: Getting a cookie
+  app.get('/get-cookie', (c) => {
+    const cookieValue = getCookie(c, 'example_cookie');
+    return c.text(`Cookie value: ${cookieValue}`);
+  });
+
+  // Example: Deleting a cookie
+  app.get('/delete-cookie', (c) => {
+    deleteCookie(c, 'example_cookie', { path: '/' });
+    return c.text('Cookie deleted!');
   });
 
   // Generic static file handler for other assets

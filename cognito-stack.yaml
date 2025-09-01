@@ -51,10 +51,6 @@ Resources:
         - email
         - profile
       AllowedOAuthFlowsUserPoolClient: true
-      CallbackURLs:
-        - https://sxg47kmwff.execute-api.us-west-2.amazonaws.com/cognito
-      LogoutURLs:
-        - https://sxg47kmwff.execute-api.us-west-2.amazonaws.com/logout
 
   CognitoUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
@@ -141,6 +137,6 @@ Outputs:
     Export:
       Name: CognitoUserPoolDomain
   CognitoLoginUrl:
-    Value: !Sub "https://${CognitoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${CognitoUserPoolClient}&response_type=code&redirect_uri=https://sxg47kmwff.execute-api.${AWS::Region}.amazonaws.com/cognito"
+    Value: !Sub "https://${CognitoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com/login"
     Export:
       Name: CognitoLoginUrl

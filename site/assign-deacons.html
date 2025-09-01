@@ -21,14 +21,14 @@
 
     // Fetch all deacons
     async function fetchDeacons() {
-        const res = await fetch('/api/deacons?add=deaconess,staff');
+        const res = await fetch('api/deacons?add=deaconess,staff');
         const data = await res.json();
         return data.deacons;
     }
 
     // Fetch current assignments
     async function fetchAssignments() {
-        const res = await fetch(`/api/households/${householdId}/assignments`);
+        const res = await fetch(`api/households/${householdId}/assignments`);
         if (!res.ok) return [];
         const data = await res.json();
         return data.assignments || [];
@@ -59,7 +59,7 @@
     document.getElementById('assignBtn').onclick = async function() {
         const checked = Array.from(document.querySelectorAll('#deaconList input:checked')).map(cb => cb.value);
         // Send assignments to API
-        const res = await fetch(`/api/households/${householdId}/assignments`, {
+        const res = await fetch(`api/households/${householdId}/assignments`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ deaconIds: checked })

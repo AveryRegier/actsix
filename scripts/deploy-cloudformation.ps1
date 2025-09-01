@@ -27,8 +27,9 @@ aws cloudformation deploy `
 # Retrieve Cognito stack outputs
 $CognitoUserPoolId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text
 $CognitoAppClientId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='AppClientId'].OutputValue" --output text
-$CognitoLoginUrl = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='CognitoLoginUrl'].OutputValue" --output text
+#$CognitoLoginUrl = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='CognitoLoginUrl'].OutputValue" --output text
 $CognitoUserPoolDomain = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='UserPoolDomain'].OutputValue" --output text
+$CognitoLoginUrl = "https://$($CognitoUserPoolDomain).auth.$(aws configure get region).amazoncognito.com/login"
 
 # Debugging: Log Cognito stack outputs
 Write-Host "CognitoUserPoolId: $CognitoUserPoolId"
@@ -109,6 +110,7 @@ aws cognito-idp update-user-pool-client `
     --user-pool-id $CognitoUserPoolId `
     --client-id $CognitoAppClientId `
     --callback-urls $CallbackURLs
+    
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to configure CallbackURLs. Exiting..."
     exit $LASTEXITCODE
