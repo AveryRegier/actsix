@@ -87,11 +87,13 @@
         <a href="edit-member.html" class="btn" style="display:inline-block;margin-top:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Add New Member</a>
     </div>
     <script src="redirect-handler.js"></script>
-    <script>
+    <script type="module">
+    import { apiFetch } from './fetch-utils.js';
+
     let membersCache = [];
     let currentSort = { key: 'lastName', asc: true };
     async function fetchMembers() {
-        const res = await fetch('api/members');
+        const res = await apiFetch('/api/members');
         const data = await res.json();
         return data.members || [];
     }

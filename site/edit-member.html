@@ -80,7 +80,9 @@
             <a href="#" class="btn btn-secondary" id="cancelBtn">Cancel</a>
         </form>
     </div>
-    <script>
+    <script type="module">
+    import { apiFetch } from './fetch-utils.js';
+
     // Get memberId and householdId from query params
     function getParams() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -94,8 +96,7 @@
     if (memberId) {
         window.onload = function() {
             document.getElementById('formTitle').textContent = 'Edit Member';
-            fetch(`api/members/${memberId}`)
-                .then(res => res.json())
+            apiFetch(`api/members/${memberId}`)
                 .then(data => {
                     const member = data.member || data;
                     console.log('Loaded member:', member);
@@ -141,7 +142,7 @@
             member.householdId = householdId;
         }
         try {
-            const res = await fetch(url, {
+            const res = await apiFetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(member)

@@ -605,458 +605,459 @@
         </div>
     </div>
 
-    <script src="redirect-handler.js"></script>
-    <script>
-        const API_BASE_URL = '';
-        let currentHouseholdId = null;
-        let currentHousehold = null;
-        
-        // Get household ID from URL parameters
-        function getHouseholdId() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('id');
+    <script type="module">
+import { apiFetch } from './fetch-utils.js';
+
+const API_BASE_URL = '';
+let currentHouseholdId = null;
+let currentHousehold = null;
+
+// Get household ID from URL parameters
+function getHouseholdId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    currentHouseholdId = getHouseholdId();
+    if (currentHouseholdId) {
+        loadHouseholdData();
+        loadContactHistory();
+        // Set add member link
+        document.getElementById('addMemberBtn').href = `edit-member.html?householdId=${currentHouseholdId}`;
+        // Set assign deacon button link
+        document.getElementById('assignDeaconBtn').onclick = function() {
+            window.location.href = `assign-deacons.html?householdId=${currentHouseholdId}`;
+        };
+        // Set record contact link
+        document.querySelector('a[href="record-contact.html?householdId="]').href = `record-contact.html?householdId=${currentHouseholdId}`;
+        // Set edit household link
+        document.getElementById('editHouseholdBtn').href = `edit-household.html?householdId=${currentHouseholdId}`;
+    } else {
+        showError('No household ID provided');
+    }
+});
+
+// Debugging: Log currentHouseholdId
+console.log('Current Household ID:', currentHouseholdId);
+
+// Load household data
+async function loadHouseholdData() {
+    try {
+        // Debugging: Log API URLs
+        console.log('Fetching households from:', `${API_BASE_URL}/api/households`);
+        console.log('Fetching assignments from:', `http://localhost:3001/api/households/${currentHouseholdId}/assignments`);
+
+        const [householdsResponse, assignmentsResponse, membersResponse] = await Promise.all([
+            apiFetch(`api/households/${currentHouseholdId}`),
+            apiFetch(`api/households/${currentHouseholdId}/assignments`),
+            apiFetch(`api/households/${currentHouseholdId}/members`)
+        ]);
+
+        const household = await householdsResponse.json();
+        let assignmentsData = { assignments: [] };
+
+        // Debugging: Log response status
+        console.log('Households Response Status:', householdsResponse.status);
+        console.log('Assignments Response Status:', assignmentsResponse.status);
+        console.log('Members Response Status:', membersResponse.status);
+
+        if (assignmentsResponse.ok) {
+            assignmentsData = await assignmentsResponse.json();
         }
-        
-        // Load data on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            currentHouseholdId = getHouseholdId();
-            if (currentHouseholdId) {
-                loadHouseholdData();
-                loadContactHistory();
-                // Set add member link
-                document.getElementById('addMemberBtn').href = `edit-member.html?householdId=${currentHouseholdId}`;
-                // Set assign deacon button link
-                document.getElementById('assignDeaconBtn').onclick = function() {
-                    window.location.href = `assign-deacons.html?householdId=${currentHouseholdId}`;
-                };
-                // Set record contact link
-                document.querySelector('a[href="record-contact.html?householdId="]').href = `record-contact.html?householdId=${currentHouseholdId}`;
-                // Set edit household link
-                document.getElementById('editHouseholdBtn').href = `edit-household.html?householdId=${currentHouseholdId}`;
-            } else {
-                showError('No household ID provided');
-            }
-        });
-        
-        // Debugging: Log currentHouseholdId
-        console.log('Current Household ID:', currentHouseholdId);
 
-        // Load household data
-        async function loadHouseholdData() {
-            try {
-                // Debugging: Log API URLs
-                console.log('Fetching households from:', `${API_BASE_URL}/api/households`);
-                console.log('Fetching assignments from:', `http://localhost:3001/api/households/${currentHouseholdId}/assignments`);
+        // Debugging: Log fetched data
+        console.log('Households Data:', household);
+        console.log('Assignments Data:', assignmentsData);
 
-                const [householdsResponse, assignmentsResponse, membersResponse] = await Promise.all([
-                    fetch(`api/households/${currentHouseholdId}`),
-                    fetch(`api/households/${currentHouseholdId}/assignments`),
-                    fetch(`api/households/${currentHouseholdId}/members`)
-                ]);
+        const memberData = await membersResponse.json();
+        console.log('Members Data:', memberData);
 
-                const household = await householdsResponse.json();
-                let assignmentsData = { assignments: [] };
-
-                // Debugging: Log response status
-                console.log('Households Response Status:', householdsResponse.status);
-                console.log('Assignments Response Status:', assignmentsResponse.status);
-                console.log('Members Response Status:', membersResponse.status);
-
-                if (assignmentsResponse.ok) {
-                    assignmentsData = await assignmentsResponse.json();
-                }
-
-                // Debugging: Log fetched data
-                console.log('Households Data:', household);
-                console.log('Assignments Data:', assignmentsData);
-
-                const memberData = await membersResponse.json();
-                console.log('Members Data:', memberData);
-
-                if (household) {
-                    currentHousehold = household;
-                    displayHouseholdInfo(household);
-                    displayAssignedDeacons(assignmentsData.assignments);
-                    displayMembers(memberData.members);
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('householdContent').style.display = 'block';
-                } else {
-                    showError('Household not found');
-                }
-            } catch (error) {
-                // Debugging: Log error
-                console.error('Error loading household data:', error);
-                showError('Error loading household data');
-            }
+        if (household) {
+            currentHousehold = household;
+            displayHouseholdInfo(household);
+            displayAssignedDeacons(assignmentsData.assignments);
+            displayMembers(memberData.members);
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('householdContent').style.display = 'block';
+        } else {
+            showError('Household not found');
         }
-        
-        // Load contact history
-        async function loadContactHistory() {
-            try {
-                const contactsResponse = await fetch(`api/households/${currentHouseholdId}/contacts`);
-                const contacts = await contactsResponse.json();
+    } catch (error) {
+        // Debugging: Log error
+        console.error('Error loading household data:', error);
+        showError('Error loading household data');
+    }
+}
 
-                const contactsSection = document.createElement('div');
-                contactsSection.className = 'section';
-                contactsSection.innerHTML = '<h2>Contact History</h2>';
+// Load contact history
+async function loadContactHistory() {
+    try {
+        const contactsResponse = await apiFetch(`api/households/${currentHouseholdId}/contacts`);
+        const contacts = await contactsResponse.json();
 
-                if (contacts.count > 0) {
-                    const contactsTable = document.createElement('table');
-                    contactsTable.style.width = '100%';
-                    contactsTable.style.borderCollapse = 'collapse';
-                    contactsTable.innerHTML = `
-                        <thead>
+        const contactsSection = document.createElement('div');
+        contactsSection.className = 'section';
+        contactsSection.innerHTML = '<h2>Contact History</h2>';
+
+        if (contacts.count > 0) {
+            const contactsTable = document.createElement('table');
+            contactsTable.style.width = '100%';
+            contactsTable.style.borderCollapse = 'collapse';
+            contactsTable.innerHTML = `
+                <thead>
+                    <tr>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">When</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">Who & How</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${contacts.contacts.map(contact => {
+                        const contactDate = contact.contactDate ? new Date(contact.contactDate).toLocaleDateString() : '';
+                        let contactedBy = '';
+                        switch (contact.contactType) {
+                            case 'phone':
+                                contactedBy = 'Called';
+                                break;
+                            case 'visit':
+                                contactedBy = 'Visited';
+                                break;
+                            case 'voicemail':
+                                contactedBy = 'Left voicemail';
+                                break;
+                            case 'church':
+                                contactedBy = 'Spoke at church';
+                                break;
+                        }
+                        if (contact.contactedBy?.length) {
+                            if (contactedBy) contactedBy += ' by ';
+                            contactedBy += contact.contactedBy.map(c => `${c.firstName} ${c.lastName}`).join(', ');
+                        }
+                        return `
                             <tr>
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">When</th>
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">Who & How</th>
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">Notes</th>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${contactDate}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${contactedBy}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${contact.summary || 'No notes available'}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            ${contacts.contacts.map(contact => {
-                                const contactDate = contact.contactDate ? new Date(contact.contactDate).toLocaleDateString() : '';
-                                let contactedBy = '';
-                                switch (contact.contactType) {
-                                    case 'phone':
-                                        contactedBy = 'Called';
-                                        break;
-                                    case 'visit':
-                                        contactedBy = 'Visited';
-                                        break;
-                                    case 'voicemail':
-                                        contactedBy = 'Left voicemail';
-                                        break;
-                                    case 'church':
-                                        contactedBy = 'Spoke at church';
-                                        break;
-                                }
-                                if (contact.contactedBy?.length) {
-                                    if (contactedBy) contactedBy += ' by ';
-                                    contactedBy += contact.contactedBy.map(c => `${c.firstName} ${c.lastName}`).join(', ');
-                                }
-                                return `
-                                    <tr>
-                                        <td style="border: 1px solid #ddd; padding: 8px;">${contactDate}</td>
-                                        <td style="border: 1px solid #ddd; padding: 8px;">${contactedBy}</td>
-                                        <td style="border: 1px solid #ddd; padding: 8px;">${contact.summary || 'No notes available'}</td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    `;
-                    contactsSection.appendChild(contactsTable);
-                } else {
-                    contactsSection.innerHTML += '<p>No contact history available.</p>';
-                }
-
-                document.getElementById('householdContent').appendChild(contactsSection);
-            } catch (error) {
-                console.error('Error fetching contact history:', error);
-            }
-        }
-
-        // Display household information
-        function displayHouseholdInfo(household) {
-            document.getElementById('householdTitle').textContent = `${household.lastName} Household`;
-            
-            const householdInfo = document.getElementById('householdInfo');
-            householdInfo.innerHTML = `
-                <h3>${household.lastName} Household</h3>
-                <div class="info-grid">
-                    ${household.address ? `
-                    <div class="info-item">
-                        <span class="info-label">Address</span>
-                        <span class="info-value">${household.address.street}${household.address.city ? `<br>${household.address.city}` : ''}${household.address.state ? `, ${household.address.state}` : ''}${household.address.zipCode ? ` ${household.address.zipCode}` : ''}</span>
-                    </div>` : ''}
-                    ${household.primaryPhone ? `
-                    <div class="info-item">
-                        <span class="info-label">Primary Phone</span>
-                        <span class="info-value">${household.primaryPhone}</span>
-                    </div>` : ''}
-                    ${household.email ? `
-                    <div class="info-item">
-                        <span class="info-label">Email</span>
-                        <span class="info-value">${household.email}</span>
-                    </div>` : ''}
-                </div>
-                ${household.notes ? `
-                <div class="info-item">
-                    <span class="info-label">Notes</span>
-                    <span class="info-value">${household.notes}</span>
-                </div>` : ''}
+                        `;
+                    }).join('')}
+                </tbody>
             `;
+            contactsSection.appendChild(contactsTable);
+        } else {
+            contactsSection.innerHTML += '<p>No contact history available.</p>';
         }
-        
-        // Display members
-        // Display assigned deacons
-        function displayAssignedDeacons(assignments) {
-            const section = document.getElementById('assignedDeaconsSection');
-            if (!assignments || assignments.length === 0) {
-                section.innerHTML = '<em>No deacons assigned to this household.</em>';
-                return;
-            }
-            // Debugging: Log assignments to verify data structure
-            console.log('Assignments:', assignments);
-            section.innerHTML = `<strong>Assigned Deacons:</strong> <ul>${assignments.map(a => {
-                if (a.deacon && a.deacon.firstName && a.deacon.lastName) {
-                    return `<li>${a.deacon.firstName} ${a.deacon.lastName}</li>`;
-                } else {
-                    console.warn('Invalid assignment object:', a);
-                    return '<li>Unknown Deacon</li>';
-                }
-            }).join('')}</ul>`;
+
+        document.getElementById('householdContent').appendChild(contactsSection);
+    } catch (error) {
+        console.error('Error fetching contact history:', error);
+    }
+}
+
+// Display household information
+function displayHouseholdInfo(household) {
+    document.getElementById('householdTitle').textContent = `${household.lastName} Household`;
+    
+    const householdInfo = document.getElementById('householdInfo');
+    householdInfo.innerHTML = `
+        <h3>${household.lastName} Household</h3>
+        <div class="info-grid">
+            ${household.address ? `
+            <div class="info-item">
+                <span class="info-label">Address</span>
+                <span class="info-value">${household.address.street}${household.address.city ? `<br>${household.address.city}` : ''}${household.address.state ? `, ${household.address.state}` : ''}${household.address.zipCode ? ` ${household.address.zipCode}` : ''}</span>
+            </div>` : ''}
+            ${household.primaryPhone ? `
+            <div class="info-item">
+                <span class="info-label">Primary Phone</span>
+                <span class="info-value">${household.primaryPhone}</span>
+            </div>` : ''}
+            ${household.email ? `
+            <div class="info-item">
+                <span class="info-label">Email</span>
+                <span class="info-value">${household.email}</span>
+            </div>` : ''}
+        </div>
+        ${household.notes ? `
+        <div class="info-item">
+            <span class="info-label">Notes</span>
+            <span class="info-value">${household.notes}</span>
+        </div>` : ''}
+    `;
+}
+
+// Display members
+// Display assigned deacons
+function displayAssignedDeacons(assignments) {
+    const section = document.getElementById('assignedDeaconsSection');
+    if (!assignments || assignments.length === 0) {
+        section.innerHTML = '<em>No deacons assigned to this household.</em>';
+        return;
+    }
+    // Debugging: Log assignments to verify data structure
+    console.log('Assignments:', assignments);
+    section.innerHTML = `<strong>Assigned Deacons:</strong> <ul>${assignments.map(a => {
+        if (a.deacon && a.deacon.firstName && a.deacon.lastName) {
+            return `<li>${a.deacon.firstName} ${a.deacon.lastName}</li>`;
+        } else {
+            console.warn('Invalid assignment object:', a);
+            return '<li>Unknown Deacon</li>';
         }
-        function displayMembers(members) {
-            const membersList = document.getElementById('membersList');
-            if (members.length === 0) {
-                membersList.innerHTML = `
-                    <div class="empty-state">
-                        <h3>No members added yet</h3>
-                        <p>Use the button above to add the first member to this household.</p>
-                    </div>
-                `;
-                return;
-            }
-            membersList.innerHTML = members.map(member => `
-                <div class="member-card">
-                    <div class="member-header">
-                        <div class="member-name">${member.firstName} ${member.lastName}</div>
-                        <div>
-                            ${member.tags && member.tags.length > 0 ? member.tags.map(tag => `<span class="status-badge status-active">${tag}</span>`).join(' ') : ''}
-                            <a href="edit-member.html?householdId=${member.householdId}&memberId=${member._id}" class="btn btn-small">Edit</a>
-                        </div>
-                    </div>
-                    <div class="member-details">
-                        <div class="member-detail">
-                            <span class="detail-label">Relationship</span>
-                            <span class="detail-value">${member.relationship}</span>
-                        </div>
-                        <div class="member-detail">
-                            <span class="detail-label">Gender</span>
-                            <span class="detail-value">${member.gender}</span>
-                        </div>
-                        ${member.birthDate ? `
-                        <div class="member-detail">
-                            <span class="detail-label">Birth Date</span>
-                            <span class="detail-value">${new Date(member.birthDate).toLocaleDateString()}</span>
-                        </div>` : member.age ? `
-                        <div class="member-detail">
-                            <span class="detail-label">Age</span>
-                            <span class="detail-value">${member.age}</span>
-                        </div>` : ''}
-                        ${member.phone ? `
-                        <div class="member-detail">
-                            <span class="detail-label">Phone</span>
-                            <span class="detail-value">${member.phone}</span>
-                        </div>` : ''}
-                        ${member.email ? `
-                        <div class="member-detail">
-                            <span class="detail-label">Email</span>
-                            <span class="detail-value">${member.email}</span>
-                        </div>` : ''}
-                        ${member.notes ? `
-                        <div class="member-detail" style="grid-column: 1 / -1;">
-                            <span class="detail-label">Notes</span>
-                            <span class="detail-value">${member.notes}</span>
-                        </div>` : ''}
-                    </div>
+    }).join('')}</ul>`;
+}
+function displayMembers(members) {
+    const membersList = document.getElementById('membersList');
+    if (members.length === 0) {
+        membersList.innerHTML = `
+            <div class="empty-state">
+                <h3>No members added yet</h3>
+                <p>Use the button above to add the first member to this household.</p>
+            </div>
+        `;
+        return;
+    }
+    membersList.innerHTML = members.map(member => `
+        <div class="member-card">
+            <div class="member-header">
+                <div class="member-name">${member.firstName} ${member.lastName}</div>
+                <div>
+                    ${member.tags && member.tags.length > 0 ? member.tags.map(tag => `<span class="status-badge status-active">${tag}</span>`).join(' ') : ''}
+                    <a href="edit-member.html?householdId=${member.householdId}&memberId=${member._id}" class="btn btn-small">Edit</a>
                 </div>
-            `).join('');
-        }
-        
-        // Member form submission
-        document.getElementById('memberForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            
-            // Get tags from checkboxes
-            const tags = Array.from(document.querySelectorAll('input[name="tags"]:checked')).map(cb => cb.value);
-            
-            const memberData = {
-                householdId: currentHouseholdId,
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
-                relationship: formData.get('relationship'),
-                gender: formData.get('gender'),
-                phone: formData.get('phone'),
-                email: formData.get('email'),
-                notes: formData.get('notes'),
-                tags: tags
-            };
-            
-            // Add either age or birthDate, but not both
-            const birthDate = formData.get('birthDate');
-            const age = formData.get('age');
-            
-            if (birthDate) {
-                memberData.birthDate = birthDate;
-            } else if (age) {
-                memberData.age = parseInt(age);
-            }
-            
-            try {
-                const response = await fetch(`api/members`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(memberData)
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    showSuccess('memberSuccess', 'Member added successfully!');
-                    e.target.reset();
-                    loadHouseholdData();
-                } else {
-                    showError('memberError', result.message || 'Failed to add member');
-                }
-            } catch (error) {
-                showError('memberError', 'Error connecting to server');
-            }
+            </div>
+            <div class="member-details">
+                <div class="member-detail">
+                    <span class="detail-label">Relationship</span>
+                    <span class="detail-value">${member.relationship}</span>
+                </div>
+                <div class="member-detail">
+                    <span class="detail-label">Gender</span>
+                    <span class="detail-value">${member.gender}</span>
+                </div>
+                ${member.birthDate ? `
+                <div class="member-detail">
+                    <span class="detail-label">Birth Date</span>
+                    <span class="detail-value">${new Date(member.birthDate).toLocaleDateString()}</span>
+                </div>` : member.age ? `
+                <div class="member-detail">
+                    <span class="detail-label">Age</span>
+                    <span class="detail-value">${member.age}</span>
+                </div>` : ''}
+                ${member.phone ? `
+                <div class="member-detail">
+                    <span class="detail-label">Phone</span>
+                    <span class="detail-value">${member.phone}</span>
+                </div>` : ''}
+                ${member.email ? `
+                <div class="member-detail">
+                    <span class="detail-label">Email</span>
+                    <span class="detail-value">${member.email}</span>
+                </div>` : ''}
+                ${member.notes ? `
+                <div class="member-detail" style="grid-column: 1 / -1;">
+                    <span class="detail-label">Notes</span>
+                    <span class="detail-value">${member.notes}</span>
+                </div>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+// Member form submission
+document.getElementById('memberForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    
+    // Get tags from checkboxes
+    const tags = Array.from(document.querySelectorAll('input[name="tags"]:checked')).map(cb => cb.value);
+    
+    const memberData = {
+        householdId: currentHouseholdId,
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        relationship: formData.get('relationship'),
+        gender: formData.get('gender'),
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        notes: formData.get('notes'),
+        tags: tags
+    };
+    
+    // Add either age or birthDate, but not both
+    const birthDate = formData.get('birthDate');
+    const age = formData.get('age');
+    
+    if (birthDate) {
+        memberData.birthDate = birthDate;
+    } else if (age) {
+        memberData.age = parseInt(age);
+    }
+    
+    try {
+        const response = await apiFetch(`api/members`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(memberData)
         });
         
-        // Edit member
-        async function editMember(memberId) {
-            try {
-                const response = await fetch(`api/members`);
-                const data = await response.json();
-                
-                const member = data.members.find(m => m._id === memberId);
-                if (!member) {
-                    alert('Member not found');
-                    return;
-                }
-                
-                // Populate edit form
-                document.getElementById('editMemberId').value = memberId;
-                document.getElementById('editFirstName').value = member.firstName;
-                document.getElementById('editLastName').value = member.lastName;
-                document.getElementById('editRelationship').value = member.relationship;
-                document.getElementById('editGender').value = member.gender || '';
-                document.getElementById('editBirthDate').value = member.birthDate || '';
-                document.getElementById('editAge').value = member.age || '';
-                document.getElementById('editPhone').value = member.phone || '';
-                document.getElementById('editEmail').value = member.email || '';
-                document.getElementById('editNotes').value = member.notes || '';
-                
-                // Set tags checkboxes
-                const tagCheckboxes = document.querySelectorAll('input[name="editTags"]');
-                tagCheckboxes.forEach(checkbox => {
-                    checkbox.checked = member.tags && member.tags.includes(checkbox.value);
-                });
-                
-                // Show modal
-                document.getElementById('editMemberModal').style.display = 'block';
-            } catch (error) {
-                alert('Error loading member data');
-            }
+        const result = await response.json();
+        
+        if (response.ok) {
+            showSuccess('memberSuccess', 'Member added successfully!');
+            e.target.reset();
+            loadHouseholdData();
+        } else {
+            showError('memberError', result.message || 'Failed to add member');
+        }
+    } catch (error) {
+        showError('memberError', 'Error connecting to server');
+    }
+});
+
+// Edit member
+async function editMember(memberId) {
+    try {
+        const response = await apiFetch(`api/members`);
+        const data = await response.json();
+        
+        const member = data.members.find(m => m._id === memberId);
+        if (!member) {
+            alert('Member not found');
+            return;
         }
         
-        // Close edit modal
-        function closeEditModal() {
-            document.getElementById('editMemberModal').style.display = 'none';
-        }
+        // Populate edit form
+        document.getElementById('editMemberId').value = memberId;
+        document.getElementById('editFirstName').value = member.firstName;
+        document.getElementById('editLastName').value = member.lastName;
+        document.getElementById('editRelationship').value = member.relationship;
+        document.getElementById('editGender').value = member.gender || '';
+        document.getElementById('editBirthDate').value = member.birthDate || '';
+        document.getElementById('editAge').value = member.age || '';
+        document.getElementById('editPhone').value = member.phone || '';
+        document.getElementById('editEmail').value = member.email || '';
+        document.getElementById('editNotes').value = member.notes || '';
         
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('editMemberModal');
-            if (event.target === modal) {
+        // Set tags checkboxes
+        const tagCheckboxes = document.querySelectorAll('input[name="editTags"]');
+        tagCheckboxes.forEach(checkbox => {
+            checkbox.checked = member.tags && member.tags.includes(checkbox.value);
+        });
+        
+        // Show modal
+        document.getElementById('editMemberModal').style.display = 'block';
+    } catch (error) {
+        alert('Error loading member data');
+    }
+}
+
+// Close edit modal
+function closeEditModal() {
+    document.getElementById('editMemberModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('editMemberModal');
+    if (event.target === modal) {
+        closeEditModal();
+    }
+}
+
+// Edit member form submission
+document.getElementById('editMemberForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const memberId = formData.get('memberId');
+    
+    // Get tags from checkboxes
+    const tags = Array.from(document.querySelectorAll('input[name="editTags"]:checked')).map(cb => cb.value);
+    
+    const memberData = {
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        relationship: formData.get('relationship'),
+        gender: formData.get('gender'),
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        notes: formData.get('notes'),
+        tags: tags
+    };
+    
+    // Add either age or birthDate, but not both
+    const birthDate = formData.get('birthDate');
+    const age = formData.get('age');
+    
+    if (birthDate) {
+        memberData.birthDate = birthDate;
+    } else if (age) {
+        memberData.age = parseInt(age);
+    }
+    
+    try {
+        const response = await apiFetch(`api/members/${memberId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(memberData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showSuccess('editMemberSuccess', 'Member updated successfully!');
+            setTimeout(() => {
                 closeEditModal();
-            }
+                loadHouseholdData();
+            }, 1500);
+        } else {
+            showError('editMemberError', result.message || 'Failed to update member');
         }
-        
-        // Edit member form submission
-        document.getElementById('editMemberForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const memberId = formData.get('memberId');
-            
-            // Get tags from checkboxes
-            const tags = Array.from(document.querySelectorAll('input[name="editTags"]:checked')).map(cb => cb.value);
-            
-            const memberData = {
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
-                relationship: formData.get('relationship'),
-                gender: formData.get('gender'),
-                phone: formData.get('phone'),
-                email: formData.get('email'),
-                notes: formData.get('notes'),
-                tags: tags
-            };
-            
-            // Add either age or birthDate, but not both
-            const birthDate = formData.get('birthDate');
-            const age = formData.get('age');
-            
-            if (birthDate) {
-                memberData.birthDate = birthDate;
-            } else if (age) {
-                memberData.age = parseInt(age);
-            }
-            
-            try {
-                const response = await fetch(`api/members/${memberId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(memberData)
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    showSuccess('editMemberSuccess', 'Member updated successfully!');
-                    setTimeout(() => {
-                        closeEditModal();
-                        loadHouseholdData();
-                    }, 1500);
-                } else {
-                    showError('editMemberError', result.message || 'Failed to update member');
-                }
-            } catch (error) {
-                showError('editMemberError', 'Error connecting to server');
-            }
-        });
-        
-        // Utility functions
-        function showError(elementId, message) {
-            if (typeof elementId === 'string' && elementId.includes('Error')) {
-                const element = document.getElementById(elementId);
-                if (element) {
-                    element.textContent = message;
-                    element.style.display = 'block';
-                    setTimeout(() => {
-                        element.style.display = 'none';
-                    }, 5000);
-                }
-            } else {
-                // Show general error
-                document.getElementById('loadingState').innerHTML = `
-                    <div class="empty-state">
-                        <h3>Error</h3>
-                        <p>${elementId}</p>
-                        <button class="btn" onclick="location.reload()">Retry</button>
-                    </div>
-                `;
-            }
+    } catch (error) {
+        showError('editMemberError', 'Error connecting to server');
+    }
+});
+
+// Utility functions
+function showError(elementId, message) {
+    if (typeof elementId === 'string' && elementId.includes('Error')) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = message;
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
         }
-        
-        function showSuccess(elementId, message) {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.textContent = message;
-                element.style.display = 'block';
-                setTimeout(() => {
-                    element.style.display = 'none';
-                }, 5000);
-            }
-        }
+    } else {
+        // Show general error
+        document.getElementById('loadingState').innerHTML = `
+            <div class="empty-state">
+                <h3>Error</h3>
+                <p>${elementId}</p>
+                <button class="btn" onclick="location.reload()">Retry</button>
+            </div>
+        `;
+    }
+}
+
+function showSuccess(elementId, message) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = message;
+        element.style.display = 'block';
+        setTimeout(() => {
+            element.style.display = 'none';
+        }, 5000);
+    }
+}
     </script>
 </body>
 </html>

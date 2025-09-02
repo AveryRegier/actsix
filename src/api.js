@@ -93,6 +93,7 @@ export function createApp() {
             }
             if(members.length > 0) {
               memberId = members[0]._id;
+              role = (members[0].tags || []).includes('deacon') ? 'deacon' : ((members[0].tags || []).includes('staff') ? 'staff' : null);
               console.log('Found member ID from user lookup:', memberId);
             } else {
               console.warn("did not find member")
