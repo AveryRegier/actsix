@@ -68,8 +68,9 @@ export function createApp() {
     // fixme: verify the token
 
     // extract user information from the cookies in the request
-    let memberId = getCookie(c, 'member_id');
-    let role = null;
+    const actsix = getCookie(c, 'actsix')?.split("|");
+    let memberId = actsix?.[0];
+    let role = actsix?.[1];
     if(!memberId) {
       const idToken = getCookie(c, 'id_token');
       if (idToken) {
@@ -124,6 +125,7 @@ export function createApp() {
     }
     c.req.memberId = memberId; // Save memberId as an attribute on the request
     c.req.role = role; // Save role as an attribute on the request
+    setCookie(c, 'actsix', `${memberId || ''}|${role || ''}`);
     console.log('Incoming request', { method: c.req.method, url: c.req.url, memberId, role });
 
     // Exclude the /cognito route from authentication checks

@@ -51,7 +51,7 @@ exports.handler = async (event) => {
 
       // Set the custom:member_id attribute
       event.response.autoConfirmUser = true;
-      event.request.userAttributes['custom:member_id'] = member.id;
+      event.request.userAttributes['custom:member_id'] = member._id;
       return event;
     }
 

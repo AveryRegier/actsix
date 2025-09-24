@@ -1,7 +1,10 @@
-import { SengoClient, SengoDb } from 'sengo';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const sengo = require('sengo');
 
-export const sengo = new SengoClient({
-  logger: { level: 'info' },
+const sengoClient = new sengo.SengoClient({
+  logger: { level: 'debug' },
 });
 
-export const db = sengo.db(process.env.S3_BUCKET || 'deacon-care-system')
+const db = sengoClient.db(process.env.S3_BUCKET || 'deacon-care-system');
+export { sengoClient as sengo, db };
