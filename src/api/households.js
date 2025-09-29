@@ -1,3 +1,4 @@
+import { getLogger } from '../logger.js';
 import { db, safeCollectionFind, safeCollectionInsert } from '../helpers.js';
 
 function validateAddress(address) {
@@ -26,7 +27,7 @@ export default function registerHouseholdRoutes(app) {
       const households = await safeCollectionFind('households');
       return c.json({ households, count: households.length });
     } catch (error) {
-      console.error('Error fetching households:', error);
+      getLogger().error(error, 'Error fetching households:');
       return c.json({ error: 'Failed to fetch households', message: error.message }, 500);
     }
   });
@@ -44,7 +45,7 @@ export default function registerHouseholdRoutes(app) {
       const household = await safeCollectionFind('households', { _id: householdId });
       return c.json(household[0] || { error: 'Household not found' });
     } catch (error) {
-      console.error('Error fetching households:', error);
+      getLogger().error(error, 'Error fetching households:');
       return c.json({ error: 'Failed to fetch households', message: error.message }, 500);
     }
   });
@@ -79,7 +80,7 @@ export default function registerHouseholdRoutes(app) {
       const result = await safeCollectionInsert('households', householdData);
       return c.json({ message: 'Household created successfully', id: result.insertedId, household: householdData });
     } catch (error) {
-      console.error('Error creating household:', error);
+      getLogger().error(error, 'Error creating household:');
       return c.json({ error: 'Failed to create household', message: error.message }, 500);
     }
   });
@@ -137,7 +138,7 @@ export default function registerHouseholdRoutes(app) {
             return c.json({ error: 'Update failed', message: 'No changes made to the household' }, 400);
         }
     } catch (error) {
-        console.error('Error updating household:', error);
+        getLogger().error(error, 'Error updating household:');
         return c.json({ error: 'Failed to update household', message: error.message }, 500);
     }
 });

@@ -1,4 +1,5 @@
 import { sengo, db } from './sengoClient.js';
+import { getLogger } from './logger.js';
 
 export async function safeCollectionFind(collectionName, query = {}) {
   try {
@@ -6,7 +7,7 @@ export async function safeCollectionFind(collectionName, query = {}) {
     const result = await collection.find(query).toArray();
     return result || [];
   } catch (error) {
-    console.error(`Error accessing collection ${collectionName}:`, error);
+    getLogger().error(error, `Error accessing collection ${collectionName}:`);
     return [];
   }
 }
@@ -22,11 +23,11 @@ export async function safeCollectionInsert(collectionName, data) {
       return result;
     } catch (error) {
       if (error.Code === 'ConditionalRequestConflict' && attempts < maxRetries - 1) {
-        console.warn(`Retrying due to conflict (attempt ${attempts + 1})`);
+        getLogger().warn(`Retrying due to conflict (attempt ${attempts + 1})`);
         attempts++;
         await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Exponential backoff
       } else {
-        console.error(`Error inserting into collection ${collectionName}:`, error);
+        getLogger().error(error, `Error inserting into collection ${collectionName}:`);
         throw error;
       }
     }
@@ -52,7 +53,7 @@ export async function validatePhoneRequirement(householdId, excludeMemberId = nu
     
     return membersWithPhone.length > 0;
   } catch (error) {
-    console.error('Error validating phone requirement:', error);
+    getLogger().error(error, 'Error validating phone requirement:');
     return false;
   }
 }

@@ -1,3 +1,4 @@
+import { getLogger } from '../logger.js';
 import { safeCollectionFind, safeCollectionInsert, db } from '../helpers.js';
 
 export default function registerAssignmentRoutes(app) {
@@ -10,7 +11,7 @@ export default function registerAssignmentRoutes(app) {
       const assignments = await safeCollectionFind('assignments');
       return c.json({ assignments, count: assignments.length });
     } catch (error) {
-      console.error('Error fetching assignments:', error);
+      getLogger().error(error, 'Error fetching assignments:');
       return c.json({ error: 'Failed to fetch assignments', message: error.message }, 500);
     }
   });
@@ -39,7 +40,7 @@ export default function registerAssignmentRoutes(app) {
       const result = await safeCollectionInsert('assignments', assignmentData);
       return c.json({ message: 'Assignment created successfully', id: result.insertedId, assignment: assignmentData });
     } catch (error) {
-      console.error('Error creating assignment:', error);
+      getLogger().error(error, 'Error creating assignment:');
       return c.json({ error: 'Failed to create assignment', message: error.message }, 500);
     }
   });
@@ -54,7 +55,7 @@ export default function registerAssignmentRoutes(app) {
       const assignments = await safeCollectionFind('assignments', { deaconMemberId });
       return c.json({ deaconMemberId, assignments, count: assignments.length });
     } catch (error) {
-      console.error('Error fetching deacon assignments:', error);
+      getLogger().error(error, 'Error fetching deacon assignments:');
       return c.json({ error: 'Failed to fetch deacon assignments', message: error.message }, 500);
     }
   });
@@ -76,7 +77,7 @@ export default function registerAssignmentRoutes(app) {
       });
       return c.json({ householdId, assignments, count: assignments.length });
     } catch (error) {
-      console.error('Error fetching household assignments:', error);
+      getLogger().error(error, 'Error fetching household assignments:');
       return c.json({ error: 'Failed to fetch household assignments', message: error.message }, 500);
     }
   });
@@ -122,7 +123,7 @@ export default function registerAssignmentRoutes(app) {
 
       return c.json({ message: 'Assignments updated', assignments: await safeCollectionFind('assignments', { householdId, isActive: true }) });
     } catch (error) {
-      console.error('Error updating assignments:', error);
+      getLogger().error(error, 'Error updating assignments:');
       return c.json({ error: 'Failed to update assignments', message: error.message }, 500);
     }
   });

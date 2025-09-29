@@ -1,3 +1,4 @@
+import { getLogger } from '../logger.js';
 import { ApiError, handleApiError } from '../error.js';
 import { safeCollectionFind, safeCollectionInsert, validatePhoneRequirement, db } from '../helpers.js';
 
@@ -12,7 +13,7 @@ export default function registerMemberRoutes(app) {
       const members = await safeCollectionFind('members');
       return c.json({ members, count: members.length });
     } catch (error) {
-      console.error('Error fetching members:', error);
+      getLogger().error(error, 'Error fetching members:');
       return c.json({ error: 'Failed to fetch members', message: error.message }, 500);
     }
   });
@@ -30,7 +31,7 @@ export default function registerMemberRoutes(app) {
       const members = await safeCollectionFind('members', { householdId });
       return c.json({ members, count: members.length });
     } catch (error) {
-      console.error('Error fetching members:', error);
+      getLogger().error(error, 'Error fetching members:');
       return c.json({ error: 'Failed to fetch members', message: error.message }, 500);
     }
   });
@@ -51,7 +52,7 @@ export default function registerMemberRoutes(app) {
       }
       return c.json({ member });
     } catch (error) {
-      console.error('Error fetching member:', error);
+      getLogger().error(error, 'Error fetching member:');
       return c.json({ error: 'Failed to fetch member', message: error.message }, 500);
     }
   });
@@ -128,7 +129,7 @@ export default function registerMemberRoutes(app) {
       const result = await safeCollectionInsert('members', memberData);
       return c.json({ message: 'Member created successfully', id: result.insertedId, member: memberData });
     } catch (error) {
-      console.error('Error creating member:', error);
+      getLogger().error(error, 'Error creating member:');
       return c.json({ error: 'Failed to create member', message: error.message }, 500);
     }
   });

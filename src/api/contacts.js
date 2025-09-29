@@ -1,3 +1,4 @@
+import { getLogger } from '../logger.js';
 import { safeCollectionFind, safeCollectionInsert } from '../helpers.js';
 
 export default function registerContactRoutes(app) {
@@ -10,7 +11,7 @@ export default function registerContactRoutes(app) {
       const contacts = await safeCollectionFind('contacts');
       return c.json({ contacts, count: contacts.length });
     } catch (error) {
-      console.error('Error fetching contacts:', error);
+      getLogger().error(error, 'Error fetching contacts:');
       return c.json({ error: 'Failed to fetch contacts', message: error.message }, 500);
     }
   });
@@ -45,7 +46,7 @@ export default function registerContactRoutes(app) {
       const result = await safeCollectionInsert('contacts', contactData);
       return c.json({ message: 'Contact log created successfully', id: result.insertedId, contact: contactData });
     } catch (error) {
-      console.error('Error creating contact log:', error);
+      getLogger().error(error, 'Error creating contact log:');
       return c.json({ error: 'Failed to create contact log', message: error.message }, 500);
     }
   });
@@ -64,14 +65,14 @@ export default function registerContactRoutes(app) {
       await Promise.all(contacts.map(async element => {
         element.contactedBy = await Promise.all(element.deaconId.map(async deaconId => {
           let deacon = await safeCollectionFind('members', { _id: deaconId });
-          console.log('Deacon:', deacon);
+          getLogger().debug('Deacon:', deacon);
           deacon = deacon[0];
           return deacon ? { memberId: deacon._id, firstName: deacon.firstName, lastName: deacon.lastName } : null;
         }));
       }));
       return c.json({ contacts, count: contacts.length });
     } catch (error) {
-      console.error('Error fetching households:', error);
+      getLogger().error(error, 'Error fetching households:');
       return c.json({ error: 'Failed to fetch households', message: error.message }, 500);
     }
   });
@@ -136,7 +137,7 @@ export default function registerContactRoutes(app) {
       });
       return c.json({ summary });
     } catch (error) {
-      console.error('Error fetching contact summary:', error);
+      getLogger().error(error, 'Error fetching contact summary:');
       return c.json({ error: 'Failed to fetch contact summary', message: error.message }, 500);
     }
   });

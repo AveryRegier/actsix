@@ -1,3 +1,4 @@
+import { getLogger } from '../logger.js';
 import { safeCollectionFind } from '../helpers.js';
 
 export default function registerDeaconRoutes(app) {
@@ -15,7 +16,7 @@ export default function registerDeaconRoutes(app) {
       const members = await safeCollectionFind('members', { tags: { $in: tags } });
       return c.json({ deacons: members, count: members.length });
     } catch (error) {
-      console.error('Error fetching deacons:', error);
+      getLogger().error(error, 'Error fetching deacons:');
       return c.json({ error: 'Failed to fetch deacons', message: error.message }, 500);
     }
   });
@@ -33,7 +34,7 @@ export default function registerDeaconRoutes(app) {
         })));
       return c.json({ participants: members, count: members.length });
     } catch (error) {
-      console.error('Error fetching participants:', error);
+      getLogger().error(error, 'Error fetching participants:');
       return c.json({ error: 'Failed to fetch participants', message: error.message }, 500);
     }
   });

@@ -12,7 +12,7 @@ import jwt from 'jsonwebtoken';
 import qs from 'qs';
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
 import { safeCollectionFind } from './helpers.js';
-
+import logger, {getLogger, follow, addContexts } from './logger.js';
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
@@ -35,20 +35,20 @@ async function serveStatic(c, filePath) {
   try {
     const siteDir = join(__dirname, '..', 'site')
     const fullPath = join(siteDir, filePath)
-    
+
     // Security check - ensure file is within site directory
     if (!fullPath.startsWith(siteDir)) {
       return c.text('403 Forbidden', 403)
     }
-    
+
     const content = readFileSync(fullPath)
     const ext = extname(filePath).toLowerCase()
     const contentType = mimeTypes[ext] || 'application/octet-stream'
-    
+
     c.header('Content-Type', contentType)
     return c.body(content)
   } catch (error) {
-    console.error('Error serving static file:', error);
+    getLogger().error(error, 'Error serving static file:');
     if (error.code === 'ENOENT') {
       return c.text('404 Not Found', 404)
     }
@@ -60,104 +60,115 @@ export function createApp() {
   const app = new Hono()
 
   // Middleware to log every request and handle authentication
-  app.use('*', async (c, next) => {
+  app.use('*', 
+    async (c, next) => 
+    await follow(async () => {
     try {
-    console.log('Incoming request:', c.req.method, c.req.url, c.req.path);
-    // const logger = sengo.logger;
+      const logger = getLogger();
+      logger.info('Incoming request:');
+      if (c.req.url.includes('undefined')) {
+        throw new Error("Malformed URL");
+      }
+      // const logger = sengo.logger;
 
-    // fixme: verify the token
+      // fixme: verify the token
 
-    // extract user information from the cookies in the request
-    const actsix = getCookie(c, 'actsix')?.split("|");
-    let memberId = actsix?.[0];
-    let role = actsix?.[1];
-    if(!memberId) {
-      const idToken = getCookie(c, 'id_token');
-      if (idToken) {
-        try {
-          const decoded = jwt.decode(idToken);
-          const email = decoded.email; // for lookup of member record
-          const emailVerified = decoded.email_verified;
-          const phoneVerified = decoded.phone_number_verified;
-          const phoneNumber = decoded.phone_number;
-          const userName = decoded['cognito:username']; // for logging
-          memberId = decoded['custom:member_id'];
-          if(!memberId) {
-            // look it up
-            // FIXME: only look up member if the email is verified by cognito
-
-             // Search for member by email or phone number
-            let members = emailVerified ? await safeCollectionFind('members', { email }) : null;
-            
-            if (members.length == 0 && phoneVerified) {
-              members = await safeCollectionFind('members',{ phoneNumbers: phoneNumber });
-            }
-            if(members.length > 0) {
-              memberId = members[0]._id;
-              role = (members[0].tags || []).includes('deacon') ? 'deacon' : ((members[0].tags || []).includes('staff') ? 'staff' : null);
-              console.log('Found member ID from user lookup:', memberId);
-            } else {
-              console.warn("did not find member")
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to parse user cookie:', error);
-        }
-      } else {
-        // Extract JWT from Authorization header
-        c.req.headers = c.req.headers || {};
-        const authHeader = c.req.headers?.['authorization'];
-
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-          console.log('Authorization header found:', authHeader);
-          const token = authHeader.slice(7); // Remove 'Bearer '
+      // extract user information from the cookies in the request
+      const actsix = getCookie(c, 'actsix')?.split("|");
+      let memberId = actsix?.[0];
+      let role = actsix?.[1];
+      if (!memberId) {
+        const idToken = getCookie(c, 'id_token');
+        if (idToken) {
           try {
-            const decoded = jwt.decode(token);
+            const decoded = jwt.decode(idToken);
+            const email = decoded.email; // for lookup of member record
+            const emailVerified = decoded.email_verified;
+            const phoneVerified = decoded.phone_number_verified;
+            const phoneNumber = decoded.phone_number;
+            const userName = decoded['cognito:username']; // for logging
             memberId = decoded['custom:member_id'];
-            role = decoded['cognito:groups'] ? decoded['cognito:groups'][0] : null; // Extract the first group as role
+            if (!memberId) {
+              // look it up
+              // FIXME: only look up member if the email is verified by cognito
 
+              // Search for member by email or phone number
+              let members = emailVerified ? await safeCollectionFind('members', { email }) : null;
+
+              if (members.length == 0 && phoneVerified) {
+                members = await safeCollectionFind('members', { phoneNumbers: phoneNumber });
+              }
+              if (members.length > 0) {
+                memberId = members[0]._id;
+                role = (members[0].tags || []).includes('deacon') ? 'deacon' : ((members[0].tags || []).includes('staff') ? 'staff' : null);
+                console.log('Found member ID from user lookup:', memberId);
+              } else {
+                console.warn("did not find member")
+              }
+            }
           } catch (error) {
-            console.warn('Failed to decode JWT:', error);
-            // logger?.warn('Failed to decode JWT', error);
+            console.warn('Failed to parse user cookie:', error);
+          }
+        } else {
+          // Extract JWT from Authorization header
+          c.req.headers = c.req.headers || {};
+          const authHeader = c.req.headers?.['authorization'];
+
+          if (authHeader && authHeader.startsWith('Bearer ')) {
+            logger.debug('Authorization header found:', authHeader);
+            const token = authHeader.slice(7); // Remove 'Bearer '
+            try {
+              const decoded = jwt.decode(token);
+              memberId = decoded['custom:member_id'];
+              role = decoded['cognito:groups'] ? decoded['cognito:groups'][0] : null; // Extract the first group as role
+
+            } catch (error) {
+              logger.warn('Failed to decode JWT:', error);
+              // logger?.warn('Failed to decode JWT', error);
+            }
           }
         }
       }
-    }
-    c.req.memberId = memberId; // Save memberId as an attribute on the request
-    c.req.role = role; // Save role as an attribute on the request
-    setCookie(c, 'actsix', `${memberId || ''}|${role || ''}`);
-    console.log('Incoming request', { method: c.req.method, url: c.req.url, memberId, role });
+      c.req.memberId = memberId; // Save memberId as an attribute on the request
+      c.req.role = role; // Save role as an attribute on the request
+      setCookie(c, 'actsix', `${memberId || ''}|${role || ''}`);
+      logger.info('Incoming request', { method: c.req.method, url: c.req.url, memberId, role });
 
-    // Exclude the /cognito route from authentication checks
-    if (c.req.path === '/cognito' || c.req.path === '/favicon.ico') {
-      console.log('Skipping authentication for /cognito route');
-      return next();
-    }
-
-    if (!memberId) {
-      console.warn('No valid member found in request headers');
-      // Redirect to Cognito login if no valid token is found
-      let params = {
-        client_id: process.env.COGNITO_CLIENT_ID,
-        response_type: 'code',
-        scope: 'email openid phone',
-        redirect_uri: `${process.env.API_GATEWAY_URL}/cognito`,
+      // Exclude the /cognito route from authentication checks
+      if (c.req.path === '/cognito' || c.req.path === '/favicon.ico') {
+        logger.info('Skipping authentication for /cognito route');
+        return await next();
       }
-      let url = `${process.env.COGNITO_LOGIN_URL}?${qs.stringify(params, { encode: true })}`;
-      return c.redirect(url, 302);
-    }
 
-    console.log("calling next");
-    return next();
-  } catch (error) {
-    console.error('Error handling request:', error);
-    return c.text('500 Internal Server Error', 500);
-  }
-  });
+      if (!memberId && process.env.API_GATEWAY_URL && process.env.COGNITO_LOGIN_URL) {
+        logger.warn('No valid member found in request headers');
+        // Redirect to Cognito login if no valid token is found
+        let params = {
+          client_id: process.env.COGNITO_CLIENT_ID,
+          response_type: 'code',
+          scope: 'email openid phone',
+          redirect_uri: `${process.env.API_GATEWAY_URL}/cognito`,
+        }
+        let url = `${process.env.COGNITO_LOGIN_URL}?${qs.stringify(params, { encode: true })}`;
+        return await c.redirect(url, 302);
+      }
+
+      logger.info("calling next");
+      return await next();
+    } catch (error) {
+      logger.error(error, 'Error handling request:');
+      return await c.text('500 Internal Server Error', 500);
+    }
+  }, (logger)=>{
+    logger.addContexts({
+      requestId: c.req.header('x-request-id') || undefined,
+      path: c.req.path, method: c.req.method, url: c.req.url
+    });
+  }));
 
   // API Health check endpoint
   app.get('/api', (c) => {
-    return c.json({ 
+    return c.json({
       message: 'Deacon Care System API',
       status: 'healthy',
       timestamp: new Date().toISOString()
@@ -166,7 +177,7 @@ export function createApp() {
 
   // Hello world endpoint
   app.get('/api/hello', (c) => {
-    return c.json({ 
+    return c.json({
       message: 'Hello from Deacon Care System!',
       version: '1.0.0'
     })
@@ -209,7 +220,8 @@ export function createApp() {
 
   // Cognito callback route (POST)
   app.get('/cognito', async (c) => {
-    console.log('Handling Cognito callback...');
+    const logger = getLogger();
+    logger.info('Handling Cognito callback...');
     try {
       const code = c.req.query('code');
       if (!code) {
@@ -218,41 +230,46 @@ export function createApp() {
 
       // Exchange the code for tokens
       const awsRegion = process.env.AWS_REGION || c.env.AWS_REGION;
-      console.log('Token exchange request details:', {
-        url: `https://${process.env.COGNITO_USER_POOL_DOMAIN}.auth.${awsRegion}.amazoncognito.com/oauth2/token`,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+      const url = `https://${process.env.COGNITO_USER_POOL_DOMAIN}.auth.${awsRegion}.amazoncognito.com/oauth2/token`
+      const method = 'POST';
+      const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      };
+      const grant_type = 'authorization_code'
+      const client_id = process.env.COGNITO_CLIENT_ID
+      const redirect_uri = `${process.env.API_GATEWAY_URL}/cognito`
+
+      logger.debug('Token exchange request details:', {
+        url,
+        method,
+        headers,
         body: {
-          grant_type: 'authorization_code',
-          client_id: process.env.COGNITO_CLIENT_ID,
+          grant_type,
+          client_id,
           code,
-          redirect_uri: `https://${process.env.API_GATEWAY_URL}/cognito`,
+          redirect_uri,
         },
       });
-      const tokenResponse = await fetch(`https://${process.env.COGNITO_USER_POOL_DOMAIN}.auth.${awsRegion}.amazoncognito.com/oauth2/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+      const tokenResponse = await fetch(url, {
+        method,
+        headers,
         body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          client_id: process.env.COGNITO_CLIENT_ID,
+          grant_type,
+          client_id,
           code,
-          redirect_uri: `${process.env.API_GATEWAY_URL}/cognito`,
+          redirect_uri,
         }),
       });
-      console.log('Token response:', tokenResponse.status, tokenResponse.statusText);
+      logger.debug('Token response:', tokenResponse.status, tokenResponse.statusText);
 
       if (!tokenResponse.ok) {
         const error = await tokenResponse.json();
-        console.error('Error exchanging code for tokens:', error);
+        logger.error(error, 'Error exchanging code for tokens:');
         return c.json({ error: 'Failed to exchange code for tokens' }, 500);
       }
 
       const tokens = await tokenResponse.json();
-      console.log('Received tokens:', tokens);
+      logger.debug('Received tokens:', tokens);
       // c.req.session.user = {
       //     accessToken: tokens.access_token,
       //     email: userInfo.email,
@@ -267,8 +284,8 @@ export function createApp() {
       // setCookie(c, 'user', JSON.stringify(c.req.session.user), { httpOnly: true, secure: true, sameSite: 'Lax', path: '/' });
       return c.redirect('/');
     } catch (error) {
-      console.error('Error handling Cognito callback:', error);
       // logger.error('Error handling Cognito callback:', error);
+      logger.error(error, 'Error handling Cognito callback:');
       return c.json({ error: 'Internal server error' }, 500);
     }
   });
@@ -297,29 +314,29 @@ export function createApp() {
     // Only serve specific file types for security
     const allowedExtensions = ['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.json']
     const ext = extname(filename).toLowerCase()
-    
+
     if (allowedExtensions.includes(ext)) {
       return await serveStatic(c, filename)
     }
-    
+
     return c.text('404 Not Found', 404)
   })
 
   // Error handling
   app.onError((err, c) => {
-    console.error('Error:', err)
-    return c.json({ 
+    logger.error(err, 'Error:')
+    return c.json({
       error: 'Internal Server Error',
-      message: err.message 
+      message: err.message
     }, 500)
   })
 
   // 404 handler for unmatched routes
   app.notFound((c) => {
-    return c.json({ 
+    return c.json({
       error: 'Not Found',
       message: 'The requested endpoint was not found',
-      method: c.req.method, 
+      method: c.req.method,
       url: c.req.url
     }, 404)
   })
