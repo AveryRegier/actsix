@@ -49,6 +49,7 @@
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.25.1",
     "@aws-sdk/client-cognito-identity-provider": "^3.873.0",
+    "adm-zip": "^0.5.16",
     "axios": "^1.11.0",
     "clox": "file:../clox/dist",
     "hono": "^4.8.4",

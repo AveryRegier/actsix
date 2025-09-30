@@ -4,25 +4,29 @@ param(
     [string]$TemplateFile = "cloudformation.yaml",
     [string]$S3Bucket = "deacon-care-system",
     [string]$S3Key = "site-lambda.zip",
-    [string]$S3ObjectVersion = "<latest-version-id>"
+    [string]$S3ObjectVersion = "<latest-version-id>",
+    [switch]$DeployCognitoStack = $false
 )
+
 
 # Deploy Cognito stack first
 $CognitoStackName = "actsix-cognito-stack"
 $CognitoTemplateFile = "cognito-stack.yaml"
 
-Write-Host "Deploying Cognito CloudFormation stack..."
-aws cloudformation deploy `
-    --stack-name $CognitoStackName `
-    --template-file $CognitoTemplateFile `
-    --capabilities CAPABILITY_NAMED_IAM
+if ($DeployCognitoStack) {
+    Write-Host "Deploying Cognito CloudFormation stack..."
+    aws cloudformation deploy `
+        --stack-name $CognitoStackName `
+        --template-file $CognitoTemplateFile `
+        --capabilities CAPABILITY_NAMED_IAM
 
-# Pass CognitoUserPoolId and CognitoAppClientId to the Cognito stack deployment
-aws cloudformation deploy `
-    --template-file cognito-stack.yaml `
-    --stack-name actsix-cognito-stack `
-    --parameter-overrides CognitoUserPoolId=$CognitoUserPoolId CognitoAppClientId=$CognitoAppClientId `
-    --capabilities CAPABILITY_NAMED_IAM
+    # Pass CognitoUserPoolId and CognitoAppClientId to the Cognito stack deployment
+    aws cloudformation deploy `
+        --template-file cognito-stack.yaml `
+        --stack-name actsix-cognito-stack `
+        --parameter-overrides CognitoUserPoolId=$CognitoUserPoolId CognitoAppClientId=$CognitoAppClientId `
+        --capabilities CAPABILITY_NAMED_IAM
+}
 
 # Retrieve Cognito stack outputs
 $CognitoUserPoolId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text
