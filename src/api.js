@@ -87,6 +87,7 @@ export function createApp() {
             const phoneVerified = decoded.phone_number_verified;
             const phoneNumber = decoded.phone_number;
             const userName = decoded['cognito:username']; // for logging
+            logger.addContext("user", userName);
             memberId = decoded['custom:member_id'];
             if (!memberId) {
               // look it up
@@ -164,6 +165,8 @@ export function createApp() {
       requestId: c.req.header('x-request-id') || undefined,
       path: c.req.path, method: c.req.method, url: c.req.url
     });
+  }, ()=>{
+    return { status: c.res.status };
   }));
 
   // API Health check endpoint

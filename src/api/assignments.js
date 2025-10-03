@@ -52,7 +52,7 @@ export default function registerAssignmentRoutes(app) {
     }
     try {
       const deaconMemberId = c.req.param('deaconMemberId');
-      const assignments = await safeCollectionFind('assignments', { deaconMemberId });
+      const assignments = await safeCollectionFind('assignments', { deaconMemberId: { $in: [deaconMemberId] } });
       return c.json({ deaconMemberId, assignments, count: assignments.length });
     } catch (error) {
       getLogger().error(error, 'Error fetching deacon assignments:');
