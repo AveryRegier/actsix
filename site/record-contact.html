@@ -212,7 +212,8 @@
             <form id="contact-form">
                 <div class="form-group">
                     <label for="contact-date">Contact Date</label>
-                    <input type="date" id="contact-date" name="contactDate" value="2025-07-20" required>
+                    <!-- dynamically preset to today's date -->
+                        <input type="date" id="contact-date" name="contactDate" required>
                 </div>
                 <div class="form-group">
                     <label for="contact-type">Contact Type</label>
@@ -265,6 +266,15 @@
             const urlParams = new URLSearchParams(window.location.search);
             const currentHouseholdId = urlParams.get('householdId');
 
+                // Dynamically preset contact date to today
+                const contactDateInput = document.getElementById('contact-date');
+                if (contactDateInput) {
+                    const today = new Date();
+                    const yyyy = today.getFullYear();
+                    const mm = String(today.getMonth() + 1).padStart(2, '0');
+                    const dd = String(today.getDate()).padStart(2, '0');
+                    contactDateInput.value = `${yyyy}-${mm}-${dd}`;
+                }
             // Use the new API to fetch members
             const membersResponse = await fetch(`api/households/${currentHouseholdId}/members`);
             console.log('Members Response Status:', membersResponse.status);
