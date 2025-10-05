@@ -4,383 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Household Details - Deacon Care System</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f8f9fa;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            position: relative;
-        }
-        
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 300;
-        }
-        
-        .back-link {
-            position: absolute;
-            top: 30px;
-            left: 30px;
-            color: white;
-            text-decoration: none;
-            font-size: 1.1em;
-            transition: opacity 0.3s ease;
-        }
-        
-        .back-link:hover {
-            opacity: 0.8;
-        }
-        
-        .content {
-            padding: 30px;
-        }
-        
-        .section {
-            margin-bottom: 40px;
-        }
-        
-        .section h2 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-        
-        .household-info {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 30px;
-            margin-bottom: 30px;
-            border: 1px solid #e9ecef;
-        }
-        
-        .household-info h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 15px;
-        }
-        
-        .info-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .info-label {
-            font-weight: 600;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        
-        .info-value {
-            color: #333;
-            font-size: 1.1em;
-        }
-        
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s ease;
-        }
-        
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-            margin-left: 10px;
-        }
-        
-        .btn-secondary:hover {
-            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
-        }
-        
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 0.9em;
-        }
-        
-        .member-card {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-        }
-        
-        .member-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .member-name {
-            font-size: 1.2em;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .member-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        
-        .member-detail {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 15px;
-        }
-        
-        .detail-label {
-            font-weight: 600;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        
-        .detail-value {
-            color: #333;
-            font-size: 1.1em;
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .status-active {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status-inactive {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .status-deceased {
-            background: #e2e3e5;
-            color: #383d41;
-        }
-        
-        .status-moved {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-        
-        .modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 30px;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        .close:hover {
-            color: #000;
-        }
-        
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        
-        .success {
-            background: #d4edda;
-            color: #155724;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        
-        .empty-state h3 {
-            margin-bottom: 10px;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-
-        a.member-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        a.member-link:hover {
-            text-decoration: underline;
-        }
-        
-        .tags-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 8px;
-        }
-        
-        .tag-checkbox {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            padding: 6px 12px;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            background: #f8f9fa;
-            transition: all 0.2s ease;
-        }
-        
-        .tag-checkbox:hover {
-            background: #e9ecef;
-            border-color: #667eea;
-        }
-        
-        .tag-checkbox input[type="checkbox"] {
-            margin-right: 8px;
-            width: auto;
-        }
-        
-        .tag-checkbox input[type="checkbox"]:checked + span,
-        .tag-checkbox:has(input[type="checkbox"]:checked) {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-        
-        @media (max-width: 768px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .member-details {
-                grid-template-columns: 1fr;
-            }
-            
-            .content {
-                padding: 20px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="site.css">
 </head>
 <body>
     <div class="container">
+        <!-- Reusable navigation bar -->
+        <div id="site-nav-container"></div>
+        <script type="module">
+            // Load reusable navigation bar
+            document.addEventListener('DOMContentLoaded', async () => {
+                const navContainer = document.getElementById('site-nav-container');
+                if (navContainer) {
+                    const navResp = await fetch('site-nav.html');
+                    if (navResp.ok) {
+                        navContainer.innerHTML = await navResp.text();
+                        const script = document.createElement('script');
+                        script.src = 'site-nav.js';
+                        document.body.appendChild(script);
+                    }
+                }
+            });
+        </script>
         <div class="header">
-            <a href="members.html" class="back-link">← Back to Members</a>
             <h1 id="householdTitle">Household Details</h1>
             <p>Manage household members and information</p>
         </div>
@@ -392,40 +37,40 @@
             </div>
             
             <div id="householdContent" style="display: none;">
-                <!-- Edit Household Section -->
-                <div class="section">
-                    <a href="edit-household.html?householdId=" id="editHouseholdBtn" class="btn" style="display:inline-block;margin-bottom:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Edit Household</a>
-                </div>
                 <!-- Household Information Section -->
                 <div class="section">
-                    <h2>Household Information</h2>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <h2 style="margin-bottom:0;">Household Information</h2>
+                        <a href="edit-household.html?householdId=" id="editHouseholdBtn" class="icon-btn" title="Edit Household" style="margin-left:10px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                        </a>
+                    </div>
                     <div class="household-info" id="householdInfo">
                         <!-- Will be populated by JavaScript -->
                     </div>
                 </div>
-                <!-- Add Member Section -->
-                <div class="section">
-                    <a href="edit-member.html?householdId=" id="addMemberBtn" class="btn" style="display:inline-block;margin-bottom:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Add New Member</a>
-                </div>
+
                 <!-- Members List Section -->
                 <div class="section">
-                    <h2>Household Members</h2>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <h2 style="margin-bottom:0;">Household Members</h2>
+                        <a href="edit-member.html?householdId=" id="addMemberBtn" class="icon-btn" title="Add Member" style="margin-left:10px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        </a>
+                    </div>
                     <div id="membersList">
                         <!-- Will be populated by JavaScript -->
                     </div>
                 </div>
-
                 <!-- Assign Deacon Section -->
                 <div class="section">
-                    <button id="assignDeaconBtn" class="btn" style="margin-bottom:10px;">Assign Deacon</button>
-                    <div id="assignedDeaconsSection" style="margin-top:15px;"></div>
-                </div>
-                
-                <!-- Record Contact Section -->
-                <div class="section">
-                    <div class="btn-container">
-                        <a href="record-contact.html?householdId=" class="btn">Record Contact</a>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <h2 style="margin-bottom:0;">Deacon Assignments</h2>
+                        <a href="assign-deacons.html?householdId=" id="assignDeaconBtn" class="icon-btn" title="Assign Deacon" style="margin-left:10px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        </a>
                     </div>
+                    <div id="assignedDeaconsSection" style="margin-top:15px;"></div>
                 </div>
             </div>
         </div>
@@ -501,7 +146,7 @@
 
     <!-- Edit Member Modal -->
     <div id="editMemberModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="display:none;">
             <span class="close" onclick="closeEditModal()">&times;</span>
             <h2>Edit Member</h2>
             <form id="editMemberForm">
@@ -627,9 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set add member link
         document.getElementById('addMemberBtn').href = `edit-member.html?householdId=${currentHouseholdId}`;
         // Set assign deacon button link
-        document.getElementById('assignDeaconBtn').onclick = function() {
-            window.location.href = `assign-deacons.html?householdId=${currentHouseholdId}`;
-        };
+        document.getElementById('assignDeaconBtn').href = `assign-deacons.html?householdId=${currentHouseholdId}`;
         // Set record contact link
         document.querySelector('a[href="record-contact.html?householdId="]').href = `record-contact.html?householdId=${currentHouseholdId}`;
         // Set edit household link
@@ -699,7 +342,14 @@ async function loadContactHistory() {
 
         const contactsSection = document.createElement('div');
         contactsSection.className = 'section';
-        contactsSection.innerHTML = '<h2>Contact History</h2>';
+        contactsSection.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <h2 style="margin-bottom:0;">Contact History</h2>
+                <a href="record-contact.html?householdId=${currentHouseholdId}" class="btn section-button" title="Record Contact">
+                    <span style="font-weight:600;font-size:1em;vertical-align:middle;">Record Contact</span>
+                </a>
+            </div>
+        `;
 
         if (contacts.count > 0) {
             const contactsTable = document.createElement('table');
@@ -765,26 +415,24 @@ function displayHouseholdInfo(household) {
         <h3>${household.lastName} Household</h3>
         <div class="info-grid">
             ${household.address ? `
-            <div class="info-item">
                 <span class="info-label">Address</span>
                 <span class="info-value">${household.address.street}${household.address.city ? `<br>${household.address.city}` : ''}${household.address.state ? `, ${household.address.state}` : ''}${household.address.zipCode ? ` ${household.address.zipCode}` : ''}</span>
-            </div>` : ''}
+            ` : ''}
             ${household.primaryPhone ? `
-            <div class="info-item">
                 <span class="info-label">Primary Phone</span>
                 <span class="info-value">${household.primaryPhone}</span>
-            </div>` : ''}
+            ` : ''}
             ${household.email ? `
-            <div class="info-item">
                 <span class="info-label">Email</span>
                 <span class="info-value">${household.email}</span>
-            </div>` : ''}
+            ` : ''}
         </div>
         ${household.notes ? `
-        <div class="info-item">
-            <span class="info-label">Notes</span>
-            <span class="info-value">${household.notes}</span>
-        </div>` : ''}
+            <div class="info-item">
+                <span class="info-label">Notes</span>
+                <span class="info-value">${household.notes}</span>
+            </div>
+        ` : ''}
     `;
 }
 
@@ -820,47 +468,42 @@ function displayMembers(members) {
     }
     membersList.innerHTML = members.map(member => `
         <div class="member-card">
-            <div class="member-header">
+            <div class="member-header" style="display:flex;align-items:center;justify-content:space-between;">
                 <div class="member-name">${member.firstName} ${member.lastName}</div>
-                <div>
+                <div style="display:flex;align-items:center;gap:6px;">
                     ${member.tags && member.tags.length > 0 ? member.tags.map(tag => `<span class="status-badge status-active">${tag}</span>`).join(' ') : ''}
-                    <a href="edit-member.html?householdId=${member.householdId}&memberId=${member._id}" class="btn btn-small">Edit</a>
+                    <a href="edit-member.html?householdId=${member.householdId}&memberId=${member._id}" class="icon-btn" title="Edit Member">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                    </a>
                 </div>
             </div>
-            <div class="member-details">
-                <div class="member-detail">
-                    <span class="detail-label">Relationship</span>
-                    <span class="detail-value">${member.relationship}</span>
-                </div>
-                <div class="member-detail">
-                    <span class="detail-label">Gender</span>
-                    <span class="detail-value">${member.gender}</span>
-                </div>
+            <div class="info-grid">
+                <span class="info-label">Relationship</span>
+                <span class="info-value">${member.relationship}</span>
+                <span class="info-label">Gender</span>
+                <span class="info-value">${member.gender}</span>
                 ${member.birthDate ? `
-                <div class="member-detail">
-                    <span class="detail-label">Birth Date</span>
-                    <span class="detail-value">${new Date(member.birthDate).toLocaleDateString()}</span>
-                </div>` : member.age ? `
-                <div class="member-detail">
-                    <span class="detail-label">Age</span>
-                    <span class="detail-value">${member.age}</span>
-                </div>` : ''}
+                    <span class="info-label">Birth Date</span>
+                    <span class="info-value">${new Date(member.birthDate).toLocaleDateString()}</span>
+                ` : member.age ? `
+                    <span class="info-label">Age</span>
+                    <span class="info-value">${member.age}</span>
+                ` : ''}
                 ${member.phone ? `
-                <div class="member-detail">
-                    <span class="detail-label">Phone</span>
-                    <span class="detail-value">${member.phone}</span>
-                </div>` : ''}
+                    <span class="info-label">Phone</span>
+                    <span class="info-value">${member.phone}</span>
+                ` : ''}
                 ${member.email ? `
-                <div class="member-detail">
-                    <span class="detail-label">Email</span>
-                    <span class="detail-value">${member.email}</span>
-                </div>` : ''}
-                ${member.notes ? `
-                <div class="member-detail" style="grid-column: 1 / -1;">
-                    <span class="detail-label">Notes</span>
-                    <span class="detail-value">${member.notes}</span>
-                </div>` : ''}
+                    <span class="info-label">Email</span>
+                    <span class="info-value">${member.email}</span>
+                ` : ''}
             </div>
+            ${member.notes ? `
+                <div class="info-item">
+                    <span class="info-label">Notes</span>
+                    <span class="info-value">${member.notes}</span>
+                </div>
+            ` : ''}
         </div>
     `).join('');
 }

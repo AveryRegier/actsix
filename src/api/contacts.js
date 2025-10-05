@@ -16,19 +16,32 @@ export default function registerContactRoutes(app) {
     }
   });
 
-    app.get('/api/contacts/needs', async (c) => {
+  app.get('/api/contacts/needs', async (c) => {
     const role = c.req.role; // Assuming role is set in the request
     if (role !== 'deacon' && role !== 'staff') {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
-      const contacts = await safeCollectionFind('contacts', { 
-        $or: [ 
-          { needsFollowUp: true }, 
-          { createdAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }
-        ]
+      const contacts = await safeCollectionFind('contacts', {
+        $groupBy: '$memberId',
+        $set: {
+          memberId: '$memberId',
+          lastContactDate: { $max: '$contactDate' },
+          followUpRequired: { $last: '$followUpRequired' }
+        }
+      }).filter(c => c.createdAt && (new Date(c.createdAt) < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) || c.followUpRequired));
+      
+      // all these memberIds must have current deacon assignments
+      const assignments = await safeCollectionFind('assignments', { isActive: true });
+      const assignedHouseholdIds = Array.from(new Set(assignments.map(a => a.householdId)));
+      const members = await safeCollectionFind('members', { _id: { $in: contacts.map(c => c.memberId).flat() }, householdId: { $in: assignedHouseholdIds } });
+      const contactsWithAssignments = contacts.filter(c => members.some(m => c.memberId.includes(m._id)));
+      
+      const contactsWithMembers = contactsWithAssignments.map(contact => {
+        const memberDetails = members.filter(m => contact.memberId.includes(m._id));
+        return { ...contact, members: memberDetails };
       });
-      return c.json({ contacts, count: contacts.length });
+      return c.json({ contacts: contactsWithMembers, count: contactsWithMembers.length });
     } catch (error) {
       getLogger().error(error, 'Error fetching contacts:');
       return c.json({ error: 'Failed to fetch contacts', message: error.message }, 500);

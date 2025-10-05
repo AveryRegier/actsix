@@ -4,26 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add/Edit Member - Deacon Care System</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f9fa; min-height: 100vh; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); padding: 30px; }
-        h1 { font-size: 1.7em; color: #667eea; margin-bottom: 10px; }
-        .form-group { margin-bottom: 18px; }
-        label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; }
-        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 1em; }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; }
-        .tag-checkboxes label { margin-right: 12px; margin-bottom: 6px; display: inline-block; }
-        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; background: #e9ecef; color: #333; margin-right: 4px; }
-        .btn { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 1em; cursor: pointer; }
-        .btn:hover { box-shadow: 0 5px 15px rgba(102,126,234,0.2); }
-        .btn-secondary { background: #6c757d; margin-left: 10px; }
-        .btn-secondary:hover { box-shadow: 0 5px 15px rgba(108,117,125,0.2); }
-        .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
-        .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
-    </style>
+    <link rel="stylesheet" href="site.css">
 </head>
 <body>
-    <div class="container">
+    <!-- Navigation Bar -->
+    <div id="siteNavContainer"></div>
+    <script>
+      // Load nav bar
+      fetch('site-nav.html').then(r => r.text()).then(html => {
+        document.getElementById('siteNavContainer').innerHTML = html;
+      });
+    </script>
+    <div class="container" style="margin-top:60px; max-width:600px;">
         <h1 id="formTitle">Add Member</h1>
         <form id="memberForm">
             <div id="formError" class="error" style="display:none;"></div>
@@ -65,22 +57,39 @@
             <div class="form-group">
                 <label>Tags</label>
                 <div class="tag-checkboxes">
-                    <label><input type="checkbox" name="tags" value="deacon"> <span class="status-badge">Deacon</span></label>
-                    <label><input type="checkbox" name="tags" value="deaconess"> <span class="status-badge">Deaconess</span></label>
-                    <label><input type="checkbox" name="tags" value="elder"> <span class="status-badge">Elder</span></label>
-                    <label><input type="checkbox" name="tags" value="staff"> <span class="status-badge">Staff</span></label>
-                    <label><input type="checkbox" name="tags" value="member"> <span class="status-badge">Member</span></label>
-                    <label><input type="checkbox" name="tags" value="attender"> <span class="status-badge">Attender</span></label>
-                    <label><input type="checkbox" name="tags" value="shut-in"> <span class="status-badge">Shut-in</span></label>
-                    <label><input type="checkbox" name="tags" value="cancer"> <span class="status-badge">Cancer</span></label>
-                    <label><input type="checkbox" name="tags" value="long-term-needs"> <span class="status-badge">Long-term Needs</span></label>
+                    <label class="status-badge"><input type="checkbox" name="tags" value="deacon">Deacon</label>
+                    <label class="status-badge"><input type="checkbox" name="tags" value="deaconess">Deaconess</label>
+                    <label class="status-badge"><input type="checkbox" name="tags" value="elder">Elder</label>
+                    <label class="status-badge"><input type="checkbox" name="tags" value="staff">Staff</label>
+                    <label class="status-badge"><input type="checkbox" name="tags" value="member">Member</label>
+                    <label class="status-badge"><input type="checkbox" name="tags" value="attender">Attender</label>
+                    <label class="status-badge"><input type="checkbox" name="tags" value="shut-in">Shut-in</label>
+                    <label class="status-badge"><input type="checkbox" name="tags" value="cancer">Cancer</label>
+                    <label class="status-badge"><input type="checkbox" name="tags" value="long-term-needs">Long-term Needs</label>
                 </div>
             </div>
-            <button class="btn" type="submit" id="saveBtn">Save Member</button>
+            <button class="btn section-button" type="submit" id="saveBtn">Save Member</button>
             <a href="#" class="btn btn-secondary" id="cancelBtn">Cancel</a>
         </form>
     </div>
     <script type="module">
+    // Tag badge checked state toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        function updateTagBadges() {
+            document.querySelectorAll('.tag-badge').forEach(label => {
+                const cb = label.querySelector('input[type="checkbox"]');
+                if (cb && cb.checked) {
+                    label.classList.add('checked');
+                } else {
+                    label.classList.remove('checked');
+                }
+            });
+        }
+        document.querySelectorAll('.tag-badge input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', updateTagBadges);
+        });
+        updateTagBadges();
+    });
     import { apiFetch } from './fetch-utils.js';
 
     // Get memberId and householdId from query params
@@ -94,9 +103,10 @@
     const { memberId, householdId } = getParams();
     // If editing, load member data after DOM is ready
     if (memberId) {
-        window.onload = function() {
+        document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('formTitle').textContent = 'Edit Member';
             apiFetch(`api/members/${memberId}`)
+                .then(response => response.json())
                 .then(data => {
                     const member = data.member || data;
                     console.log('Loaded member:', member);
@@ -117,7 +127,7 @@
                     document.getElementById('formError').textContent = 'Could not load member data.';
                     document.getElementById('formError').style.display = 'block';
                 });
-        };
+        });
     }
     // Save handler
     document.getElementById('memberForm').onsubmit = async function(e) {

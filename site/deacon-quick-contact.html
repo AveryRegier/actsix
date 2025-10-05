@@ -5,205 +5,103 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Deacon Quick Contact - Deacon Care System</title>
-	<style>
-		* { margin: 0; padding: 0; box-sizing: border-box; }
-		body {
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			background: #f8f9fa;
-			min-height: 100vh;
-			padding: 20px;
-		}
-		.container {
-			max-width: 1200px;
-			margin: 0 auto;
-			background: white;
-			border-radius: 15px;
-			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-			overflow: hidden;
-		}
-		.header {
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			color: white;
-			padding: 30px;
-			text-align: center;
-			position: relative;
-		}
-		.header h1 {
-			font-size: 2.5em;
-			margin-bottom: 10px;
-			font-weight: 300;
-		}
-		.nav-links {
-			display: flex;
-			justify-content: center;
-			gap: 30px;
-			margin-top: 10px;
-		}
-		.nav-link {
-			color: white;
-			text-decoration: underline;
-			font-size: 1.1em;
-			transition: opacity 0.3s ease;
-		}
-		.nav-link:hover { opacity: 0.8; }
-		.section {
-			padding: 30px;
-		}
-		.section-title {
-			font-size: 1.3em;
-			font-weight: 600;
-			margin-bottom: 15px;
-			color: #764ba2;
-		}
-		.member-list { margin-bottom: 30px; }
-		.member-card {
-			background: #f1f3f5;
-			border-radius: 10px;
-			padding: 15px;
-			margin-bottom: 10px;
-			display: flex;
-			flex-direction: column;
-			cursor: pointer;
-			transition: box-shadow 0.2s;
-		}
-		.member-card:hover {
-			box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
-		}
-		.member-name {
-			font-size: 1.2em;
-			font-weight: 500;
-			margin-bottom: 5px;
-		}
-		.member-details { display: flex; flex-direction: column; }
-		.detail-label { font-weight: 600; color: #333; }
-		.detail-value { margin-bottom: 10px; }
-		.status-red { color: #e53e3e; font-weight: bold; }
-		.status-yellow { color: #ecc94b; font-weight: bold; }
-		.status-green { color: #38a169; font-weight: bold; }
-		.btn {
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			color: white;
-			border: none;
-			padding: 12px 30px;
-			border-radius: 8px;
-			font-size: 1em;
-			cursor: pointer;
-			transition: transform 0.2s ease, box-shadow 0.2s ease;
-		}
-		.btn:hover {
-			transform: translateY(-2px);
-			box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-		}
-	</style>
+	<link rel="stylesheet" href="site.css">
 </head>
 <body>
 	<div class="container">
+		<!-- Reusable navigation bar -->
+		<div id="site-nav-container"></div>
 		<div class="header">
-			<h1>Deacon Quick Contact</h1>
-			<div class="nav-links">
-				<a href="members.html" class="nav-link">Members</a>
-				<a href="contact-summary.html" class="nav-link">Summary Report</a>
-			</div>
+			<h1 style="display:flex;align-items:center;justify-content:center;font-size:1.5em;font-weight:400;gap:0.5em;">
+				<span style="font-size:1.1em;">📞</span>
+				Deacon Quick Contact
+			</h1>
 		</div>
 		<div class="section">
-			<div class="section-title">Contacts</div>
+			<div class="section-title" style="margin-top:16px;">Contacts</div>
 			<div class="member-list" id="contacts"></div>
 		</div>
-	</div>
+
 	<script>
-		document.addEventListener('DOMContentLoaded', async () => {
-			// Get deacon memberId from actsix cookie
-			function getCookie(name) {
-				const value = `; ${document.cookie}`;
-				const parts = value.split(`; ${name}=`);
-				if (parts.length === 2) return parts.pop().split(';').shift();
+	// Load reusable navigation bar
+	document.addEventListener('DOMContentLoaded', async () => {
+		const navContainer = document.getElementById('site-nav-container');
+		if (navContainer) {
+			const navResp = await fetch('site-nav.html');
+			if (navResp.ok) {
+				navContainer.innerHTML = await navResp.text();
+				const script = document.createElement('script');
+				script.src = 'site-nav.js';
+				document.body.appendChild(script);
 			}
-			let deaconMemberId = null;
-			const actsixCookie = getCookie('actsix');
-            console.log('actsix cookie:', actsixCookie);
-			if (actsixCookie) {
-                // decode the cookie first
-                const decodedCookie = decodeURIComponent(actsixCookie);
-                console.log('decoded actsix cookie:', decodedCookie);
-				deaconMemberId = decodedCookie.split('|')[0];
-			}
-            console.log('deaconMemberId from cookie:', deaconMemberId);
-			// Fallbacks if cookie is missing or empty
-			if (!deaconMemberId) {
-				if (window.currentMemberId) {
-					deaconMemberId = window.currentMemberId;
-				} else {
-					try {
-						const meRes = await fetch('/api/me');
-						if (meRes.ok) {
-							const meData = await meRes.json();
-							deaconMemberId = meData._id;
-						}
-					} catch (err) {
-						// fallback: try query string
-						const urlParams = new URLSearchParams(window.location.search);
-						deaconMemberId = urlParams.get('deaconMemberId');
+		}
+	});
+
+	document.addEventListener('DOMContentLoaded', async () => {
+		// Get deacon memberId from actsix cookie
+		function getCookie(name) {
+			const value = `; ${document.cookie}`;
+			const parts = value.split(`; ${name}=`);
+			if (parts.length === 2) return parts.pop().split(';').shift();
+		}
+		let deaconMemberId = null;
+		const actsixCookie = getCookie('actsix');
+		if (actsixCookie) {
+			const decodedCookie = decodeURIComponent(actsixCookie);
+			deaconMemberId = decodedCookie.split('|')[0];
+		}
+		if (!deaconMemberId) {
+			if (window.currentMemberId) {
+				deaconMemberId = window.currentMemberId;
+			} else {
+				try {
+					const meRes = await fetch('/api/me');
+					if (meRes.ok) {
+						const meData = await meRes.json();
+						deaconMemberId = meData._id;
 					}
+				} catch (err) {
+					const urlParams = new URLSearchParams(window.location.search);
+					deaconMemberId = urlParams.get('deaconMemberId');
 				}
 			}
-			if (!deaconMemberId) {
-				alert('Unable to determine logged-in member (deacon) ID.');
-				return;
-			}
+		}
+		if (!deaconMemberId) {
+			alert('Unable to determine logged-in member (deacon) ID.');
+			return;
+		}
 
-			// Fetch assignments for this deacon
-			const assignmentsRes = await fetch(`/api/deacons/${deaconMemberId}/assignments`);
-			const assignmentsData = await assignmentsRes.json();
-			const assignments = assignmentsData.assignments || [];
+		// Fetch assignments for this deacon
+		const assignmentsRes = await fetch(`/api/deacons/${deaconMemberId}/assignments`);
+		const assignmentsData = await assignmentsRes.json();
+		const assignments = assignmentsData.assignments || [];
 
-            // from the assignments, get the householdId, use it to look up the members
-            // /api/households/:householdId/members
-            const householdIds = assignments.map(a => a.householdId);
-
-			// Fetch needs contact list
-			// const needsRes = await fetch('/api/contacts/needs');
-			// const needsData = await needsRes.json();
-			// const needsList = needsData.needs || [];
-
-			// Helper: get status for a member
-			// function getStatus(memberId) {
-			// 	const need = needsList.find(n => n.memberId === memberId);
-			// 	return need ? need.status : null;
-			// }
-
-			// Helper: build member card
-			async function memberCard(householdId) {
-				const householdLink = `household.html?id=${householdId}`;
-				const contactLink = `record-contact.html?householdId=${householdId}`;
-				// <span class="${status === 'red' ? 'status-red' : status === 'yellow' ? 'status-yellow' : 'status-green'}">${status ? status.toUpperCase() : ''}</span>
-				
-                // get the members from the household api
-                const membersRes = await fetch(`/api/households/${householdId}/members`);
-                const membersData = await membersRes.json();
-                const members = membersData.members || [];
-                let householdName = members.map(m => m.firstName).join(' & ');
-                householdName += ' ' + (members[0]?.lastName || '');
-
-                return `
-					<div class="member-card">
-						<div class="member-name">
-							<a href="${householdLink}" style="color:inherit;text-decoration:underline;">${householdName}</a>
-						</div>
-						<a href="${contactLink}" class="btn" style="margin-top:10px;">Record Contact</a>
+		// Helper: build member card
+		async function memberCard(householdId) {
+			const householdLink = `household.html?id=${householdId}`;
+			const contactLink = `record-contact.html?householdId=${householdId}`;
+			const membersRes = await fetch(`/api/households/${householdId}/members`);
+			const membersData = await membersRes.json();
+			const members = membersData.members || [];
+			let householdName = members.map(m => m.firstName).join(' & ');
+			householdName += ' ' + (members[0]?.lastName || '');
+			return `
+				<div class="member-card">
+					<div class="member-name">
+						<a href="${householdLink}" style="color:inherit;text-decoration:underline;">${householdName}</a>
 					</div>
-				`;
-			}
+					<a href="${contactLink}" class="btn" style="margin-top:10px;">Record Contact</a>
+				</div>
+			`;
+		}
 
-			// Sort assignments into categories
-			const contactCards = [];
-
-			for (const assign of assignments) {
-				const member = assign.member || {};
-				contactCards.push(await memberCard(assign.householdId));
-			}
-
-			document.getElementById('contacts').innerHTML = contactCards.join('');
-		});
+		// Render contact cards
+		const contactCards = [];
+		for (const assign of assignments) {
+			contactCards.push(await memberCard(assign.householdId));
+		}
+		document.getElementById('contacts').innerHTML = contactCards.join('');
+	});
 	</script>
 </body>
 </html>

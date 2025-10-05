@@ -4,209 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Record Contact - Deacon Care System</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f8f9fa;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            position: relative;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 300;
-        }
-
-        .back-link {
-            position: absolute;
-            top: 30px;
-            left: 30px;
-            color: white;
-            text-decoration: none;
-            font-size: 1.1em;
-            transition: opacity 0.3s ease;
-        }
-
-        .back-link:hover {
-            opacity: 0.8;
-        }
-
-        .content {
-            padding: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group input[type="checkbox"] {
-            width: auto;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .member-list {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .member-item {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            margin-bottom: 10px;
-        }
-
-        .member-item input {
-            margin-right: 10px;
-        }
-
-        .member-item label {
-            white-space: nowrap;
-        }
-
-        .member-card {
-            background: #f1f3f5;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 10px;
-            display: flex;
-            flex-direction: column;
-            cursor: pointer;
-        }
-
-        .member-card input {
-            margin-right: 10px;
-        }
-
-        .member-name {
-            font-size: 1.2em;
-            font-weight: 500;
-            margin-bottom: 5px;
-        }
-
-        .member-details {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .detail-label {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .detail-value {
-            margin-bottom: 10px;
-        }
-
-        /* Modal styles */
-        .modal {
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgb(0,0,0);
-            background-color: rgba(0,0,0,0.4);
-            padding-top: 60px;
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 5% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-    </style>
+    <link rel="stylesheet" href="site.css">
 </head>
 <body>
     <div class="container">
+        <!-- Reusable navigation bar -->
+        <div id="site-nav-container"></div>
         <div class="header">
-            <h1>Record Contact</h1>
-            <a href="javascript:void(0);" class="back-link" onclick="location.href=document.referrer">&larr; Back to Household</a>
+            <h1 style="display:flex;align-items:center;justify-content:center;font-size:1.3em;font-weight:400;gap:0.5em;">
+                <span style="font-size:1.1em;">📝</span>
+                Record Contact
+            </h1>
         </div>
         <div class="content">
             <form id="contact-form">
@@ -261,6 +69,19 @@
         </div>
     </div>
     <script>
+        // Load reusable navigation bar
+        document.addEventListener('DOMContentLoaded', async () => {
+            const navContainer = document.getElementById('site-nav-container');
+            if (navContainer) {
+                const navResp = await fetch('site-nav.html');
+                if (navResp.ok) {
+                    navContainer.innerHTML = await navResp.text();
+                    const script = document.createElement('script');
+                    script.src = 'site-nav.js';
+                    document.body.appendChild(script);
+                }
+            }
+        });
         document.addEventListener('DOMContentLoaded', async () => {
             // get household id from request parameter
             const urlParams = new URLSearchParams(window.location.search);
