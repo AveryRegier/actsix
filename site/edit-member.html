@@ -7,14 +7,23 @@
     <link rel="stylesheet" href="site.css">
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <div id="siteNavContainer"></div>
-    <script>
-      // Load nav bar
-      fetch('site-nav.html').then(r => r.text()).then(html => {
-        document.getElementById('siteNavContainer').innerHTML = html;
-      });
-    </script>
+        <!-- Reusable navigation bar -->
+        <div id="site-nav-container"></div>
+        <script>
+        // Load reusable navigation bar
+        document.addEventListener('DOMContentLoaded', async () => {
+            const navContainer = document.getElementById('site-nav-container');
+            if (navContainer) {
+                const navResp = await fetch('site-nav.html');
+                if (navResp.ok) {
+                    navContainer.innerHTML = await navResp.text();
+                    const script = document.createElement('script');
+                    script.src = 'site-nav.js';
+                    document.body.appendChild(script);
+                }
+            }
+        });
+        </script>
     <div class="container" style="margin-top:60px; max-width:600px;">
         <h1 id="formTitle">Add Member</h1>
         <form id="memberForm">
@@ -73,15 +82,15 @@
         </form>
     </div>
     <script type="module">
-    // Tag badge checked state toggle
+    // Tag badge checked/unchecked state toggle
     document.addEventListener('DOMContentLoaded', function() {
         function updateTagBadges() {
             document.querySelectorAll('.tag-badge').forEach(label => {
                 const cb = label.querySelector('input[type="checkbox"]');
                 if (cb && cb.checked) {
-                    label.classList.add('checked');
+                    label.classList.remove('tag-unchecked');
                 } else {
-                    label.classList.remove('checked');
+                    label.classList.add('tag-unchecked');
                 }
             });
         }

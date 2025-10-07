@@ -1,3 +1,60 @@
+/* --- Navigation Bar Styles (from site-nav.html) --- */
+.site-nav {
+	position: fixed;
+	top: 0; left: 0; right: 0;
+	background: #ff0033 !important;
+	color: white !important;
+	z-index: 1000 !important;
+	height: 48px;
+	display: flex;
+	align-items: center;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.nav-content {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	padding: 0 12px;
+}
+.nav-link {
+	color: white;
+	text-decoration: none;
+	margin-right: 18px;
+	font-size: 1.1em;
+	display: flex;
+	align-items: center;
+	height: 48px;
+}
+.nav-link span { margin-right: 6px; }
+.nav-menu-btn {
+	background: none;
+	border: none;
+	color: white;
+	font-size: 2em;
+	margin-left: auto;
+	cursor: pointer;
+	display: none;
+}
+.nav-extra { margin-left: 12px; }
+@media (max-width: 600px) {
+	.nav-content { display: none; }
+	.nav-menu-btn { display: block; }
+	.nav-mobile-menu {
+		display: none;
+		position: fixed;
+		top: 48px; left: 0; right: 0;
+		background: #667eea;
+		flex-direction: column;
+		z-index: 101;
+	}
+	.nav-mobile-menu.open { display: flex; }
+	.nav-mobile-menu a { padding: 18px; font-size: 1.2em; border-bottom: 1px solid #fff2; }
+}
+@media (min-width: 601px) {
+	.nav-mobile-menu { display: none !important; }
+}
+body { padding-top: 48px; }
+
 .section-button {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: white;
@@ -88,6 +145,10 @@
 /* Correct .status-badge.checked block */
 .status-badge.checked {
 	background-color: #89cf99;
+}
+.status-badge.tag-unchecked {
+	background-color: #8d8369;
+	color: #333;
 }
 .tag-checkboxes {
     display: flex;

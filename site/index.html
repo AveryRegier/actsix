@@ -7,9 +7,24 @@
     <link rel="stylesheet" href="site.css">
 </head>
 <body>
-    <div class="container">
         <!-- Reusable navigation bar -->
         <div id="site-nav-container"></div>
+        <script>
+        // Load reusable navigation bar
+        document.addEventListener('DOMContentLoaded', async () => {
+            const navContainer = document.getElementById('site-nav-container');
+            if (navContainer) {
+                const navResp = await fetch('site-nav.html');
+                if (navResp.ok) {
+                    navContainer.innerHTML = await navResp.text();
+                    const script = document.createElement('script');
+                    script.src = 'site-nav.js';
+                    document.body.appendChild(script);
+                }
+            }
+        });
+        </script>
+        <div class="container">
         <div class="header">
             <h1 style="display:flex;align-items:center;justify-content:center;font-size:1.3em;font-weight:400;gap:0.5em;">
                 <span style="font-size:1.1em;">🏠</span>
@@ -44,20 +59,8 @@
         </div>
     </div>
 
-    <script type="module">
-        // Load reusable navigation bar
-        document.addEventListener('DOMContentLoaded', async () => {
-            const navContainer = document.getElementById('site-nav-container');
-            if (navContainer) {
-                const navResp = await fetch('site-nav.html');
-                if (navResp.ok) {
-                    navContainer.innerHTML = await navResp.text();
-                    const script = document.createElement('script');
-                    script.src = 'site-nav.js';
-                    document.body.appendChild(script);
-                }
-            }
-        });
+    <script src="site-nav.js"></script>
+    <script>
         // API status logic
         const API_BASE_URL = '';
         async function checkApiStatus() {
