@@ -59,10 +59,10 @@ export default function registerMemberRoutes(app) {
 
   app.post('/api/members', async (c) => {
     try {
+      const role = c.req.role; // Assuming role is set in the request
       const body = await c.req.json();
       let householdId = body.householdId;
       if (!householdId) {
-        const role = c.req.role; // Assuming role is set in the request
         if (role !== 'deacon' && role !== 'staff') {
           const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
           if(!members.map(m=>m.householdId).includes(householdId)) {

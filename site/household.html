@@ -345,16 +345,17 @@ async function loadContactHistory() {
         contactsSection.innerHTML = `
             <div style="display:flex;align-items:center;justify-content:space-between;">
                 <h2 style="margin-bottom:0;">Contact History</h2>
-                <a href="record-contact.html?householdId=${currentHouseholdId}" class="btn section-button" title="Record Contact">
-                    <span style="font-weight:600;font-size:1em;vertical-align:middle;">Record Contact</span>
+                <a href="record-contact.html?householdId=${currentHouseholdId}" class="section-button" title="Record Contact">
+                    <span style="font-weight:600;font-size:1em;">Record Contact</span>
                 </a>
             </div>
         `;
 
         if (contacts.count > 0) {
             const contactsTable = document.createElement('table');
-            contactsTable.style.width = '100%';
-            contactsTable.style.borderCollapse = 'collapse';
+            // contactsTable.style.width = '100%';
+            // contactsTable.style.borderCollapse = 'collapse';
+            contactsTable.className = 'contacts-table';
             contactsTable.innerHTML = `
                 <thead>
                     <tr>

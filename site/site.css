@@ -1,3 +1,182 @@
+/* Mobile table grouping for contact-summary.html */
+@media (max-width: 700px) {
+	.summary-group tr {
+		display: flex;
+		flex-direction: column;
+		margin-bottom: 0.8em;
+		background: #fff;
+	}
+	.summary-group td {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		border: none;
+		padding: 0.5em 0.5em 0.2em 0.5em;
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+		position: relative;
+	}
+	.summary-group .cell-badge {
+		display: inline-block;
+		position: absolute;
+		left: 8px;
+		bottom: 6px;
+		font-size: 0.8em;
+		color: #888;
+		background: #f3f3f3;
+		border-radius: 6px;
+		padding: 2px 8px;
+		margin: 0;
+		white-space: nowrap;
+		z-index: 0;
+		opacity: 0.7;
+	}
+	.summary-group .notes-col {
+		width: 100%;
+		flex: 1 1 100%;
+		background: #f9f9f9;
+		border-radius: 0 0 8px 8px;
+		margin-top: 0.5em;
+		font-size: 0.95em;
+		box-sizing: border-box;
+		padding-bottom: 1em;
+		order: 99;
+	}
+	.summary-group .last-contact-col {
+		font-size: 0.95em;
+	}
+	.summary-group .red {
+		background: #ffeaea;
+	}
+	.summary-group .yellow {
+		background: #fffbe5;
+	}
+	/* Hide table headers and show badges only on mobile */
+	.summary-table thead {
+		display: none !important;
+	}
+	.cell-badge {
+		display: inline-block !important;
+	}
+	/* Stack all cells except notes */
+	.summary-group td:not(.notes-col) {
+		order: initial;
+	}
+}
+
+@media (min-width: 701px) {
+	/* Show table headers and hide badge labels on desktop */
+	.summary-table thead {
+		display: table-header-group !important;
+	}
+	.cell-badge {
+		display: none !important;
+	}
+}
+	/* Alternating row background for summary table */
+	.summary-table .summary-group tr:nth-child(even),
+	.summary-table .summary-row.even {
+		background: #e0e6f6;
+	}
+	.summary-table .summary-group tr:nth-child(odd),
+	.summary-table .summary-row.odd {
+		background: #fff;
+	}
+	/* Remove duplicate header hiding outside media queries */
+	/* .summary-table thead { display: none !important; } */
+	.summary-badge-col {
+		position: relative;
+	}
+	/* Hide Last Contact headers on mobile */
+	.summary-table th.last-contact-col,
+	.summary-table .last-contact-header {
+		display: none !important;
+	}
+
+	/* Subtle badge for cell labels */
+	.cell-badge {
+		display: inline-block;
+		position: absolute;
+		right: 8px;
+		bottom: 6px;
+		background: #eef2ff;
+		color: #667eea;
+		font-size: 0.75em;
+		padding: 2px 8px;
+		border-radius: 12px;
+		opacity: 0.85;
+	}
+	.last-contact-col {
+		position: relative;
+	}
+	.summary-table thead tr {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	/* Only Notes cell stacks to next row, When and Who & How stay on same row */
+	.summary-table td.last-contact-col.notes-col {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+		margin-top: 8px;
+		border-top: 1px solid #eee;
+		padding-top: 8px;
+		flex: unset;
+		min-width: unset;
+	}
+	.summary-table td.last-contact-col {
+		display: flex;
+		flex: 1 1 120px;
+		min-width: 0;
+		position: relative;
+	}
+	.summary-table tr {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	.summary-table th,
+	.summary-table td {
+		flex: 1 1 120px;
+		min-width: 0;
+	}
+	.contacts-table thead tr {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	.contacts-table th,
+	.contacts-table td {
+		flex: 1 1 120px;
+		min-width: 0;
+	}
+	.contacts-table th.notes-col,
+	.contacts-table td.notes-col {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+		margin-top: 8px;
+		border-top: 1px solid #eee;
+		padding-top: 8px;
+		flex: unset;
+		min-width: unset;
+	}
+	/* Make Notes column in contacts table stack below date and contact deacon name */
+	.contacts-table td.notes-col {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+		margin-top: 8px;
+		border-top: 1px solid #eee;
+		padding-top: 8px;
+	}
+	.contacts-table tr {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	.contacts-table td {
+		flex: 1 1 120px;
+		min-width: 0;
+	}
 /* --- Navigation Bar Styles (from site-nav.html) --- */
 .site-nav {
 	position: fixed;
@@ -91,7 +270,7 @@ body { padding-top: 48px; }
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: white;
 	border: none;
-	padding: 10px 24px;
+	padding: 5px 12px;
 	border-radius: 8px;
 	font-size: 1em;
 	font-weight: 600;
