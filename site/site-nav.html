@@ -1,24 +1,55 @@
 <!-- Responsive Minimal Top Navigation Bar for ActsSix -->
 <nav class="site-nav">
+  <div class="nav-icons-mobile">
+    <a href="/" class="nav-icon-link home-link" title="Home"><span>🏠</span></a>
+    <a href="/deacon-quick-contact.html" class="nav-icon-link deacon-link" title="Deacon Quick Contact"><span>📞</span></a>
+    <a href="/members.html" class="nav-icon-link members-link" title="Members"><span>👥</span></a>
+    <a href="/contact-summary.html" class="nav-icon-link summary-link" title="Summary"><span>📋</span></a>
+  </div>
   <div class="nav-content">
     <a href="/" class="nav-link home-link" title="Home"><span>🏠</span> Home</a>
     <a href="/deacon-quick-contact.html" class="nav-link deacon-link" title="Deacon Quick Contact"><span>📞</span> Deacon Quick Contact</a>
     <a href="/members.html" class="nav-link members-link" title="Members"><span>👥</span> Members</a>
     <a href="/contact-summary.html" class="nav-link summary-link" title="Summary"><span>📋</span> Summary</a>
-  <a href="javascript:void(0);" class="nav-link back-link" id="siteNavBackLink" onclick="goBack()" title="Back" style="display:none;"><span>⬅️</span> Back</a>
+    <a href="javascript:void(0);" class="nav-link back-link" id="siteNavBackLink" onclick="goBack()" title="Back" style="display:none;"><span>⬅️</span> Back</a>
     <span class="nav-extra"></span>
   </div>
   <button class="nav-menu-btn" aria-label="Menu" onclick="toggleMenu()">☰</button>
   <div class="nav-mobile-menu" id="navMobileMenu">
-    <a href="/" class="nav-link home-link" title="Home"><span>🏠</span> Home</a>
-    <a href="/deacon-quick-contact.html" class="nav-link deacon-link" title="Deacon Quick Contact"><span>📞</span> Deacon Quick Contact</a>
-    <a href="/members.html" class="nav-link members-link" title="Members"><span>👥</span> Members</a>
-    <a href="/contact-summary.html" class="nav-link summary-link" title="Summary"><span>📋</span> Summary</a>
-  <a href="javascript:void(0);" class="nav-link back-link" id="siteNavBackLinkMobile" onclick="goBack()" title="Back" style="display:none;"><span>⬅️</span> Back</a>
+  <a href="/" class="nav-link home-link" title="Home"><span>🏠</span> Home</a>
+  <a href="/deacon-quick-contact.html" class="nav-link deacon-link" title="Deacon Quick Contact"><span>📞</span> Deacon Quick Contact</a>
+  <a href="/members.html" class="nav-link members-link" title="Members"><span>👥</span> Members</a>
+  <a href="/contact-summary.html" class="nav-link summary-link" title="Summary"><span>📋</span> Summary</a>
+    <a href="javascript:void(0);" class="nav-link back-link" id="siteNavBackLinkMobile" onclick="goBack()" title="Back" style="display:none;"><span>⬅️</span></a>
     <span class="nav-extra"></span>
   </div>
 </nav>
 <style>
+@media (max-width: 600px) {
+  .nav-icons-mobile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 8px;
+  }
+  .nav-icon-link {
+    color: white;
+    font-size: 1.5em;
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+    text-decoration: none;
+    height: 48px;
+  }
+  .nav-content {
+    display: none;
+  }
+}
+@media (min-width: 601px) {
+  .nav-icons-mobile {
+    display: none !important;
+  }
+}
 .site-nav {
   position: fixed;
   top: 0; left: 0; right: 0;
