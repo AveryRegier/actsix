@@ -55,6 +55,8 @@
     "hono": "^4.8.4",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",
+    "openid-client": "^6.8.1",
+    "passport": "^0.7.0",
     "qs": "^6.14.0",
     "sengo": "file:../sengo/client/dist",
     "xlsx": "^0.18.5"

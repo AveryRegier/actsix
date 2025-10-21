@@ -1,4 +1,4 @@
-import { sengo, db } from './sengoClient.js';
+import { db } from './sengoClient.js';
 import { getLogger } from './logger.js';
 
 export async function safeCollectionFind(collectionName, query = {}) {
