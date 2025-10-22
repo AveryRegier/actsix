@@ -6,21 +6,40 @@ Parameters:
     Type: String
     Default: deacon-care-system
     Description: S3 bucket for Lambda access
-  CognitoUserPoolId:
-    Type: String
-    Description: The ID of the Cognito User Pool
-  CognitoAppClientId:
-    Type: String
-    Description: The ID of the Cognito App Client
+  # CognitoUserPoolId:
+  #   Type: String
+  #   Description: The ID of the Cognito User Pool
+  # CognitoAppClientId:
+  #   Type: String
+  #   Description: The ID of the Cognito App Client
   S3ObjectVersion:
     Type: String
     Description: The version ID of the S3 object for the Lambda function
-  CognitoLoginUrl:
+  PlanningCenterClientId:
     Type: String
-    Description: The login URL for the Cognito User Pool
-  CognitoUserPoolDomain:
+    Description: Planning Center OAuth client id
+  PlanningCenterClientSecret:
     Type: String
-    Description: The domain of the Cognito User Pool
+    NoEcho: true
+    Description: Planning Center OAuth client secret (NoEcho hides the value in CloudFormation outputs)
+  OIDCDiscoveryUrl:
+    Type: String
+    Description: OIDC discovery URL for the identity provider (e.g. Planning Center)
+    Default: ""
+  PlanningCenterApiUrl:
+    Type: String
+    Description: Base API URL for Planning Center
+    Default: ""
+  AllowedOrganizationId:
+    Type: String
+    Description: The allowed organization id for the application
+    Default: ""
+  # CognitoLoginUrl:
+  #   Type: String
+  #   Description: The login URL for the Cognito User Pool
+  # CognitoUserPoolDomain:
+  #   Type: String
+  #   Description: The domain of the Cognito User Pool
 
 Resources:
   LambdaRole:
@@ -75,10 +94,15 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: !Ref S3BucketName
-          COGNITO_CLIENT_ID: !Ref CognitoAppClientId
-          COGNITO_LOGIN_URL: !Ref CognitoLoginUrl
+          # COGNITO_CLIENT_ID: !Ref CognitoAppClientId
+          # COGNITO_LOGIN_URL: !Ref CognitoLoginUrl
           API_GATEWAY_URL: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
-          COGNITO_USER_POOL_DOMAIN: !Ref CognitoUserPoolDomain
+          # COGNITO_USER_POOL_DOMAIN: !Ref CognitoUserPoolDomain
+          PLANNING_CENTER_CLIENT_ID: !Ref PlanningCenterClientId
+          PLANNING_CENTER_CLIENT_SECRET: !Ref PlanningCenterClientSecret
+          OIDC_DISCOVERY_URL: !Ref OIDCDiscoveryUrl
+          PLANNING_CENTER_API_URL: !Ref PlanningCenterApiUrl
+          ALLOWED_ORGANIZATION_ID: !Ref AllowedOrganizationId
 
   ApiGateway:
     Type: AWS::ApiGatewayV2::Api
@@ -115,85 +139,85 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway.ApiId}/*
 
-  CognitoUserPoolGroupDeacon:
-    Type: AWS::Cognito::UserPoolGroup
-    Properties:
-      GroupName: deacon
-      UserPoolId: !Ref CognitoUserPoolId
+  # CognitoUserPoolGroupDeacon:
+  #   Type: AWS::Cognito::UserPoolGroup
+  #   Properties:
+  #     GroupName: deacon
+  #     UserPoolId: !Ref CognitoUserPoolId
 
-  CognitoUserPoolGroupStaff:
-    Type: AWS::Cognito::UserPoolGroup
-    Properties:
-      GroupName: staff
-      UserPoolId: !Ref CognitoUserPoolId
+  # CognitoUserPoolGroupStaff:
+  #   Type: AWS::Cognito::UserPoolGroup
+  #   Properties:
+  #     GroupName: staff
+  #     UserPoolId: !Ref CognitoUserPoolId
 
-  CognitoPreSignUpTrigger:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: actsix-pre-signup-trigger
-      Handler: src/userInitialization.handler
-      Role: !GetAtt LambdaRole.Arn
-      Code:
-        S3Bucket: !Ref S3BucketName
-        S3Key: site-lambda.zip
-      Runtime: nodejs22.x
-      Timeout: 30
+  # CognitoPreSignUpTrigger:
+  #   Type: AWS::Lambda::Function
+  #   Properties:
+  #     FunctionName: actsix-pre-signup-trigger
+  #     Handler: src/userInitialization.handler
+  #     Role: !GetAtt LambdaRole.Arn
+  #     Code:
+  #       S3Bucket: !Ref S3BucketName
+  #       S3Key: site-lambda.zip
+  #     Runtime: nodejs22.x
+  #     Timeout: 30
 
-  CognitoPostConfirmationTrigger:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: actsix-post-confirmation-trigger
-      Handler: src/userInitialization.handler
-      Role: !GetAtt LambdaRole.Arn
-      Code:
-        S3Bucket: !Ref S3BucketName
-        S3Key: site-lambda.zip
-      Runtime: nodejs22.x
-      Timeout: 30
+  # CognitoPostConfirmationTrigger:
+  #   Type: AWS::Lambda::Function
+  #   Properties:
+  #     FunctionName: actsix-post-confirmation-trigger
+  #     Handler: src/userInitialization.handler
+  #     Role: !GetAtt LambdaRole.Arn
+  #     Code:
+  #       S3Bucket: !Ref S3BucketName
+  #       S3Key: site-lambda.zip
+  #     Runtime: nodejs22.x
+  #     Timeout: 30
 
-  CognitoUserInitializationLambda:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: actsix-user-initialization
-      Handler: src/userInitialization.handler
-      Role: !GetAtt LambdaRole.Arn
-      Code:
-        S3Bucket: !Ref S3BucketName
-        S3Key: site-lambda.zip
-      Runtime: nodejs22.x
-      Timeout: 30
-      Environment:
-        Variables:
-          S3_BUCKET: !Ref S3BucketName
+  # CognitoUserInitializationLambda:
+  #   Type: AWS::Lambda::Function
+  #   Properties:
+  #     FunctionName: actsix-user-initialization
+  #     Handler: src/userInitialization.handler
+  #     Role: !GetAtt LambdaRole.Arn
+  #     Code:
+  #       S3Bucket: !Ref S3BucketName
+  #       S3Key: site-lambda.zip
+  #     Runtime: nodejs22.x
+  #     Timeout: 30
+  #     Environment:
+  #       Variables:
+  #         S3_BUCKET: !Ref S3BucketName
 
-  LambdaInvokePermissionForCognito:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref CognitoUserInitializationLambda
-      Action: lambda:InvokeFunction
-      Principal: cognito-idp.amazonaws.com
-      SourceArn: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}
+  # LambdaInvokePermissionForCognito:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     FunctionName: !Ref CognitoUserInitializationLambda
+  #     Action: lambda:InvokeFunction
+  #     Principal: cognito-idp.amazonaws.com
+  #     SourceArn: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}
 
-  CognitoSMSRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: Cognito-SMS-Role
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: cognito-idp.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: AllowSNSPublish
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - sns:Publish
-                Resource: '*'
+  # CognitoSMSRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     RoleName: Cognito-SMS-Role
+  #     AssumeRolePolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: cognito-idp.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     Policies:
+  #       - PolicyName: AllowSNSPublish
+  #         PolicyDocument:
+  #           Version: '2012-10-17'
+  #           Statement:
+  #             - Effect: Allow
+  #               Action:
+  #                 - sns:Publish
+  #               Resource: '*'
 
 Outputs:
   LambdaName:
@@ -202,12 +226,12 @@ Outputs:
   LambdaRoleArn:
     Description: Lambda IAM Role ARN
     Value: !GetAtt LambdaRole.Arn
-  CognitoClientId:
-    Description: Cognito App Client ID
-    Value: !Ref CognitoAppClientId
+  # CognitoClientId:
+  #   Description: Cognito App Client ID
+  #   Value: !Ref CognitoAppClientId
   ApiGatewayUrl:
     Description: API Gateway URL
     Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
-  CognitoLoginUrl:
-    Description: Cognito Login URL
-    Value: !Ref CognitoLoginUrl
+  # CognitoLoginUrl:
+  #   Description: Cognito Login URL
+  #   Value: !Ref CognitoLoginUrl

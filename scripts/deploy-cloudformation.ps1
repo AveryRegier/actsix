@@ -2,7 +2,7 @@
 param(
     [string]$StackName = "actsix-deacon-care-system",
     [string]$TemplateFile = "cloudformation.yaml",
-    [string]$S3Bucket = "deacon-care-system",
+    [string]$S3Bucket = $env:S3_BUCKET,
     [string]$S3Key = "site-lambda.zip",
     [string]$S3ObjectVersion = "<latest-version-id>",
     [switch]$DeployCognitoStack = $false
@@ -28,18 +28,18 @@ if ($DeployCognitoStack) {
         --capabilities CAPABILITY_NAMED_IAM
 }
 
-# Retrieve Cognito stack outputs
-$CognitoUserPoolId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text
-$CognitoAppClientId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='AppClientId'].OutputValue" --output text
-#$CognitoLoginUrl = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='CognitoLoginUrl'].OutputValue" --output text
-$CognitoUserPoolDomain = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='UserPoolDomain'].OutputValue" --output text
-$CognitoLoginUrl = "https://$($CognitoUserPoolDomain).auth.$(aws configure get region).amazoncognito.com/login"
+# # Retrieve Cognito stack outputs
+# $CognitoUserPoolId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text
+# $CognitoAppClientId = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='AppClientId'].OutputValue" --output text
+# #$CognitoLoginUrl = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='CognitoLoginUrl'].OutputValue" --output text
+# $CognitoUserPoolDomain = aws cloudformation describe-stacks --stack-name $CognitoStackName --query "Stacks[0].Outputs[?OutputKey=='UserPoolDomain'].OutputValue" --output text
+# $CognitoLoginUrl = "https://$($CognitoUserPoolDomain).auth.$(aws configure get region).amazoncognito.com/login"
 
-# Debugging: Log Cognito stack outputs
-Write-Host "CognitoUserPoolId: $CognitoUserPoolId"
-Write-Host "CognitoAppClientId: $CognitoAppClientId"
-Write-Host "CognitoLoginUrl: $CognitoLoginUrl"
-Write-Host "CognitoUserPoolDomain: $CognitoUserPoolDomain"
+# # Debugging: Log Cognito stack outputs
+# Write-Host "CognitoUserPoolId: $CognitoUserPoolId"
+# Write-Host "CognitoAppClientId: $CognitoAppClientId"
+# Write-Host "CognitoLoginUrl: $CognitoLoginUrl"
+# Write-Host "CognitoUserPoolDomain: $CognitoUserPoolDomain"
 
 
 # Delete stack if in ROLLBACK_COMPLETE state
@@ -65,20 +65,37 @@ if (-not $S3ObjectVersion -or $S3ObjectVersion -eq "null") {
 Write-Host "Using S3 Object Version ID: $S3ObjectVersion"
 
 Write-Host "Deploying Application CloudFormation stack..."
+
+# Read desired environment parameter values from environment variables (fall back to empty strings)
+$pcClientId = $env:PLANNING_CENTER_CLIENT_ID
+if (-not $pcClientId) { $pcClientId = "" }
+$pcClientSecret = $env:PLANNING_CENTER_CLIENT_SECRET
+if (-not $pcClientSecret) { $pcClientSecret = "" }
+$oidcDiscovery = $env:OIDC_DISCOVERY_URL
+if (-not $oidcDiscovery) { $oidcDiscovery = "" }
+$pcApiUrl = $env:PLANNING_CENTER_API_URL
+if (-not $pcApiUrl) { $pcApiUrl = "" }
+$allowedOrgId = $env:ALLOWED_ORGANIZATION_ID
+if (-not $allowedOrgId) { $allowedOrgId = "" }
+
 aws cloudformation deploy `
     --stack-name $StackName `
     --template-file $TemplateFile `
-    --parameter-overrides S3BucketName=$S3Bucket S3ObjectVersion=$S3ObjectVersion CognitoUserPoolId=$CognitoUserPoolId CognitoAppClientId=$CognitoAppClientId CognitoLoginUrl=$CognitoLoginUrl CognitoUserPoolDomain=$CognitoUserPoolDomain `
+    --parameter-overrides S3BucketName=$S3Bucket S3ObjectVersion=$S3ObjectVersion `
+        PlanningCenterClientId="$pcClientId" PlanningCenterClientSecret="$pcClientSecret" `
+        OIDCDiscoveryUrl="$oidcDiscovery" PlanningCenterApiUrl="$pcApiUrl" AllowedOrganizationId="$allowedOrgId" `
     --capabilities CAPABILITY_NAMED_IAM
+
+# CognitoUserPoolId=$CognitoUserPoolId CognitoAppClientId=$CognitoAppClientId CognitoLoginUrl=$CognitoLoginUrl CognitoUserPoolDomain=$CognitoUserPoolDomain 
 
 # Debugging: Log application stack parameters
 Write-Host "Deploying Application CloudFormation stack with parameters:"
 Write-Host "S3BucketName=$S3Bucket"
 Write-Host "S3ObjectVersion=$S3ObjectVersion"
-Write-Host "CognitoUserPoolId=$CognitoUserPoolId"
-Write-Host "CognitoAppClientId=$CognitoAppClientId"
-Write-Host "CognitoLoginUrl=$CognitoLoginUrl"
-Write-Host "CognitoUserPoolDomain=$CognitoUserPoolDomain"
+#Write-Host "CognitoUserPoolId=$CognitoUserPoolId"
+#Write-Host "CognitoAppClientId=$CognitoAppClientId"
+#Write-Host "CognitoLoginUrl=$CognitoLoginUrl"
+#Write-Host "CognitoUserPoolDomain=$CognitoUserPoolDomain"
 
 Write-Host "Deployment complete."
 aws cloudformation describe-stacks --stack-name $StackName --query "Stacks[0].Outputs" --output table
@@ -104,18 +121,19 @@ if (-not $ApiGatewayUrl -or $ApiGatewayUrl -eq "None") {
     exit 1
 }
 
-
-# Configure CallbackURLs after application stack deployment
-Write-Host "Configuring Cognito CallbackURLs..."
-$CallbackURLs = "$ApiGatewayUrl/cognito"
-# Log the Callback URL
-Write-Host "Configuring Cognito CallbackURLs with: $CallbackURLs"
-aws cognito-idp update-user-pool-client `
-    --user-pool-id $CognitoUserPoolId `
-    --client-id $CognitoAppClientId `
-    --callback-urls $CallbackURLs
-    
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Failed to configure CallbackURLs. Exiting..."
-    exit $LASTEXITCODE
+if ($DeployCognitoStack) {
+    # Configure CallbackURLs after application stack deployment
+    Write-Host "Configuring Cognito CallbackURLs..."
+    $CallbackURLs = "$ApiGatewayUrl/cognito"
+    # Log the Callback URL
+    Write-Host "Configuring Cognito CallbackURLs with: $CallbackURLs"
+    aws cognito-idp update-user-pool-client `
+        --user-pool-id $CognitoUserPoolId `
+        --client-id $CognitoAppClientId `
+        --callback-urls $CallbackURLs
+        
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Failed to configure CallbackURLs. Exiting..."
+        exit $LASTEXITCODE
+    }
 }
