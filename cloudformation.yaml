@@ -34,6 +34,14 @@ Parameters:
     Type: String
     Description: The allowed organization id for the application
     Default: ""
+  CustomDomainName:
+    Type: String
+    Description: Optional custom domain name to create for API Gateway (e.g. dcs.example.com)
+    Default: ""
+  CustomDomainCertificateArn:
+    Type: String
+    Description: ACM Certificate ARN for the custom domain (regional certificate)
+    Default: ""
   # CognitoLoginUrl:
   #   Type: String
   #   Description: The login URL for the Cognito User Pool
@@ -139,6 +147,12 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway.ApiId}/*
 
+Conditions:
+  CreateCustomDomain: !And
+    - !Not [ !Equals [ !Ref CustomDomainName, "" ] ]
+    - !Not [ !Equals [ !Ref CustomDomainCertificateArn, "" ] ]
+
+
   # CognitoUserPoolGroupDeacon:
   #   Type: AWS::Cognito::UserPoolGroup
   #   Properties:
@@ -219,6 +233,24 @@ Resources:
   #                 - sns:Publish
   #               Resource: '*'
 
+  # API Gateway custom domain (created only when both CustomDomainName and CustomDomainCertificateArn are provided)
+  ApiGatewayCustomDomain:
+    Type: AWS::ApiGatewayV2::DomainName
+    Condition: CreateCustomDomain
+    Properties:
+      DomainName: !Ref CustomDomainName
+      DomainNameConfigurations:
+        - CertificateArn: !Ref CustomDomainCertificateArn
+          EndpointType: REGIONAL
+
+  ApiGatewayCustomDomainMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Condition: CreateCustomDomain
+    Properties:
+      ApiId: !Ref ApiGateway
+      DomainName: !Ref CustomDomainName
+      Stage: $default
+
 Outputs:
   LambdaName:
     Description: Lambda function name
@@ -232,6 +264,14 @@ Outputs:
   ApiGatewayUrl:
     Description: API Gateway URL
     Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
+  CustomDomainName:
+    Condition: CreateCustomDomain
+    Description: Custom domain name for API Gateway (if created)
+    Value: !Ref CustomDomainName
+  CustomDomainArn:
+    Condition: CreateCustomDomain
+    Description: Domain ARN for the custom domain
+    Value: !GetAtt ApiGatewayCustomDomain.DomainNameConfigurations
   # CognitoLoginUrl:
   #   Description: Cognito Login URL
   #   Value: !Ref CognitoLoginUrl

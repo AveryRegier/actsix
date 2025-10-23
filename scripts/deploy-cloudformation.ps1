@@ -77,6 +77,10 @@ $pcApiUrl = $env:PLANNING_CENTER_API_URL
 if (-not $pcApiUrl) { $pcApiUrl = "" }
 $allowedOrgId = $env:ALLOWED_ORGANIZATION_ID
 if (-not $allowedOrgId) { $allowedOrgId = "" }
+$customDomainName = $env:CUSTOM_DOMAIN_NAME
+if (-not $customDomainName) { $customDomainName = "" }
+$customDomainCert = $env:CUSTOM_DOMAIN_CERT_ARN
+if (-not $customDomainCert) { $customDomainCert = "" }
 
 aws cloudformation deploy `
     --stack-name $StackName `
@@ -84,6 +88,7 @@ aws cloudformation deploy `
     --parameter-overrides S3BucketName=$S3Bucket S3ObjectVersion=$S3ObjectVersion `
         PlanningCenterClientId="$pcClientId" PlanningCenterClientSecret="$pcClientSecret" `
         OIDCDiscoveryUrl="$oidcDiscovery" PlanningCenterApiUrl="$pcApiUrl" AllowedOrganizationId="$allowedOrgId" `
+        CustomDomainName="$customDomainName" CustomDomainCertificateArn="$customDomainCert" `
     --capabilities CAPABILITY_NAMED_IAM
 
 # CognitoUserPoolId=$CognitoUserPoolId CognitoAppClientId=$CognitoAppClientId CognitoLoginUrl=$CognitoLoginUrl CognitoUserPoolDomain=$CognitoUserPoolDomain 

@@ -15,9 +15,21 @@ const deaconsSheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetName
 // API base URL
 const apiBaseUrl = 'http://localhost:3001/api';
 
+// Create an axios client that sends an Authorization header with a generation API key for scripting.
+// The server middleware will accept the key and treat the request as an authenticated script user.
+const generationKey = process.env.GENERATION_API_KEY || '';
+if (!generationKey) {
+    console.warn('Warning: GENERATION_API_KEY not set in environment. The script may be rejected by the API.');
+}
+
+const client = axios.create({
+    baseURL: apiBaseUrl,
+    headers: generationKey ? { 'Authorization': `Bearer ${generationKey}` } : {}
+});
+
 async function createHouseholdsAndMembers() {
 
-    const deaconResponse = await axios.get(`${apiBaseUrl}/deacons?add=deaconess,elder,staff`);
+    const deaconResponse = await client.get(`/deacons?add=deaconess,elder,staff`);
 
     for (const row of householdsMembersSheet) {
         const householdData = {
@@ -27,7 +39,7 @@ async function createHouseholdsAndMembers() {
 
         try {
             console.log(`Creating household: ${JSON.stringify(householdData)}`);
-            const householdResponse = await axios.post(`${apiBaseUrl}/households`, householdData);
+            const householdResponse = await client.post(`/households`, householdData);
             const householdId = householdResponse.data.id;
 
             // Split names if multiple people are listed in the DEACON CARE  LIST field
@@ -70,7 +82,7 @@ async function createHouseholdsAndMembers() {
                     gender: gender.shift()
                 };
                 console.log(`Creating member: ${JSON.stringify(memberData)}`);
-                const memberResponse = await axios.post(`${apiBaseUrl}/members`, memberData);
+                const memberResponse = await client.post(`/members`, memberData);
                 memberId = memberId || memberResponse.data.id;
             }
             // Find the deacon ID by name
@@ -85,7 +97,7 @@ async function createHouseholdsAndMembers() {
                         householdId
                     };
                     console.log(`Creating assignment: ${JSON.stringify(assignmentData)}`);
-                    await axios.post(`${apiBaseUrl}/assignments`, assignmentData);
+                    await client.post(`/assignments`, assignmentData);
                 } else {
                     console.warn(`Deacon not found for name: ${name}`);
                 }
@@ -108,7 +120,7 @@ async function createHouseholdsAndMembers() {
                     followUpRequired: false
                 };
                 console.log(`Creating contact log: ${JSON.stringify(contactData)}`);
-                await axios.post(`${apiBaseUrl}/contacts`, contactData);
+                await client.post(`/contacts`, contactData);
             }
             processNotesForContacts(row, householdId, memberId, deaconResponse);
         } catch (error) {
@@ -149,7 +161,7 @@ async function createDeacons() {
 
         try {
             console.log(`Creating household for deacon: ${JSON.stringify(householdData)}`);
-            const householdResponse = await axios.post(`${apiBaseUrl}/households`, householdData);
+            const householdResponse = await client.post(`/households`, householdData);
             const householdId = householdResponse.data.id;
 
             const deaconData = {
@@ -164,7 +176,7 @@ async function createDeacons() {
                 notes: row['Preferences of Service'] || ''
             };
             console.log(`Creating deacon: ${JSON.stringify(deaconData)}`);
-            const deaconResponse = await axios.post(`${apiBaseUrl}/members`, deaconData);
+            const deaconResponse = await client.post(`/members`, deaconData);
 
             // Add spouse as a separate member
             const spouseName = row["Wife's name"];
@@ -183,7 +195,7 @@ async function createDeacons() {
                     tags: ['deaconess', 'member']
                 };
                 console.log(`Creating spouse: ${JSON.stringify(spouseData)}`);
-                await axios.post(`${apiBaseUrl}/members`, spouseData);
+                await client.post(`/members`, spouseData);
             }
         } catch (error) {
             console.error('Failed to create household, deacon, or spouse:', error.response?.data || error.message);
@@ -217,7 +229,7 @@ async function processNotesForContacts(row, householdId, memberId, deaconRespons
                 followUpRequired: false
             };
             console.log(`Creating contact log: ${JSON.stringify(contactData)}`);
-            await axios.post(`${apiBaseUrl}/contacts`, contactData);
+            await client.post(`/contacts`, contactData);
         } else {
             console.warn(`Skipping contact creation for update: ${update}`);
         }

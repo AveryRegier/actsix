@@ -47,24 +47,50 @@ export default function registerOidcRoutes(app) {
     app.use('*', async (c, next) => await follow(async () => {
         const logger = getLogger();
         try {
-            // fixme: verify the token
+            // Extract API-key header for scripted generation (fast automation). If provided and matches
+            // the configured GENERATION_API_KEY, consider the request authenticated as a script user.
+            const generationKey = process.env.GENERATION_API_KEY;
+            const authHeader = (c.req.header('authorization') || '').toString();
+            const xApiKey = c.req.header('x-api-key') || '';
 
-            // extract user information from the cookies in the request
-            const actsix = getCookie(c, 'actsix')?.split("|");
-            let memberId = actsix?.[0];
-            addContext("memberId", memberId);
-            let role = actsix?.[1];
+            let memberId = null;
+            let role = null;
+
+            if (generationKey && (authHeader.startsWith('Bearer ') || xApiKey)) {
+                const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : xApiKey;
+                if (token === generationKey) {
+                    // Authenticated as a scripted generator: grant high privileges for seeding
+                    memberId = 'script-generator';
+                    role = 'staff';
+                    // Do not set persistent cookies here; this is for script-based automation only
+                    addContext('auth_method', 'generation_api_key');
+                }
+            }
+
+            // If no API key matched, fall back to cookie-based actsix value
+            if (!memberId) {
+                // fixme: verify the token
+                // extract user information from the cookies in the request
+                const actsix = getCookie(c, 'actsix')?.split("|");
+                memberId = actsix?.[0];
+                addContext("memberId", memberId);
+                role = actsix?.[1];
+            }
+
             c.req.memberId = memberId; // Save memberId as an attribute on the request
             c.req.role = role; // Save role as an attribute on the request
             logger.info('Incoming request', { method: c.req.method, url: c.req.url, memberId, role });
 
-            if (!memberId && !c.req.path.includes("/oidc")) { // && process.env.API_GATEWAY_URL && process.env.COGNITO_LOGIN_URL
+            if (!memberId && !c.req.path.includes("/oidc")) {
                 logger.warn('No valid member found in request headers');
-
-                // get planning center login url from oidc discovery
-                let url = `/oidc/login`;
-                logger.info('Redirecting to login:', url);
-                return await c.redirect(url, 302);
+                if (c.req.path.includes(".html") || c.req.path === "/") { 
+                    // get planning center login url from oidc discovery
+                    let url = `/oidc/login`;
+                    logger.info('Redirecting to login:', url);
+                    return await c.redirect(url, 302);
+                } else {
+                    return await c.text('401 Unauthorized', 401);
+                }
             }
 
             logger.info("calling next");

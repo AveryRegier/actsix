@@ -8,3 +8,5 @@ npm-debug.log
 hidden
 scripts/generate_data.js
 *.ipynb
+init-files/
+scripts/s3-profile-migrate.ps1
