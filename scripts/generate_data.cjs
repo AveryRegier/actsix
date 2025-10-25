@@ -107,6 +107,9 @@ async function createHouseholdsAndMembers() {
             let reusedMember = null;
             // declare once here so we don't accidentally redeclare in different branches
             let existingMembersForHousehold = [];
+            // memberId may be set from reusedMember branch before we reach the member creation loop;
+            // declare it here to avoid TDZ (cannot access before initialization) errors.
+            let memberId = null;
             for (const nm of names) {
                 const key = `${nm.toString().trim().toLowerCase()}|${(row['Last Name'] || '').toString().trim().toLowerCase()}`;
                 const m = memberLookup.get(key);
@@ -168,7 +171,6 @@ async function createHouseholdsAndMembers() {
                 relationships = ["spouse", "head"];
             }
 
-            let memberId;
             // Fetch existing members for this household so we can avoid creating duplicates by name
             existingMembersForHousehold = [];
             try {
@@ -719,7 +721,7 @@ async function processNotesForContacts(row, householdId, memberId, deaconRespons
 
 async function main() {
     try {
-        await createDeacons();
+        // await createDeacons();
         await createHouseholdsAndMembers();
         console.log('Data generation completed successfully.');
     } catch (error) {
