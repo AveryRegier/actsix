@@ -61,7 +61,7 @@ export default function registerOidcRoutes(app) {
                 if (token === generationKey) {
                     // Authenticated as a scripted generator: grant high privileges for seeding
                     memberId = 'script-generator';
-                    role = 'staff';
+                    role = 'deacon';
                     // Do not set persistent cookies here; this is for script-based automation only
                     addContext('auth_method', 'generation_api_key');
                 }

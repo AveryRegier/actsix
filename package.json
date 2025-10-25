@@ -23,7 +23,7 @@
     "lint": "echo 'Linting would go here'",
     "validate": "npm run test && npm run lint",
     "deploy:prep": "npm run clean && npm run build:validate",
-    "generate": "node scripts/generate_data.cjs",
+  "generate": "node scripts/generate_data.cjs",
     "dist": "node scripts/dist.cjs",
     "deploy": "powershell.exe -File scripts/deploy-cloudformation.ps1"
   },
@@ -44,7 +44,8 @@
     "chance": "^1.1.13",
     "rimraf": "^6.0.1",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "chrono-node": "^2.3.2"
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.25.1",
