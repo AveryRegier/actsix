@@ -99,7 +99,7 @@ async function createHouseholdsAndMembers() {
             notes: row['Location']
         };
 
-            try {
+        try {
             // Before creating a new household, check the in-memory member cache for any member on this row.
             // If a matching member exists and has a household, reuse that household to avoid orphan households.
             let names = splitNames(row['DEACON CARE  LIST']);
@@ -226,7 +226,7 @@ async function createHouseholdsAndMembers() {
                         updates.tags = mergedTags;
                     }
 
-                        if (Object.keys(updates).length > 0) {
+                    if (Object.keys(updates).length > 0) {
                         // Prepare a full body for PUT (members API requires certain fields)
                         const putBody = {
                             firstName: found.firstName || name,
@@ -432,6 +432,16 @@ async function processNotesForContacts(row, householdId, memberId, deaconRespons
         existingContacts = [];
     }
 
+    // Also fetch existing household members so tokens that match members' names
+    // are not mistaken for deacons in the notes parser.
+    let existingMembers = [];
+    try {
+        const memRes = await client.get(`/households/${householdId}/members`);
+        existingMembers = memRes.data?.members || [];
+    } catch (e) {
+        existingMembers = [];
+    }
+
     // Build a lookup of existing contacts to detect duplicates more flexibly.
     // We'll keep both an exact-key set and a records array for substring matching.
     // Exact key format: `${isoDate}|${normalizedSummary}|${deaconId}`
@@ -557,6 +567,22 @@ async function processNotesForContacts(row, householdId, memberId, deaconRespons
     const normalizeTokenForName = t => (t || '').toString().replace(/[^A-Za-z]/g, '').trim().toLowerCase();
     const normalizeTokenForInitials = t => (t || '').toString().replace(/[^A-Za-z]/g, '').toUpperCase();
 
+    // Build quick member name lookups to avoid treating household member names as deacon tokens
+    const memberNameSet = new Set();
+    const memberInitialsSet = new Set();
+    for (const m of existingMembers) {
+        const fn = normalizeName(m.firstName || m.first || '');
+        const ln = normalizeName(m.lastName || m.last || '');
+        if (fn) memberNameSet.add(fn);
+        if (ln) memberNameSet.add(ln);
+        const full = `${(m.firstName||m.first||'').toString().trim()} ${(m.lastName||m.last||'').toString().trim()}`.trim().toLowerCase();
+        if (full) memberNameSet.add(full);
+        const fi = (m.firstName || m.first || '').toString().trim();
+        const la = (m.lastName || m.last || '').toString().trim();
+        const initials = ((fi[0] || '') + (la[0] || '')).toUpperCase();
+        if (initials) memberInitialsSet.add(initials);
+    }
+
     // helper: try to parse a date from a single token (only if token contains at least one digit)
     const currentYear = moment().year();
     function parseDateFromToken(tok) {
@@ -665,6 +691,11 @@ async function processNotesForContacts(row, householdId, memberId, deaconRespons
         // 2) Not a numeric date token — check if token is a deacon last name or initials
         const tryLn = normalizeTokenForName(word);
         if (tryLn && lastNameMap[tryLn]) {
+            // If this token matches a household member's name, do NOT treat it as a deacon token.
+            if (memberNameSet.has(tryLn)) {
+                currentSummary = (currentSummary + ' ' + word).trim();
+                continue;
+            }
             const d = lastNameMap[tryLn];
             if (!currentDeacons.find(x => x._id === d._id)) currentDeacons.push(d);
             // also include the word in the summary
@@ -674,6 +705,11 @@ async function processNotesForContacts(row, householdId, memberId, deaconRespons
 
         const tryInit = normalizeTokenForInitials(word);
         if (tryInit && initialsMap[tryInit]) {
+            // If the initials match a household member, don't treat as deacon
+            if (memberInitialsSet.has(tryInit)) {
+                currentSummary = (currentSummary + ' ' + word).trim();
+                continue;
+            }
             const d = initialsMap[tryInit];
             if (!currentDeacons.find(x => x._id === d._id)) currentDeacons.push(d);
             currentSummary = (currentSummary + ' ' + word).trim();
