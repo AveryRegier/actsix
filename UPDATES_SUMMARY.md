@@ -12,7 +12,7 @@
 - **Required fields**: `firstName`, `lastName`, `householdId`, `relationship`, `gender`
 - **Gender field added**: Must be `male` or `female`
 - **Tags system implemented**: Replaced status with flexible tags
-  - Available tags: `member`, `attender`, `shut-in`, `cancer`, `long-term-needs`, `widow`, `widower`, `married`
+  - Available tags: `member`, `attender`, `in-small-group`, `shut-in`, `cancer`, `long-term-needs`, `widow`, `widower`, `married`, `deceased`
   - Members can have multiple tags
   - Tags are stored as an array
 

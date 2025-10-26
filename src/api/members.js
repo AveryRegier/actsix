@@ -98,7 +98,7 @@ export default function registerMemberRoutes(app) {
       }
 
       if (body.tags && Array.isArray(body.tags)) {
-        const validTags = ['deacon', 'deaconess', 'elder', 'staff', 'member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married', 'other-needs', 'deceased'];
+        const validTags = ['deacon', 'deaconess', 'elder', 'staff', 'member', 'attender', 'in-small-group', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married', 'other-needs', 'deceased'];
         for (const tag of body.tags) {
           if (!validTags.includes(tag)) {
             return c.json({ error: 'Validation failed', message: `Invalid tag "${tag}". Must be one of: ${validTags.join(', ')}` }, 400);
@@ -157,7 +157,7 @@ export default function registerMemberRoutes(app) {
       }
 
       if (body.tags && Array.isArray(body.tags)) {
-        const validTags = ['deacon', 'elder', 'staff', 'member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married', 'deceased'];
+        const validTags = ['deacon', 'elder', 'staff', 'member', 'attender', "in-small-group", 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married', 'deceased'];
         for (const tag of body.tags) {
           if (!validTags.includes(tag)) {
             validationErrorResponse(c, `Invalid tag "${tag}". Must be one of: ${validTags.join(', ')}`);
