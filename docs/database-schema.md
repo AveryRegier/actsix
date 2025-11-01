@@ -92,7 +92,7 @@ erDiagram
   phone: String,        // Optional
   email: String,        // Optional
   gender: String,       // Required - 'male' or 'female'
-  tags: [String],       // Optional array - 'member', 'attender', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married', 'deceased'
+  tags: [String],       // Optional array - 'member', 'attender', 'in-small-group', 'shut-in', 'cancer', 'long-term-needs', 'widow', 'widower', 'married', 'deceased'
   relationship: String, // Required - 'head', 'spouse', 'child', 'other'
   age: Number,         // Optional - use if birthDate unknown
   birthDate: Date,     // Optional - use if age unknown
