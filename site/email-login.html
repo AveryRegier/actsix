@@ -1,0 +1,69 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Email Login</title>
+    <script type="module">
+        import { apiFetch } from './fetch-utils.js';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailForm = document.getElementById('emailLoginForm');
+            emailForm.onsubmit = async function(e) {
+                e.preventDefault();
+                const email = emailForm.email.value;
+                if (!email) {
+                    alert('Please enter your email address.');
+                    return;
+                }
+                const response = await apiFetch('/email-request-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                if (response.ok) {
+                    alert('Login link sent to your email address.');
+                    // now show the validation code box on the form
+                    const codeInput = document.createElement('input');
+                    codeInput.type = 'text';
+                    codeInput.name = 'code';
+                    codeInput.placeholder = 'Enter the validation code';
+                    emailForm.appendChild(codeInput);
+                    // also add a way to submit it, then call /email-validate-code
+                    const submitBtn = document.createElement('button');
+                    submitBtn.textContent = 'Validate Code';
+                    submitBtn.type = 'submit';
+                    emailForm.appendChild(submitBtn);
+                    emailForm.onsubmit = async function(ev) {
+                        ev.preventDefault();
+                        const code = codeInput.value;
+                        const validateResp = await apiFetch('/email-validate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, validationCode: code })
+                        });
+                        if (validateResp.ok) {
+                            const data = await validateResp.json();
+                            alert('Login successful!');
+                            // Store token and redirect
+                            localStorage.setItem('authToken', data.token);
+                            // put the token in the actsix cookie as well
+                            document.cookie = `actsix=${data.token}; path=/;`;
+                            window.location.href = '/';
+                        } else {
+                            alert('Invalid code. Please try again.');
+                        }
+                    };
+                } else {
+                    alert('Error sending login link. Please try again.');
+                }
+            };
+        });
+    </script>
+</head>
+<body>
+    <form id="emailLoginForm">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <button type="submit">Send Login Link</button>
+    </form>
+</body>
+</html>

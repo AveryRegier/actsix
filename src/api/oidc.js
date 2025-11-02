@@ -7,6 +7,7 @@ import { safeCollectionFind, db } from '../helpers.js';
 import { getLogger, follow, addContexts, addContext } from '../logger.js';
 import jwt from 'jsonwebtoken';
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
+import { generateToken } from '../auth.js';
 // Type for OIDC config
 /**
  * @typedef {Object} OIDCConfig
@@ -71,10 +72,12 @@ export default function registerOidcRoutes(app) {
             if (!memberId) {
                 // fixme: verify the token
                 // extract user information from the cookies in the request
-                const actsix = getCookie(c, 'actsix')?.split("|");
-                memberId = actsix?.[0];
-                addContext("memberId", memberId);
-                role = actsix?.[1];
+                const actsixCookie = getCookie(c, 'actsix');
+                const decoded = verifyToken(actsixCookie);
+                if (decoded) {
+                    memberId = decoded.id;
+                    role = decoded.role;
+                }
             }
 
             c.req.memberId = memberId; // Save memberId as an attribute on the request
@@ -203,7 +206,7 @@ export default function registerOidcRoutes(app) {
             }
 
             // set the actsix cookie
-            setCookie(c, 'actsix', `${memberId}|${role}`, { secure: c.req.isSecure });
+            setCookie(c, 'actsix', generateToken(member), { secure: c.req.isSecure });
 
             setCookie(c, 'access_token', tokens.access_token, { path: '/', httpOnly: true, sameSite: 'strict', secure: c.req.isSecure });
             setCookie(c, 'id_token', tokens.id_token, { path: '/', httpOnly: true, sameSite: 'strict', secure: c.req.isSecure });

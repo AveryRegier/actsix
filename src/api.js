@@ -7,7 +7,8 @@ import registerHouseholdRoutes from './api/households.js'
 import registerAssignmentRoutes from './api/assignments.js'
 import registerDeaconRoutes from './api/deacons.js'
 import registerContactRoutes from './api/contacts.js'
-import registerOidcRoutes from './api/oidc.js'
+// import registerOidcRoutes from './api/oidc.js'
+import registerEmailLoginRoutes from './api/email-login.js'
 
 // import { logger } from "./logger.js";
 import jwt from 'jsonwebtoken';
@@ -62,7 +63,8 @@ export function createApp() {
   const app = new Hono()
 
 
-  registerOidcRoutes(app)
+  registerEmailLoginRoutes(app)
+  // registerOidcRoutes(app)
   registerMemberRoutes(app)
   registerHouseholdRoutes(app)
   registerAssignmentRoutes(app)
