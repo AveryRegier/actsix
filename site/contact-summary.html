@@ -38,12 +38,6 @@
         </table>
     </div>
 
-    <div id="addressPopup" class="popup">
-        <span class="close" onclick="closePopup()">&times;</span>
-        <h2>Address Details</h2>
-        <p id="addressDetails"></p>
-    </div>
-
     <script type="module">
         // Load reusable navigation bar
         document.addEventListener('DOMContentLoaded', async () => {
@@ -70,53 +64,13 @@
             tableBody.innerHTML = data.summary.map((item, idx) => {
                 const currentHouseholdId = item.household._id;
                 const householdName = item.household?.members?.map(m => m.firstName).join(' & ');
-                let phoneNumbers = "";
-                if(item.household?.members?.length) {
-                    phoneNumbers = item.household.members
-                        .filter(m => m.phone)
-                        .map(m => `${m.firstName?.charAt(0)}: ${m.phone}`).join('<br>');
-                }
-                if(item.household?.primaryPhone) {
-                    phoneNumbers += (phoneNumbers ? "<br>" : "") + `P: ${item.household.primaryPhone}`;
-                }
-                if(!phoneNumbers && item.household.address?.street) {
-                    phoneNumbers = `${item.household.address.street}<br>${item.household.address.city}`;
-                }
-                if(!phoneNumbers) {
-                    phoneNumbers = "(Contact)";
-                }
+
+                const phoneNumbers = getBestContactMethod(item.household);
                 const deacons = item.assignedDeacons?.map(d => `${d.firstName} ${d.lastName}`).join(', ') || "(Assign)";
                 const lastContactDate = item.lastContact?.contactDate ? new Date(item.lastContact.contactDate) : null;
-                let contactedBy = "";
-                switch (item.lastContact?.contactType) {
-                    case 'phone':
-                        contactedBy = "Called"
-                        break;
-                    case 'visit':
-                        contactedBy = "Visited"
-                        break;
-                    case 'voicemail':
-                        contactedBy = "Left voicemail"
-                        break;
-                    case 'church':
-                        contactedBy = "Spoke at church"
-                        break;
-                }
-                if (item.lastContact?.contactedBy?.length) {
-                    if(contactedBy) contactedBy += " by ";
-                    contactedBy += item.lastContact.contactedBy.map(c => `${c.firstName} ${c.lastName}`).join(', ');
-                }
-                let contactDateClass = '';
-                if (lastContactDate) {
-                    const weeksAgo = (Date.now() - lastContactDate.getTime()) / (1000 * 60 * 60 * 24 * 7);
-                    if (weeksAgo > 6) {
-                        contactDateClass = 'red';
-                    } else if (weeksAgo > 3) {
-                        contactDateClass = 'yellow';
-                    }
-                } else {
-                    contactDateClass = 'red'
-                }
+
+                const contactedBy = getContactedBy(item.lastContact);
+                let contactDateClass = getContactDateClass(lastContactDate);
 
                 const rowClass = idx % 2 === 0 ? 'even' : 'odd';
                 return `
@@ -156,14 +110,60 @@
             }).join('');
         }
 
-        function showPopup(address) {
-            const popup = document.getElementById('addressPopup');
-            document.getElementById('addressDetails').textContent = address;
-            popup.style.display = 'block';
+        function getBestContactMethod(household) {
+            let phoneNumbers = "";
+            if (household?.members?.length) {
+                phoneNumbers = household.members
+                    .filter(m => m.phone)
+                    .map(m => `${m.firstName?.charAt(0)}: ${m.phone}`)
+                    .join('<br>');
+            }
+            if (household?.primaryPhone) {
+                phoneNumbers += (phoneNumbers ? "<br>" : "") + `P: ${household.primaryPhone}`;
+            }
+            if (!phoneNumbers && household?.address?.street) {
+                phoneNumbers = `${household.address.street}<br>${household.address.city}`;
+            }
+            return phoneNumbers || "(Contact)";
         }
 
-        function closePopup() {
-            document.getElementById('addressPopup').style.display = 'none';
+        function getContactedBy(lastContact) {
+            if (!lastContact) return "";
+            let contactedBy = "";
+            switch (lastContact.contactType) {
+                case 'phone':
+                    contactedBy = "Called";
+                    break;
+                case 'visit':
+                    contactedBy = "Visited";
+                    break;
+                case 'voicemail':
+                    contactedBy = "Left voicemail";
+                    break;
+                case 'church':
+                    contactedBy = "Spoke at church";
+                    break;
+            }
+            if (lastContact.contactedBy?.length) {
+                if (contactedBy) contactedBy += " by ";
+                contactedBy += lastContact.contactedBy.map(c => `${c.firstName} ${c.lastName}`).join(', ');
+            }
+            return contactedBy;
+        };
+
+        function getContactDateClass(lastContactDate) {
+            let contactDateClass = '';
+            if (lastContactDate) {
+                const weeksAgo = (Date.now() - lastContactDate.getTime()) / (1000 * 60 * 60 * 24 * 7);
+                if (weeksAgo > 6) {
+                    contactDateClass = 'red';
+                } else if (weeksAgo > 3) {
+                    contactDateClass = 'yellow';
+                }
+            } else {
+                contactDateClass = 'red'
+            }
+            return contactDateClass;
         }
 
         document.addEventListener('DOMContentLoaded', fetchSummary);
