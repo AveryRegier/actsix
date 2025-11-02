@@ -42,12 +42,36 @@ Parameters:
     Type: String
     Description: ACM Certificate ARN for the custom domain (regional certificate)
     Default: ""
+  GENERATIONAPIKEY:
+    Type: String
+    Description: API key for the generation service
+    NoEcho: true
+    Default: ""
+  JWTSECRET:
+    Type: String
+    Description: JWT secret used by the application
+    NoEcho: true
+    Default: ""
+  GMAILAPPPASSWORD:
+    Type: String
+    Description: App password for the Gmail account used to send mail
+    NoEcho: true
+    Default: ""
+  GMAILFROMADDRESS:
+    Type: String
+    Description: From address for outgoing Gmail messages
+    Default: ""
   # CognitoLoginUrl:
   #   Type: String
   #   Description: The login URL for the Cognito User Pool
   # CognitoUserPoolDomain:
   #   Type: String
   #   Description: The domain of the Cognito User Pool
+
+Conditions:
+  CreateCustomDomain: !And
+    - !Not [ !Equals [ !Ref CustomDomainName, "" ] ]
+    - !Not [ !Equals [ !Ref CustomDomainCertificateArn, "" ] ]
 
 Resources:
   LambdaRole:
@@ -104,13 +128,24 @@ Resources:
           S3_BUCKET: !Ref S3BucketName
           # COGNITO_CLIENT_ID: !Ref CognitoAppClientId
           # COGNITO_LOGIN_URL: !Ref CognitoLoginUrl
-          API_GATEWAY_URL: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
+          API_GATEWAY_URL:
+            Fn::Join:
+              - ''
+              - - 'https://'
+                - Ref: ApiGateway
+                - '.execute-api.'
+                - Ref: 'AWS::Region'
+                - '.amazonaws.com'
           # COGNITO_USER_POOL_DOMAIN: !Ref CognitoUserPoolDomain
           PLANNING_CENTER_CLIENT_ID: !Ref PlanningCenterClientId
           PLANNING_CENTER_CLIENT_SECRET: !Ref PlanningCenterClientSecret
           OIDC_DISCOVERY_URL: !Ref OIDCDiscoveryUrl
           PLANNING_CENTER_API_URL: !Ref PlanningCenterApiUrl
           ALLOWED_ORGANIZATION_ID: !Ref AllowedOrganizationId
+          GENERATION_API_KEY: !Ref GENERATIONAPIKEY
+          JWT_SECRET: !Ref JWTSECRET
+          GMAIL_APP_PASSWORD: !Ref GMAILAPPPASSWORD
+          GMAIL_FROM_ADDRESS: !Ref GMAILFROMADDRESS
 
   ApiGateway:
     Type: AWS::ApiGatewayV2::Api
@@ -123,7 +158,16 @@ Resources:
     Properties:
       ApiId: !Ref ApiGateway
       IntegrationType: AWS_PROXY
-      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ActsixLambda.Arn}/invocations
+      IntegrationUri:
+        Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: 'AWS::Region'
+            - ':lambda:path/2015-03-31/functions/'
+            - Fn::GetAtt:
+                - ActsixLambda
+                - Arn
+            - '/invocations'
       PayloadFormatVersion: '2.0'
 
   ApiGatewayRoute:
@@ -131,7 +175,11 @@ Resources:
     Properties:
       ApiId: !Ref ApiGateway
       RouteKey: ANY /{proxy+}
-      Target: !Sub integrations/${ApiGatewayIntegration}
+      Target:
+        Fn::Join:
+          - ''
+          - - 'integrations/'
+            - Ref: ApiGatewayIntegration
 
   ApiGatewayStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -145,13 +193,16 @@ Resources:
       FunctionName: !Ref ActsixLambda
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway.ApiId}/*
-
-Conditions:
-  CreateCustomDomain: !And
-    - !Not [ !Equals [ !Ref CustomDomainName, "" ] ]
-    - !Not [ !Equals [ !Ref CustomDomainCertificateArn, "" ] ]
-
+      SourceArn:
+        Fn::Join:
+          - ''
+          - - 'arn:aws:execute-api:'
+            - Ref: 'AWS::Region'
+            - ':'
+            - Ref: 'AWS::AccountId'
+            - ':'
+            - Ref: ApiGateway
+            - '/*'
 
   # CognitoUserPoolGroupDeacon:
   #   Type: AWS::Cognito::UserPoolGroup
@@ -263,7 +314,14 @@ Outputs:
   #   Value: !Ref CognitoAppClientId
   ApiGatewayUrl:
     Description: API Gateway URL
-    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
+    Value:
+      Fn::Join:
+        - ''
+        - - 'https://'
+          - Ref: ApiGateway
+          - '.execute-api.'
+          - Ref: 'AWS::Region'
+          - '.amazonaws.com'
   CustomDomainName:
     Condition: CreateCustomDomain
     Description: Custom domain name for API Gateway (if created)

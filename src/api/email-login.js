@@ -21,6 +21,29 @@ export default function registerEmailLoginRoutes(app) {
                 }
             }
 
+            // Extract API-key header for scripted generation (fast automation). If provided and matches
+            // the configured GENERATION_API_KEY, consider the request authenticated as a script user.
+            const generationKey = process.env.GENERATION_API_KEY;
+            const authHeader = (c.req.header('authorization') || '').toString();
+            const xApiKey = c.req.header('x-api-key') || '';
+
+            if (generationKey && (authHeader.startsWith('Bearer ') || xApiKey)) {
+                const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : xApiKey;
+                if (token === generationKey) {
+                    // Authenticated as a scripted generator: grant high privileges for seeding
+                    const memberId = 'script-generator';
+                    const role = 'deacon';
+                    // Do not set persistent cookies here; this is for script-based automation only
+                    addContext('auth_method', 'generation_api_key');
+
+                    c.req.memberId = memberId; // Save memberId as an attribute on the request
+                    c.req.role = role; // Save role as an attribute on the request
+            
+                    return await next();
+                }
+            }
+
+
             if(c.req.path.startsWith("/email") || c.req.path.endsWith(".js") || c.req.path.endsWith(".css") || c.req.path.endsWith(".png") || c.req.path.endsWith(".jpg") || c.req.path.endsWith(".jpeg") || c.req.path.endsWith(".gif") || c.req.path.endsWith(".ico") ) {
                 return await next();
             }
@@ -48,13 +71,13 @@ export default function registerEmailLoginRoutes(app) {
       const { email, validationCode } = await c.req.json();
       const user = await authenticateUser(email, validationCode);
       if (!user) {
-        return c.status(401).json({ error: 'Invalid email or validation code' });
+        return c.text('Invalid email or validation code', 401);
       }
       const token = generateToken(user);
       return c.json({ token });
     } catch (error) {
       logger.error(error, 'Error during email login:');
-      return c.status(500).json({ error: 'Internal server error' });
+      return c.text('Internal server error', 500);
     }
   });
 
@@ -66,13 +89,13 @@ export default function registerEmailLoginRoutes(app) {
       // first see if the email exists in the members collection
       const member = await findMemberByEmail(email);
       if (!member) {
-        return c.status(404).json({ error: 'Member not found' });
+        return c.text('Member not found', 404);
       }
       const validationCode = await generateAndSendValidationCode(email);
       return c.json({ message: 'Validation code sent' });
     } catch (error) {
       logger.error(error, 'Error requesting validation code:');
-      return c.status(500).json({ error: 'Internal server error' });
+      return c.text('Internal server error', 500);
     }
   });
 };

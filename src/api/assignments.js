@@ -52,7 +52,7 @@ export default function registerAssignmentRoutes(app) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
-      const deaconMemberId = c.req.param('deaconMemberId');
+      const deaconMemberId = c.req.memberId;
       const assignments = await safeCollectionFind('assignments', { deaconMemberId: { $in: [deaconMemberId] } });
       return c.json({ deaconMemberId, assignments, count: assignments.length });
     } catch (error) {

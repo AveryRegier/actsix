@@ -131,9 +131,12 @@
                         });
                         if (validateResp.ok) {
                             const data = await validateResp.json();
-                            // Store token and redirect
+                            // Store token and redirect (cookie set to expire in ~60 days)
                             localStorage.setItem('authToken', data.token);
-                            document.cookie = `actsix=${data.token}; path=/;`;
+                            const _expires = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toUTCString();
+                            const _attrs = [`expires=${_expires}`, 'path=/', 'SameSite=Lax'];
+                            if (location.protocol === 'https:') _attrs.push('Secure');
+                            document.cookie = `actsix=${encodeURIComponent(data.token)}; ${_attrs.join('; ')}`;
                             window.location.href = '/';
                         } else {
                             alert('Invalid code. Please try again.');
@@ -170,11 +173,11 @@
                         alert('Login link sent to your email address.');
                         showCodeInput(email);
                     } else {
-                        alert('Error sending login link. Please try again.');
+                        alert('Error sending login validation code. Please try again. ' + response.statusText);
                     }
                 } catch (err) {
                     console.error(err);
-                    alert('Error sending login link.');
+                    alert('Error sending login validation code.');
                 }
             };
         });
