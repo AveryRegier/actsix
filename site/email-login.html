@@ -1,40 +1,122 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Login</title>
+    <link rel="stylesheet" href="site.css">
+</head>
+<body>
+    <!-- Reusable navigation bar -->
+    <div id="site-nav-container"></div>
+
+    <div class="container">
+        <div class="section">
+            <form id="emailLoginForm" class="content" novalidate>
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="section-button">Send Login Link</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="footer" style="padding:12px;text-align:center;color:#666;font-size:0.9em;">
+            <p>Acts 6 Deacon Care System</p>
+        </div>
+    </div>
+
+    <script>
+    // Load reusable navigation bar safely: extract only the <nav> element from the fetched file
+    // and ensure the site-nav.js script is loaded only once. This prevents accidentally
+    // inserting an entire HTML page into the nav container if the fetch returns full page markup.
+    document.addEventListener('DOMContentLoaded', async () => {
+        const navContainer = document.getElementById('site-nav-container');
+        if (!navContainer) return;
+
+        try {
+            const navResp = await fetch('site-nav.html');
+            if (!navResp.ok) return;
+            const html = await navResp.text();
+
+            // Parse and extract the <nav> element if present
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            const navEl = tmp.querySelector('nav') || tmp.firstElementChild;
+            if (navEl) {
+                // Clear any placeholder content and append the nav element itself
+                navContainer.innerHTML = '';
+                navContainer.appendChild(navEl);
+            } else {
+                // Fallback: insert the raw HTML (less safe), but keep as fallback
+                navContainer.innerHTML = html;
+            }
+
+            // Load site-nav.js only if not already present on the page
+            if (!document.querySelector('script[src="site-nav.js"]')) {
+                const script = document.createElement('script');
+                script.src = 'site-nav.js';
+                document.body.appendChild(script);
+            }
+        } catch (err) {
+            // silently fail but keep page usable
+            console.error('Failed to load site-nav:', err);
+        }
+    });
+    </script>
+
+    <script>
+    // Defensive: if the form appears more than once (duplicate insertion), keep only the first.
+    // This runs early on DOMContentLoaded so event handlers remain attached to the preserved form.
+    document.addEventListener('DOMContentLoaded', function() {
+        const forms = document.querySelectorAll('#emailLoginForm');
+        if (forms.length > 1) {
+            // Remove duplicates but keep the first occurrence
+            for (let i = 1; i < forms.length; i++) {
+                forms[i].remove();
+            }
+        }
+    });
+    </script>
+
     <script type="module">
         import { apiFetch } from './fetch-utils.js';
 
         document.addEventListener('DOMContentLoaded', function() {
             const emailForm = document.getElementById('emailLoginForm');
-            emailForm.onsubmit = async function(e) {
-                e.preventDefault();
-                const email = emailForm.email.value;
-                if (!email) {
-                    alert('Please enter your email address.');
-                    return;
-                }
-                const response = await apiFetch('/email-request-code', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                if (response.ok) {
-                    alert('Login link sent to your email address.');
-                    // now show the validation code box on the form
-                    const codeInput = document.createElement('input');
-                    codeInput.type = 'text';
-                    codeInput.name = 'code';
-                    codeInput.placeholder = 'Enter the validation code';
-                    emailForm.appendChild(codeInput);
-                    // also add a way to submit it, then call /email-validate-code
-                    const submitBtn = document.createElement('button');
-                    submitBtn.textContent = 'Validate Code';
-                    submitBtn.type = 'submit';
-                    emailForm.appendChild(submitBtn);
-                    emailForm.onsubmit = async function(ev) {
-                        ev.preventDefault();
-                        const code = codeInput.value;
+
+            function showCodeInput(email) {
+                // remove existing validation UI if present
+                const existing = document.getElementById('validation-section');
+                if (existing) existing.remove();
+
+                const section = document.createElement('div');
+                section.id = 'validation-section';
+                section.className = 'form-group';
+
+                const codeLabel = document.createElement('label');
+                codeLabel.htmlFor = 'code';
+                codeLabel.textContent = 'Validation code';
+
+                const codeInput = document.createElement('input');
+                codeInput.type = 'text';
+                codeInput.id = 'code';
+                codeInput.name = 'code';
+                codeInput.placeholder = 'Enter the validation code';
+
+                const validateBtn = document.createElement('button');
+                validateBtn.type = 'button';
+                validateBtn.className = 'section-button';
+                validateBtn.textContent = 'Validate Code';
+                validateBtn.onclick = async () => {
+                    const code = codeInput.value.trim();
+                    if (!code) {
+                        alert('Please enter the validation code.');
+                        return;
+                    }
+                    try {
                         const validateResp = await apiFetch('/email-validate', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -42,28 +124,53 @@
                         });
                         if (validateResp.ok) {
                             const data = await validateResp.json();
-                            alert('Login successful!');
                             // Store token and redirect
                             localStorage.setItem('authToken', data.token);
-                            // put the token in the actsix cookie as well
                             document.cookie = `actsix=${data.token}; path=/;`;
                             window.location.href = '/';
                         } else {
                             alert('Invalid code. Please try again.');
                         }
-                    };
-                } else {
-                    alert('Error sending login link. Please try again.');
+                    } catch (err) {
+                        console.error(err);
+                        alert('Error validating code.');
+                    }
+                };
+
+                section.appendChild(codeLabel);
+                section.appendChild(codeInput);
+                section.appendChild(validateBtn);
+
+                // append after email input
+                emailForm.appendChild(section);
+                codeInput.focus();
+            }
+
+            emailForm.onsubmit = async function(e) {
+                e.preventDefault();
+                const email = emailForm.email.value.trim();
+                if (!email) {
+                    alert('Please enter your email address.');
+                    return;
+                }
+                try {
+                    const response = await apiFetch('/email-request-code', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    if (response.ok) {
+                        alert('Login link sent to your email address.');
+                        showCodeInput(email);
+                    } else {
+                        alert('Error sending login link. Please try again.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Error sending login link.');
                 }
             };
         });
     </script>
-</head>
-<body>
-    <form id="emailLoginForm">
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-        <button type="submit">Send Login Link</button>
-    </form>
 </body>
 </html>
