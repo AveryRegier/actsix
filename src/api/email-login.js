@@ -74,7 +74,7 @@ export default function registerEmailLoginRoutes(app) {
         return c.text('Invalid email or validation code', 401);
       }
       const token = generateToken(user);
-      return c.json({ token });
+      return c.json({ token, memberId: user._id });
     } catch (error) {
       logger.error(error, 'Error during email login:');
       return c.text('Internal server error', 500);

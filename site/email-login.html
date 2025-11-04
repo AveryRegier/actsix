@@ -133,6 +133,7 @@
                             const data = await validateResp.json();
                             // Store token and redirect (cookie set to expire in ~60 days)
                             localStorage.setItem('authToken', data.token);
+                            localStorage.setItem('memberId', data.memberId);
                             const _expires = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toUTCString();
                             const _attrs = [`expires=${_expires}`, 'path=/', 'SameSite=Lax'];
                             if (location.protocol === 'https:') _attrs.push('Secure');
