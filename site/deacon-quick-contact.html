@@ -72,7 +72,9 @@
 		// }
 
 		// Fetch assignments for this deacon
-		const deaconMemberId = localStorage.getItem('memberId') || 'unknown';
+		// fetch deaconMemberId from the request parameter or localStorage
+		const requestDeaconMemberId = new URLSearchParams(window.location.search).get('deaconMemberId');	
+		const deaconMemberId = requestDeaconMemberId || localStorage.getItem('memberId') || 'unknown';
 		const assignmentsRes = await fetch(`/api/deacons/${deaconMemberId}/assignments`);
 		const assignmentsData = await assignmentsRes.json();
 		const assignments = assignmentsData.assignments || [];
