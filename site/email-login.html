@@ -28,6 +28,20 @@
                     <button type="submit" class="section-button">Send Login Link</button>
                 </div>
             </form>
+
+            <!-- Separate validation form so it doesn't interfere with the email form.
+                 It's hidden until an email has been submitted successfully. -->
+            <form id="validationForm" class="content" style="display:none;" novalidate>
+                <input type="hidden" id="validationEmail" name="email">
+                <div class="form-group">
+                    <label for="code">Validation code</label>
+                    <input type="text" id="code" name="code" placeholder="Enter the validation code">
+                </div>
+                <div class="form-group" style="display:flex;gap:8px;align-items:center;">
+                    <button type="submit" class="section-button">Validate Code</button>
+                    <button type="button" id="changeEmailBtn" class="section-button" style="background:#ddd;color:#000;padding:8px 12px;">Change email</button>
+                </div>
+            </form>
         </div>
 
         <div class="footer" style="padding:12px;text-align:center;color:#666;font-size:0.9em;">
@@ -93,73 +107,35 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const emailForm = document.getElementById('emailLoginForm');
+            const validationForm = document.getElementById('validationForm');
+            const validationEmailInput = document.getElementById('validationEmail');
+            const codeInput = document.getElementById('code');
+            const changeEmailBtn = document.getElementById('changeEmailBtn');
 
-            function showCodeInput(email) {
-                // remove existing validation UI if present
-                const existing = document.getElementById('validation-section');
-                if (existing) existing.remove();
+            // Show the validation form with the provided email and hide the email form
+            function showValidationForm(email) {
+                validationEmailInput.value = email;
+                emailForm.style.display = 'none';
+                validationForm.style.display = 'block';
+                if (codeInput) {
+                    codeInput.value = '';
+                    codeInput.focus();
+                }
+            }
 
-                const section = document.createElement('div');
-                section.id = 'validation-section';
-                section.className = 'form-group';
-
-                const codeLabel = document.createElement('label');
-                codeLabel.htmlFor = 'code';
-                codeLabel.textContent = 'Validation code';
-
-                const codeInput = document.createElement('input');
-                codeInput.type = 'text';
-                codeInput.id = 'code';
-                codeInput.name = 'code';
-                codeInput.placeholder = 'Enter the validation code';
-
-                const validateBtn = document.createElement('button');
-                validateBtn.type = 'button';
-                validateBtn.className = 'section-button';
-                validateBtn.textContent = 'Validate Code';
-                validateBtn.onclick = async () => {
-                    const code = codeInput.value.trim();
-                    if (!code) {
-                        alert('Please enter the validation code.');
-                        return;
-                    }
-                    try {
-                        const validateResp = await apiFetch('/email-validate', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email, validationCode: code })
-                        });
-                        if (validateResp.ok) {
-                            const data = await validateResp.json();
-                            // Store token and redirect (cookie set to expire in ~60 days)
-                            localStorage.setItem('authToken', data.token);
-                            localStorage.setItem('memberId', data.memberId);
-                            const _expires = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toUTCString();
-                            const _attrs = [`expires=${_expires}`, 'path=/', 'SameSite=Lax'];
-                            if (location.protocol === 'https:') _attrs.push('Secure');
-                            document.cookie = `actsix=${encodeURIComponent(data.token)}; ${_attrs.join('; ')}`;
-                            window.location.href = '/';
-                        } else {
-                            alert('Invalid code. Please try again.');
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert('Error validating code.');
-                    }
-                };
-
-                section.appendChild(codeLabel);
-                section.appendChild(codeInput);
-                section.appendChild(validateBtn);
-
-                // append after email input
-                emailForm.appendChild(section);
-                codeInput.focus();
+            // Return to the email form so the user can correct their address
+            function showEmailForm() {
+                validationForm.style.display = 'none';
+                emailForm.style.display = 'block';
+                const emailField = emailForm.querySelector('[name="email"]');
+                if (emailField) {
+                    emailField.focus();
+                }
             }
 
             emailForm.onsubmit = async function(e) {
                 e.preventDefault();
-                const email = emailForm.email.value.trim();
+                const email = (emailForm.email && emailForm.email.value || '').trim();
                 if (!email) {
                     alert('Please enter your email address.');
                     return;
@@ -172,7 +148,7 @@
                     });
                     if (response.ok) {
                         alert('Login link sent to your email address.');
-                        showCodeInput(email);
+                        showValidationForm(email);
                     } else {
                         alert('Error sending login validation code. Please try again. ' + response.statusText);
                     }
@@ -181,6 +157,48 @@
                     alert('Error sending login validation code.');
                 }
             };
+
+            // Handle validation form submit (validate code)
+            validationForm.onsubmit = async function(e) {
+                e.preventDefault();
+                const email = (validationEmailInput.value || '').trim();
+                const code = (codeInput && codeInput.value || '').trim();
+                if (!code) {
+                    alert('Please enter the validation code.');
+                    return;
+                }
+                try {
+                    const validateResp = await apiFetch('/email-validate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, validationCode: code })
+                    });
+                    if (validateResp.ok) {
+                        const data = await validateResp.json();
+                        // Store token and redirect (cookie set to expire in ~60 days)
+                        localStorage.setItem('authToken', data.token);
+                        localStorage.setItem('memberId', data.memberId);
+                        const _expires = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toUTCString();
+                        const _attrs = [`expires=${_expires}`, 'path=/', 'SameSite=Lax'];
+                        if (location.protocol === 'https:') _attrs.push('Secure');
+                        document.cookie = `actsix=${encodeURIComponent(data.token)}; ${_attrs.join('; ')}`;
+                        window.location.href = '/';
+                    } else {
+                        alert('Invalid code. Please try again.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Error validating code.');
+                }
+            };
+
+            // Allow user to change the email and go back to the first step
+            changeEmailBtn.addEventListener('click', function() {
+                // copy current validation email back to the email field so it's easy to edit
+                const emailField = emailForm.querySelector('[name="email"]');
+                if (emailField) emailField.value = validationEmailInput.value || '';
+                showEmailForm();
+            });
         });
     </script>
 </body>

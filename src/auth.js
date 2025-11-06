@@ -54,7 +54,7 @@ export async function findMemberByEmail(email) {
 export function generateToken(user) {
     const role = (user.tags || []).includes('deacon') ? 'deacon' : ((user.tags || []).includes('staff') ? 'staff' : null);
 
-    const token = jwt.sign({ id: user._id, email: user.email, role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user._id, email: user.email, role }, process.env.JWT_SECRET, { expiresIn: '60d' });
     return token;
 }
 
@@ -63,6 +63,7 @@ export function verifyToken(token) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         return decoded;
     } catch (err) {
+        getLogger().error(err, 'Error verifying token');
         return null;
     }
 }
