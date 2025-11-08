@@ -14,8 +14,8 @@ export default function registerEmailLoginRoutes(app) {
                 const decoded = verifyToken(actsixCookie);  
                 if (decoded) {
                     // already logged in
-                    c.req.memberId = decoded.id;
-                    c.req.role = decoded.role;
+                    c.req.memberId = addContext("memberId", decoded.id);
+                    c.req.role = addContext("role", decoded.role);
                     logger.info("already logged in, calling next");
                     return await next();
                 }
@@ -36,9 +36,9 @@ export default function registerEmailLoginRoutes(app) {
                     // Do not set persistent cookies here; this is for script-based automation only
                     addContext('auth_method', 'generation_api_key');
 
-                    c.req.memberId = memberId; // Save memberId as an attribute on the request
-                    c.req.role = role; // Save role as an attribute on the request
-            
+                    c.req.memberId = addContext("memberId", memberId); // Save memberId as an attribute on the request
+                    c.req.role = addContext("role", role); // Save role as an attribute on the request
+
                     return await next();
                 }
             }
@@ -91,7 +91,7 @@ export default function registerEmailLoginRoutes(app) {
       if (!member) {
         return c.text('Member not found', 404);
       }
-      const validationCode = await generateAndSendValidationCode(email);
+      await generateAndSendValidationCode(member);
       return c.json({ message: 'Validation code sent' });
     } catch (error) {
       logger.error(error, 'Error requesting validation code:');

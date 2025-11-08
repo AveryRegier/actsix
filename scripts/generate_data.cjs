@@ -375,7 +375,7 @@ async function createDeacons() {
             }
         };
 
-            try {
+        try {
             console.log(`Creating household for deacon: lastName=${householdData.lastName} address=${previewText(householdData.address?.street || '',80)}`);
             const householdResponse = await client.post(`/households`, householdData);
             const householdId = householdResponse.data.id;

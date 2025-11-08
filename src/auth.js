@@ -4,11 +4,11 @@ import { db, safeCollectionFind } from './helpers.js';
 import { getLogger } from './logger.js';
 import { sendEmail as _origSendEmail, sendEmail } from './email.js';
 
-export function generateAndSendValidationCode(email) {
+export function generateAndSendValidationCode(member) {
     // Generate a random 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     // Store the code with an expiration time (e.g., 15 minutes)
-    storeValidationCode(email, code, Date.now() + 15 * 60 * 1000);
+    storeValidationCode(member, code, Date.now() + 15 * 60 * 1000);
     // Send the code via email in a way that will trigger phones to automatically add it to SMS verification code suggestions
     // Build an email subject and body that maximize the chance phones will offer the code for AutoFill.
     const appName = process.env.APP_NAME || 'ActSix';
@@ -29,22 +29,11 @@ export function generateAndSendValidationCode(email) {
 
     try {
         // Prefer richer payload if the original supports it.
-        return sendEmail(email, subject, { text: textBody, html: htmlBody });
+        return sendEmail(member.email, subject, { text: textBody, html: htmlBody });
     } catch (err) {
         // Fallback to plain-text
-        return sendEmail(to, subject, textBody);
+        return sendEmail(member.email, subject, textBody);
     }
-}
-
-export async function authenticateUser(email, validationCode) {
-    const member = await findMemberByEmail(email);
-    if (!member) {
-        return null;
-    }
-    if(member.validationCode !== validationCode) {
-        return null;
-    }
-    return member;
 }
 
 export async function findMemberByEmail(email) {
@@ -68,9 +57,23 @@ export function verifyToken(token) {
     }
 }
 
-export async function storeValidationCode(email, code, expiresAt) {
+export async function storeValidationCode(member, code, expiresAt) {
+    member.validationCodes = member.validationCodes?.filter(vc => vc.expiresAt > Date.now()) ?? [];
+    member.validationCodes.push({ code, expiresAt });
     await db.collection("members").updateOne(
-        { email },
-        { $set: { validationCode: code, validationCodeExpiresAt: expiresAt } }
+        { _id: member._id },
+        { $set: { validationCodes: member.validationCodes } }
     );
+}
+
+export async function authenticateUser(email, validationCode) {
+    const member = await findMemberByEmail(email);
+    if (!member) {
+        return null;
+    }
+    const expiration = member.validationCodes?.find(vc => vc.code === validationCode)?.expiresAt;
+    if(!expiration || expiration < Date.now()) {
+        return null;
+    }
+    return member;
 }
