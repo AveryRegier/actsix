@@ -311,7 +311,7 @@ async function createHouseholdsAndMembers() {
                         householdId
                     };
                     console.log(`Creating assignment: deacon=${assignmentData.deaconMemberId} household=${assignmentData.householdId}`);
-                    await client.post(`/assignments`, assignmentData);
+                    // await client.post(`/assignments`, assignmentData);
                 } else {
                     console.warn(`Deacon not found for name: ${name}`);
                 }
