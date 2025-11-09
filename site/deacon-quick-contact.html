@@ -86,7 +86,7 @@
 			const membersRes = await fetch(`/api/households/${householdId}/members`);
 			const membersData = await membersRes.json();
 			const members = membersData.members || [];
-			let householdName = members.map(m => m.firstName).join(' & ');
+			let householdName = members.filter(m => !m.tags?.includes('deceased')).map(m => m.firstName).join(' & ');
 			householdName += ' ' + (members[0]?.lastName || '');
 			return `
 				<div class="member-card">
