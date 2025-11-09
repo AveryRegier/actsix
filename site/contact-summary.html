@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Summary Report</title>
     <link rel="stylesheet" href="site.css">
+    <!-- print.css lives in the same folder as this HTML file, use relative path -->
+    <link rel="stylesheet" href="print.css" media="print">
 </head>
 <body>
     <div class="container">
@@ -22,6 +24,8 @@
                     <th colspan="2">Name</th>
                     <th colspan="2">Assignment</th>
                     <th colspan="2">Last Contact</th>
+                    <!-- print-only Notes header to align the Notes column in print; hidden on screen via inline style -->
+                    <th rowspan="2" class="notes-col print-only" style="display:none">Summary</th>
                 </tr>
                 <tr>
                     <th>Last</th>
@@ -30,6 +34,7 @@
                     <th>Deacons</th>
                     <th>When</th>
                     <th>Who & How</th>
+                    
                 </tr>
             </thead>
             <tbody>
@@ -167,6 +172,49 @@
         }
 
         document.addEventListener('DOMContentLoaded', fetchSummary);
+    </script>
+    <script>
+        // Inject a print-only colgroup just before printing and remove it after.
+        // This avoids changing the on-screen layout while giving the print renderer
+        // explicit column widths to align headers and body.
+        (function() {
+            const colgroupId = 'print-colgroup';
+            const widths = ['10%','10%','11%','11%','7.5%','7.5%','43%'];
+
+            function createColGroup() {
+                if (document.getElementById(colgroupId)) return;
+                const table = document.getElementById('summaryTable');
+                if (!table) return;
+                const cg = document.createElement('colgroup');
+                cg.id = colgroupId;
+                widths.forEach(w => {
+                    const c = document.createElement('col');
+                    c.style.width = w;
+                    cg.appendChild(c);
+                });
+                // Insert as first child of the table so it affects layout
+                table.insertBefore(cg, table.firstChild);
+            }
+
+            function removeColGroup() {
+                const cg = document.getElementById(colgroupId);
+                if (cg) cg.remove();
+            }
+
+            // Modern browsers: matchMedia for print
+            if (window.matchMedia) {
+                const m = window.matchMedia('print');
+                try { m.addListener(e => { if (e.matches) createColGroup(); else removeColGroup(); }); } catch (e) {}
+            }
+
+            // fallback: beforeprint/afterprint events
+            window.addEventListener('beforeprint', createColGroup);
+            window.addEventListener('afterprint', removeColGroup);
+
+            // Safety: remove if page is navigated or on load complete
+            window.addEventListener('pageshow', removeColGroup);
+            window.addEventListener('DOMContentLoaded', removeColGroup);
+        })();
     </script>
 </body>
 </html>

@@ -1,0 +1,133 @@
+/* Compact landscape print stylesheet for Contact Summary
+   - Applies only to print media via link rel=stylesheet media=print
+   - Keeps on-screen/mobile views unchanged
+   - Forces classical table layout (overrides flex-based desktop/mobile stylesheet) so rows are compact
+   - Hides navigation and header, reduces paddings and font sizes for dense printing
+*/
+
+@page {
+    size: landscape;
+    margin: 0.35in;
+}
+
+@media print {
+    /* Base reset for print */
+    html, body {
+        background: #fff !important;
+        color: #000 !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 8.5px !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        letter-spacing: 0 !important;
+        line-height: 1.1 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Remove page chrome */
+    .site-nav, #site-nav-container, .nav-mobile-menu, .nav-content, .nav-menu-btn, .header, .nav-extra {
+        display: none !important;
+    }
+
+    /* Container uses full page */
+    .container {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+     /* Restore table/table-row/table-cell display so content prints in columns (override flex rules)
+         Use explicit display values and clear flex/min-width properties to avoid stacking.
+         Important: thead and tbody must be table-header-group/table-row-group respectively
+         (not display: table) so the browser lays out columns correctly.
+     */
+     table.summary-table { display: table !important; width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
+     .summary-table thead { display: table-header-group !important; }
+     .summary-table tbody { display: table-row-group !important; }
+     .summary-table thead tr, .summary-table tbody tr, .summary-table tr { display: table-row !important; }
+    .summary-table th, .summary-table td { display: table-cell !important; vertical-align: top !important; box-sizing: border-box !important; }
+    .summary-table th, .summary-table td { flex: none !important; min-width: auto !important; }
+
+    /* Ensure header repeats on each page */
+    .summary-table thead { display: table-header-group !important; }
+    .summary-table tfoot { display: table-footer-group !important; }
+
+    /* Remove heavy backgrounds on headers and make them subtle */
+    .summary-table thead th {
+        background: #fff !important;
+        color: #000 !important;
+        font-weight: 700 !important;
+        padding: 6px 6px !important;
+        border-bottom: 1px solid #222 !important;
+        font-size: 9px !important;
+    }
+
+    /* Compact cell spacing and borders */
+    .summary-table td, .summary-table th {
+        padding: 3px 5px !important;
+        border: 1px solid #bbb !important;
+        font-size: 8.5px !important;
+    }
+
+    /* Neutralize alternating row backgrounds from screen css */
+    .summary-table .summary-group tr:nth-child(even),
+    .summary-table .summary-row.even,
+    .summary-table .summary-group tr:nth-child(odd),
+    .summary-table .summary-row.odd {
+        background: transparent !important;
+    }
+
+    /* Hide UI badges and popups */
+    .cell-badge, .popup, .modal { display: none !important; }
+
+    /* Links as plain text */
+    a { color: #000 !important; text-decoration: none !important; }
+
+    /* Column width hints to keep a multi-column table on a landscape page
+       There are 7 cells (4 summary-badge-col, 2 last-contact-col, 1 notes-col) per row.
+       Tuned to fit ~35 rows on two sides (front/back) at 9px font; tweak if needed.
+    */
+    /* Per-column widths for body cells to align with header (print only) */
+    .summary-table td:nth-child(1) { width: 10% !important; }
+    .summary-table td:nth-child(2) { width: 10% !important; }
+    .summary-table td:nth-child(3) { width: 11% !important; }
+    .summary-table td:nth-child(4) { width: 11% !important; }
+    .summary-table td:nth-child(5) { width: 7.5% !important; }
+    .summary-table td:nth-child(6) { width: 7.5% !important; }
+    .summary-table td:nth-child(7) { width: 43% !important; }
+
+     /* Show print-only header cell added in the HTML */
+     .print-only { display: table-cell !important; }
+
+     /* Map header TH widths for print so header cells align with body columns
+         Use the second header row (which contains the per-column THs) to set widths.
+         This keeps the rule inside print media only and does not affect screen.
+     */
+    .summary-table thead tr:nth-child(2) th:nth-child(1) { width: 10% !important; }
+    .summary-table thead tr:nth-child(2) th:nth-child(2) { width: 10% !important; }
+    .summary-table thead tr:nth-child(2) th:nth-child(3) { width: 11% !important; }
+    .summary-table thead tr:nth-child(2) th:nth-child(4) { width: 11% !important; }
+    .summary-table thead tr:nth-child(2) th:nth-child(5) { width: 7.5% !important; }
+    .summary-table thead tr:nth-child(2) th:nth-child(6) { width: 7.5% !important; }
+    /* The Summary/Notes header is in the first header row and has class .print-only */
+    .summary-table thead tr:nth-child(1) th.print-only { width: 43% !important; }
+
+    /* Avoid rows splitting across pages */
+    tr, .summary-row { page-break-inside: avoid !important; }
+
+    /* Make any contacts table compact too */
+    .contacts-table td, .contacts-table th { padding: 4px 6px !important; font-size: 9px !important; }
+
+    /* Reduce section/content padding */
+    .section, .content { padding: 0 !important; margin: 0 !important; }
+
+    /* Ensure text wraps tightly */
+    td, th { white-space: normal !important; word-break: break-word !important; }
+}
+
+/* End of print.css */
+
