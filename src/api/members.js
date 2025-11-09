@@ -121,6 +121,7 @@ export default function registerMemberRoutes(app) {
         updatedAt: new Date().toISOString(),
       };
       // only other deacons can modify tags as they allow secure access to the site
+      const role = c.req.role; // Assuming role is set in the request
       if(role === 'deacon' || role === 'staff') {
         memberData.tags = body.tags || [];
       }
