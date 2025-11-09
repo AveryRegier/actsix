@@ -105,7 +105,7 @@
 
             // Populate members section
             const membersSection = document.getElementById('membersSection');
-            membersSection.innerHTML = members.map(member => {
+            membersSection.innerHTML = members.filter(m=>!m.tags.includes('deceased')).map(member => {
                 const isSelected = member.tags && member.tags.some(tag => ['cancer', 'shut-in', 'long-term-needs'].includes(tag));
                 const displayName = member.relationship === 'head' ? `${member.firstName} ${member.lastName}` : `${member.firstName} ${member.lastName} (${member.relationship})`;
                 return `

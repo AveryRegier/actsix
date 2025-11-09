@@ -11,7 +11,8 @@ function validationErrorResponse(c, message, statusCode = 400) {
 export default function registerMemberRoutes(app) {
   app.get('/api/members', async (c) => {
     try {
-      const members = await safeCollectionFind('members');
+      let members = await safeCollectionFind('members');
+      members = members.filter(m => !m.tags?.includes('deceased'));
       return c.json({ members, count: members.length });
     } catch (error) {
       getLogger().error(error, 'Error fetching members:');

@@ -120,7 +120,7 @@ export default function registerContactRoutes(app) {
       let contacts = await safeCollectionFind('contacts', { memberId: { $in: members.map(m => m._id) } }) || [];
       contacts = contacts.sort((a, b) => new Date(b.contactDate) - new Date(a.contactDate));
       const summary = households.map(household => {
-        const householdMembers = members.filter(m => m.householdId === household._id);
+        const householdMembers = members.filter(m => m.householdId === household._id).filter(m => !m.tags?.includes('deceased'));
         const householdMemberIds = householdMembers.map(m => m._id);
         const assignedDeacons = assignments
           .filter(a => a.householdId === household._id);
