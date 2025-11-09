@@ -1,10 +1,10 @@
 import { getLogger } from '../logger.js';
 import { safeCollectionFind } from '../helpers.js';
+import { verifyRole } from '../auth.js';
 
 export default function registerDeaconRoutes(app) {
   app.get('/api/deacons', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -22,8 +22,7 @@ export default function registerDeaconRoutes(app) {
   });
 
   app.get('/api/participants', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {

@@ -1,6 +1,7 @@
 import { getLogger } from '../logger.js';
 import { ApiError, handleApiError } from '../error.js';
-import { safeCollectionFind, safeCollectionInsert, validatePhoneRequirement, db } from '../helpers.js';
+import { safeCollectionFind, safeCollectionInsert, db } from '../helpers.js';
+import { verifyRole } from '../auth.js';
 
 function validationErrorResponse(c, message, statusCode = 400) {
   throw new ApiError(message, statusCode);
@@ -19,9 +20,8 @@ export default function registerMemberRoutes(app) {
   });
 
   app.get('/api/households/:householdId/members', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
     let householdId = c.req.param('householdId');
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
       if(!members.map(m=>m.householdId).includes(householdId)) {
         return c.json({ error: 'Unauthorized access' }, 403);
@@ -44,8 +44,7 @@ export default function registerMemberRoutes(app) {
       if (!member) {
         return c.json({ error: 'Member not found', message: 'No member found with the given ID.' }, 404);
       }
-      const role = c.req.role; // Assuming role is set in the request
-      if (role !== 'deacon' && role !== 'staff') {
+      if (!verifyRole(c, ['deacon', 'staff'])) {
         if(c.req.memberId !== member._id) {
           return c.json({ error: 'Unauthorized access' }, 403);
         }
@@ -59,11 +58,10 @@ export default function registerMemberRoutes(app) {
 
   app.post('/api/members', async (c) => {
     try {
-      const role = c.req.role; // Assuming role is set in the request
       const body = await c.req.json();
       let householdId = body.householdId;
       if (!householdId) {
-        if (role !== 'deacon' && role !== 'staff') {
+        if (!verifyRole(c, ['deacon', 'staff'])) {
           const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
           if(!members.map(m=>m.householdId).includes(householdId)) {
             return c.json({ error: 'Unauthorized access' }, 403);

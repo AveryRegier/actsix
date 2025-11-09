@@ -1,5 +1,6 @@
 import { getLogger } from '../logger.js';
 import { db, safeCollectionFind, safeCollectionInsert } from '../helpers.js';
+import { verifyRole } from '../auth.js';
 
 function validateAddress(address) {
     if (address.street && typeof address.street !== 'string') {
@@ -19,8 +20,7 @@ function validateAddress(address) {
 
 export default function registerHouseholdRoutes(app) {
   app.get('/api/households', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -33,9 +33,8 @@ export default function registerHouseholdRoutes(app) {
   });
 
   app.get('/api/households/:householdId', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
     let householdId = c.req.param('householdId');
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
       if(!members.map(m=>m.householdId).includes(householdId)) {
         return c.json({ error: 'Unauthorized access' }, 403);
@@ -86,9 +85,8 @@ export default function registerHouseholdRoutes(app) {
   });
 
   app.patch('/api/households/:householdId', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
     let householdId = c.req.param('householdId');
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
       if(!members.map(m=>m.householdId).includes(householdId)) {
         return c.json({ error: 'Unauthorized access' }, 403);

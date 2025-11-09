@@ -9,5 +9,10 @@ export function apiFetch(url, options = {}) {
     },
   };
 
-  return fetch(url, { ...defaultOptions, ...options });
+  const result = fetch(url, { ...defaultOptions, ...options });
+  if(result.cookies && result.cookies.actsix) {
+    localStorage.setItem('authToken', result.cookies.actsix);
+    console.log("Updated authToken from cookies");
+  }
+  return result;
 }

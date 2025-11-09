@@ -1,10 +1,10 @@
 import { getLogger } from '../logger.js';
 import { safeCollectionFind, safeCollectionInsert, db } from '../helpers.js';
+import { verifyRole } from '../auth.js';
 
 export default function registerAssignmentRoutes(app) {
   app.get('/api/assignments', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -17,8 +17,7 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.post('/api/assignments', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon') {
+    if (!verifyRole(c, ['deacon'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -47,8 +46,7 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.get('/api/deacons/:deaconMemberId/assignments', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon') {
+    if (!verifyRole(c, ['deacon'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -65,8 +63,7 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.get('/api/households/:householdId/assignments', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -87,8 +84,7 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.post('/api/households/:householdId/assignments', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon') {
+    if (!verifyRole(c, ['deacon'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {

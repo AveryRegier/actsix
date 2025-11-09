@@ -1,10 +1,10 @@
 import { getLogger } from '../logger.js';
 import { safeCollectionFind, safeCollectionInsert } from '../helpers.js';
+import { verifyRole } from '../auth.js';
 
 export default function registerContactRoutes(app) {
   app.get('/api/contacts', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -17,8 +17,7 @@ export default function registerContactRoutes(app) {
   });
 
   app.get('/api/contacts/needs', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -49,8 +48,7 @@ export default function registerContactRoutes(app) {
   });
 
   app.post('/api/contacts', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -84,8 +82,7 @@ export default function registerContactRoutes(app) {
   });
 
   app.get('/api/households/:householdId/contacts', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -110,8 +107,7 @@ export default function registerContactRoutes(app) {
   });
 
   app.get('/api/reports/summary', async (c) => {
-    const role = c.req.role; // Assuming role is set in the request
-    if (role !== 'deacon' && role !== 'staff') {
+    if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -164,8 +160,7 @@ export default function registerContactRoutes(app) {
           //   contactedBy: [{ memberId: '1', firstName: 'John', lastName: 'Doe' }],
           // },
           summary
-        }
-        return summary;
+        };
       });
       return c.json({ summary });
     } catch (error) {

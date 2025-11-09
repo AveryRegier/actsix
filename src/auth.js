@@ -77,3 +77,21 @@ export async function authenticateUser(email, validationCode) {
     }
     return member;
 }
+
+export async function verifyRole(c, requiredRoles) {
+    if(c.req.role && requiredRoles.includes(c.req.role)) {
+        return true;
+    }
+    if(c.req.memberId) {
+        getLogger().info(`Verifying role for member ID: ${c.req.memberId}`);
+        const member = await safeCollectionFind('members', { _id: c.req.memberId });
+       if (member && member.role && requiredRoles.includes(member.role)) {
+           // then the token and cookie need updated
+           c.req.role = member.roles
+           c.res.cookie('actsix', generateToken(member), { httpOnly: true, maxAge: 60 * 24 * 60 * 60 * 1000 }); // 60 days
+           return true;
+       }
+    }
+
+    return false;
+}
