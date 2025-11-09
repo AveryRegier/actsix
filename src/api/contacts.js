@@ -111,13 +111,22 @@ export default function registerContactRoutes(app) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
-      // Fetch households with members and assigned deacons
+      // Fetch assignments first to know which households to include
       const assignments = await safeCollectionFind('assignments', { isActive: true });
       const householdIds = Array.from(new Set(assignments.map(a => a.householdId)));
-      const households = await safeCollectionFind('households', { _id: { $in: householdIds } });
-      const members = await safeCollectionFind('members', { householdId: { $in: householdIds } });
-      const deacons = await safeCollectionFind('members', { tags: { $in: ['deacon', 'deaconess', 'staff'] } });
-      let contacts = await safeCollectionFind('contacts', { memberId: { $in: members.map(m => m._id) } }) || [];
+
+      // Fetch households, members and deacons in parallel (members needs householdIds
+      // but that's already available). Then fetch contacts once members are available.
+      const [households = [], members = [], deacons = []] = await Promise.all([
+        safeCollectionFind('households', { _id: { $in: householdIds } }),
+        safeCollectionFind('members', { householdId: { $in: householdIds } }),
+        safeCollectionFind('members', { tags: { $in: ['deacon', 'deaconess', 'staff'] } })
+      ]);
+
+      let contacts = [];
+      if (members && members.length) {
+        contacts = await safeCollectionFind('contacts', { memberId: { $in: members.map(m => m._id) } }) || [];
+      }
       contacts = contacts.sort((a, b) => new Date(b.contactDate) - new Date(a.contactDate));
       const summary = households.map(household => {
         const householdMembers = members.filter(m => m.householdId === household._id).filter(m => !m.tags?.includes('deceased'));
