@@ -22,7 +22,8 @@
 			<div class="member-list" id="contacts"></div>
 		</div>
 
-	<script>
+	<script type="module">
+		import { getBestContactMethod } from './contact-utils.js';
 	// Load reusable navigation bar
 	document.addEventListener('DOMContentLoaded', async () => {
 		const navContainer = document.getElementById('site-nav-container');
@@ -83,17 +84,33 @@
 		async function memberCard(householdId) {
 			const householdLink = `household.html?id=${householdId}`;
 			const contactLink = `record-contact.html?householdId=${householdId}`;
-			const membersRes = await fetch(`/api/households/${householdId}/members`);
+
+			// Fetch members and household details in parallel
+			const [membersRes, householdRes] = await Promise.all([
+				fetch(`/api/households/${householdId}/members`),
+				fetch(`/api/households/${householdId}`)
+			]);
+
 			const membersData = await membersRes.json();
 			const members = membersData.members || [];
+			const householdData = await householdRes.json();
+
+			// Ensure household object includes members for the utility
+			const household = { ...(householdData || {}), members };
+
 			let householdName = members.filter(m => !m.tags?.includes('deceased')).map(m => m.firstName).join(' & ');
 			householdName += ' ' + (members[0]?.lastName || '');
+
+			const contactMethodHtml = getBestContactMethod(household);
+
+			// Compact single-line layout: name + contact method on left, record button on right
 			return `
-				<div class="member-card">
-					<div class="member-name">
-						<a href="${householdLink}" style="color:inherit;text-decoration:underline;">${householdName}</a>
+				<div class="member-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;">
+					<div style="display:flex;align-items:center;gap:12px;min-width:0;">
+						<a href="${householdLink}" style="color:inherit;text-decoration:underline;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw;">${householdName}</a>
+						<span style="color:#666;font-size:0.95em;white-space:nowrap;">${contactMethodHtml}</span>
 					</div>
-					<a href="${contactLink}" class="btn" style="margin-top:10px;">Record Contact</a>
+					<a href="${contactLink}" class="btn" style="margin-left:12px;flex-shrink:0;">Record</a>
 				</div>
 			`;
 		}
