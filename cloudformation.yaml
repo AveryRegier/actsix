@@ -122,7 +122,7 @@ Resources:
         S3ObjectVersion: !Ref S3ObjectVersion
       Runtime: nodejs22.x
       Timeout: 30
-      MemorySize: 128
+      MemorySize: 512
       Environment:
         Variables:
           S3_BUCKET: !Ref S3BucketName
