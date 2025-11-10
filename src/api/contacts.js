@@ -99,6 +99,7 @@ export default function registerContactRoutes(app) {
           return deacon ? { memberId: deacon._id, firstName: deacon.firstName, lastName: deacon.lastName } : null;
         }));
       }));
+      contacts.sort((a, b) => new Date(b.contactDate) - new Date(a.contactDate));
       return c.json({ contacts, count: contacts.length });
     } catch (error) {
       getLogger().error(error, 'Error fetching households:');
