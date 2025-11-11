@@ -86,10 +86,6 @@ export default function registerDeaconRoutes(app) {
       // the route only needs to return the contact records where the
       // current deacon participated. That keeps the query fast.
 
-      // Note: bestContactHtml is intentionally not computed here —
-      // the client will compute the best contact method using the
-      // shared `contact-utils.js`. This keeps the API payload minimal.
-
       // Build quickContacts array preserving order of assignments
       const quickContacts = assignments.map(a => {
         const hId = a.householdId;
@@ -107,8 +103,6 @@ export default function registerDeaconRoutes(app) {
           resolvedLastContact = { ...lastContact };
         }
 
-  // compute bestContactHtml on the client; include only raw fields
-
         // assigned deacons for this household
         const assigned = assignments.filter(asg => asg.householdId === hId).map(asg => asg.deaconMemberId);
         const assignedDeacons = (assigned.length ? (async () => {
@@ -122,7 +116,6 @@ export default function registerDeaconRoutes(app) {
           members: householdMembers.map(m => ({ _id: m._id, firstName: m.firstName, lastName: m.lastName, phone: m.phone, tags: m.tags })),
           primaryPhone: household.primaryPhone || '',
           address: household.address || {},
-          // bestContactHtml removed — use client-side computation
           lastContact: resolvedLastContact,
           assignedDeacons: []
         };
