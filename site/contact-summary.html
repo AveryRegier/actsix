@@ -44,6 +44,9 @@
     </div>
 
     <script type="module">
+        import { apiFetch } from './fetch-utils.js';
+        import { getBestContactMethod, getContactedBy, getContactDateClass } from './contact-utils.js';
+
         // Load reusable navigation bar
         document.addEventListener('DOMContentLoaded', async () => {
             const navContainer = document.getElementById('site-nav-container');
@@ -57,8 +60,6 @@
                 }
             }
         });
-    import { apiFetch } from './fetch-utils.js';
-    import { getBestContactMethod, getContactedBy, getContactDateClass } from './contact-utils.js';
 
         async function fetchSummary() {
             const response = await apiFetch('api/reports/summary');

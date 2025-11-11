@@ -23,7 +23,7 @@
 		</div>
 
 	<script type="module">
-		import { getBestContactMethod } from './contact-utils.js';
+	import { getBestContactMethod } from './contact-utils.js';
 	// Load reusable navigation bar
 	document.addEventListener('DOMContentLoaded', async () => {
 		const navContainer = document.getElementById('site-nav-container');
@@ -72,55 +72,35 @@
 		// 	return;
 		// }
 
-		// Fetch assignments for this deacon
-		// fetch deaconMemberId from the request parameter or localStorage
-		const requestDeaconMemberId = new URLSearchParams(window.location.search).get('deaconMemberId');	
+		// Fetch precomputed quick contacts in one call
+		const requestDeaconMemberId = new URLSearchParams(window.location.search).get('deaconMemberId');
 		const deaconMemberId = requestDeaconMemberId || localStorage.getItem('memberId') || 'unknown';
-		const assignmentsRes = await fetch(`/api/deacons/${deaconMemberId}/assignments`);
-		const assignmentsData = await assignmentsRes.json();
-		const assignments = assignmentsData.assignments || [];
+		const qcRes = await fetch(`/api/deacons/${deaconMemberId}/quickContacts`);
+		const qcData = await qcRes.json();
+		const quickContacts = qcData.quickContacts || [];
 
-		// Helper: build member card
-		async function memberCard(householdId) {
-			const householdLink = `household.html?id=${householdId}`;
-			const contactLink = `record-contact.html?householdId=${householdId}`;
+		// Render compact rows using returned data (bestContactHtml, lastContact, summary)
+		const contactRows = quickContacts.map(item => {
+			const householdLink = `household.html?id=${item.householdId}`;
+			const contactLink = `record-contact.html?householdId=${item.householdId}`;
+			const lastDate = item.lastContact?.contactDate ? new Date(item.lastContact.contactDate).toLocaleDateString() : '';
+			const lastSummary = item.lastContact?.summary || '';
+			const lastInfo = lastDate ? `<span style="color:#888;font-size:0.85em;margin-left:8px;">${lastDate}</span>` : '';
+			const title = lastSummary ? `title="${(lastSummary||'').replace(/"/g,'\"')}"` : '';
+			// compute best contact locally
+			const bestContactHtml = getBestContactMethod({ members: item.members, primaryPhone: item.primaryPhone, address: item.address });
 
-			// Fetch members and household details in parallel
-			const [membersRes, householdRes] = await Promise.all([
-				fetch(`/api/households/${householdId}/members`),
-				fetch(`/api/households/${householdId}`)
-			]);
-
-			const membersData = await membersRes.json();
-			const members = membersData.members || [];
-			const householdData = await householdRes.json();
-
-			// Ensure household object includes members for the utility
-			const household = { ...(householdData || {}), members };
-
-			let householdName = members.filter(m => !m.tags?.includes('deceased')).map(m => m.firstName).join(' & ');
-			householdName += ' ' + (members[0]?.lastName || '');
-
-			const contactMethodHtml = getBestContactMethod(household);
-
-			// Compact single-line layout: name + contact method on left, record button on right
 			return `
-				<div class="member-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;">
+				<div class="member-row" ${title} style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;">
 					<div style="display:flex;align-items:center;gap:12px;min-width:0;">
-						<a href="${householdLink}" style="color:inherit;text-decoration:underline;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw;">${householdName}</a>
-						<span style="color:#666;font-size:0.95em;white-space:nowrap;">${contactMethodHtml}</span>
+						<a href="${householdLink}" style="color:inherit;text-decoration:underline;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw;">${item.displayName}</a>
+						<span style="color:#666;font-size:0.95em;white-space:nowrap;">${bestContactHtml}${lastInfo}</span>
 					</div>
 					<a href="${contactLink}" class="btn" style="margin-left:12px;flex-shrink:0;">Record</a>
 				</div>
 			`;
-		}
-
-		// Render contact cards
-		const contactCards = [];
-		for (const assign of assignments) {
-			contactCards.push(await memberCard(assign.householdId));
-		}
-		document.getElementById('contacts').innerHTML = contactCards.join('');
+		});
+		document.getElementById('contacts').innerHTML = contactRows.join('');
 	});
 	</script>
 </body>
