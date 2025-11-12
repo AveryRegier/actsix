@@ -666,3 +666,69 @@ th {
 		page-break-inside: avoid;
 	}
 }
+
+/* Scoped tweaks for deacon quick contact table only */
+/* Keep these rules specific to #quickContactsTable so contact-summary styles are unchanged */
+#quickContactsTable .action-col {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end; /* push Record button to the right */
+	padding-right: 8px;
+}
+
+#quickContactsTable .action-col .record-btn,
+#quickContactsTable .action-col .btn {
+	padding: 8px 12px;
+	font-size: 0.95rem;
+	white-space: nowrap; /* avoid wrapping the button text */
+	margin-left: 8px;
+	max-width: 100%;
+}
+
+/* Make the How & When column a fixed-ish narrow column and allow Summary to grow */
+#quickContactsTable .howwhen-col {
+	flex: 0 0 150px; /* fixed base width on desktop */
+	min-width: 120px;
+	max-width: 220px;
+	box-sizing: border-box;
+	padding: 8px;
+}
+
+#quickContactsTable .notes-col {
+	flex: 1 1 0; /* allow notes/summary to expand */
+	min-width: 120px;
+	overflow-wrap: anywhere; /* allow long words/URLs to break */
+	word-wrap: break-word;
+	white-space: normal; /* enable wrapping */
+	padding: 8px;
+}
+
+/* Ensure the first column (name) keeps reasonable sizing */
+#quickContactsTable .name-col {
+	flex: 1 1 200px;
+	min-width: 140px;
+}
+
+/* Slightly reduce contact column size to favor notes */
+#quickContactsTable .contact-col {
+	flex: 0 0 170px;
+	min-width: 120px;
+}
+
+/* Mobile adjustments: let howwhen take full width above notes on narrow screens */
+@media (max-width: 700px) {
+	#quickContactsTable .howwhen-col {
+		order: 1;
+		width: 100%;
+		flex: 1 1 100%;
+		max-width: none;
+	}
+	#quickContactsTable .notes-col {
+		order: 2;
+		width: 100%;
+		flex: 1 1 100%;
+	}
+	#quickContactsTable .action-col {
+		justify-content: flex-start; /* on mobile keep record button reachable on left */
+	}
+}
