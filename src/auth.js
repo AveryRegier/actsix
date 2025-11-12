@@ -37,6 +37,7 @@ export function generateAndSendValidationCode(member) {
 }
 
 export async function findMemberByEmail(email) {
+    email = email.toLowerCase().trim();
     return (await safeCollectionFind("members", { email }))?.[0] || null;
 }
 
