@@ -1,6 +1,6 @@
 import { getLogger } from '../logger.js';
 import { ApiError, handleApiError } from '../error.js';
-import { safeCollectionFind, safeCollectionInsert, db } from '../helpers.js';
+import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../helpers.js';
 import { verifyRole } from '../auth.js';
 
 function validationErrorResponse(c, message, statusCode = 400) {
@@ -197,8 +197,8 @@ export default function registerMemberRoutes(app) {
         delete updateData.birthDate;
       }
 
-      const collection = db.collection('members');
-      const result = await collection.updateOne(
+      const result = await safeCollectionUpdate(
+        'members',
         { _id: memberId },
         { $set: updateData }
       );

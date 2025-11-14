@@ -34,6 +34,27 @@ export async function safeCollectionInsert(collectionName, data) {
   }
 }
 
+export async function safeCollectionUpdate(collectionName, query, update) {
+  const maxRetries = 3;
+  let attempts = 0;
+  while (attempts < maxRetries) {
+    try {
+      const collection = db.collection(collectionName);
+      const result = await collection.updateOne(query, update);
+      return result;
+    } catch (error) {
+      if (error.Code === 'ConditionalRequestConflict' && attempts < maxRetries - 1) {
+        getLogger().warn(`Retrying due to conflict (attempt ${attempts + 1})`); 
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Exponential backoff
+      } else {
+        getLogger().error(error, `Error updating collection ${collectionName}:`);
+        throw error;
+      }
+    }
+  }
+}
+
 export async function validatePhoneRequirement(householdId, excludeMemberId = null) {
   try {
     // Get household data
@@ -57,5 +78,3 @@ export async function validatePhoneRequirement(householdId, excludeMemberId = nu
     return false;
   }
 }
-
-export { db };

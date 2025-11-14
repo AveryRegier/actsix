@@ -1,6 +1,6 @@
 
 import jwt from 'jsonwebtoken';
-import { db, safeCollectionFind } from './helpers.js';
+import { safeCollectionFind, safeCollectionUpdate } from './helpers.js';
 import { getLogger } from './logger.js';
 import { sendEmail as _origSendEmail, sendEmail } from './email.js';
 
@@ -61,7 +61,8 @@ export function verifyToken(token) {
 export async function storeValidationCode(member, code, expiresAt) {
     member.validationCodes = member.validationCodes?.filter(vc => vc.expiresAt > Date.now()) ?? [];
     member.validationCodes.push({ code, expiresAt });
-    await db.collection("members").updateOne(
+    await  safeCollectionUpdate(
+        'members',
         { _id: member._id },
         { $set: { validationCodes: member.validationCodes } }
     );

@@ -1,5 +1,5 @@
 import { getLogger } from '../logger.js';
-import { safeCollectionFind, safeCollectionInsert, db } from '../helpers.js';
+import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../helpers.js';
 import { verifyRole } from '../auth.js';
 
 export default function registerAssignmentRoutes(app) {
@@ -95,7 +95,8 @@ export default function registerAssignmentRoutes(app) {
 
       for (const assignment of existingAssignments) {
         if (!deaconIds.includes(assignment.deaconMemberId)) {
-          db.collection('assignments').updateOne(
+          await safeCollectionUpdate(
+            'assignments',
             { _id: assignment._id },
             { $set: { isActive: false, updatedAt: new Date().toISOString() } }
           );

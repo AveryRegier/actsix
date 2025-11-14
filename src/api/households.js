@@ -1,5 +1,5 @@
 import { getLogger } from '../logger.js';
-import { db, safeCollectionFind, safeCollectionInsert } from '../helpers.js';
+import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../helpers.js';
 import { verifyRole } from '../auth.js';
 
 function validateAddress(address) {
@@ -128,7 +128,7 @@ export default function registerHouseholdRoutes(app) {
             notes: body.notes || ''
         };
 
-        const result = await db.collection('households').updateOne({ _id: householdId }, { $set: updateData });
+        const result = await safeCollectionUpdate('households', { _id: householdId }, { $set: updateData });
 
         if (result.modifiedCount > 0) {
             return c.json({ message: 'Household updated successfully', householdId });

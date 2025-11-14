@@ -278,14 +278,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (currentHouseholdId) {
         loadHouseholdData();
         loadContactHistory();
-        // Set add member link
-        document.getElementById('addMemberBtn').href = `edit-member.html?householdId=${currentHouseholdId}`;
-        // Set assign deacon button link
-        document.getElementById('assignDeaconBtn').href = `assign-deacons.html?householdId=${currentHouseholdId}`;
-        // Set record contact link
-        document.querySelector('a[href="record-contact.html?householdId="]').href = `record-contact.html?householdId=${currentHouseholdId}`;
-        // Set edit household link
-        document.getElementById('editHouseholdBtn').href = `edit-household.html?householdId=${currentHouseholdId}`;
+    // Set add member link (guarded)
+    const addMemberBtn = document.getElementById('addMemberBtn');
+    if (addMemberBtn) addMemberBtn.href = `edit-member.html?householdId=${currentHouseholdId}`;
+    // Set assign deacon button link (guarded)
+    const assignDeaconBtn = document.getElementById('assignDeaconBtn');
+    if (assignDeaconBtn) assignDeaconBtn.href = `assign-deacons.html?householdId=${currentHouseholdId}`;
+    // Set record contact link (may be created later when contact history is rendered)
+    const recordContactAnchor = document.querySelector('a[href="record-contact.html?householdId="]');
+    if (recordContactAnchor) recordContactAnchor.href = `record-contact.html?householdId=${currentHouseholdId}`;
+    // Set edit household link (guarded)
+    const editHouseholdBtn = document.getElementById('editHouseholdBtn');
+    if (editHouseholdBtn) editHouseholdBtn.href = `edit-household.html?householdId=${currentHouseholdId}`;
     } else {
         showError('No household ID provided');
     }
