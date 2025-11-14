@@ -454,7 +454,6 @@ body {
 }
 .nav-link:hover { opacity: 0.8; }
 .section {
-	padding: 30px;
 }
 .section-title {
 	font-size: 1.3em;
@@ -672,8 +671,7 @@ th {
 #quickContactsTable .action-col {
 	display: flex;
 	align-items: center;
-	justify-content: flex-end; /* push Record button to the right */
-	padding-right: 8px;
+	justify-content: flex-end; /* pfush Record button to the right */
 }
 
 #quickContactsTable .action-col .record-btn,
@@ -687,7 +685,6 @@ th {
 
 /* Make the How & When column a fixed-ish narrow column and allow Summary to grow */
 #quickContactsTable .howwhen-col {
-	flex: 0 0 150px; /* fixed base width on desktop */
 	min-width: 120px;
 	max-width: 220px;
 	box-sizing: border-box;
@@ -695,24 +692,11 @@ th {
 }
 
 #quickContactsTable .notes-col {
-	flex: 1 1 0; /* allow notes/summary to expand */
 	min-width: 120px;
 	overflow-wrap: anywhere; /* allow long words/URLs to break */
 	word-wrap: break-word;
 	white-space: normal; /* enable wrapping */
 	padding: 8px;
-}
-
-/* Ensure the first column (name) keeps reasonable sizing */
-#quickContactsTable .name-col {
-	flex: 1 1 200px;
-	min-width: 140px;
-}
-
-/* Slightly reduce contact column size to favor notes */
-#quickContactsTable .contact-col {
-	flex: 0 0 170px;
-	min-width: 120px;
 }
 
 /* Mobile adjustments: let howwhen take full width above notes on narrow screens */
@@ -727,8 +711,5 @@ th {
 		order: 2;
 		width: 100%;
 		flex: 1 1 100%;
-	}
-	#quickContactsTable .action-col {
-		justify-content: flex-start; /* on mobile keep record button reachable on left */
 	}
 }
