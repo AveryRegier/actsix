@@ -1,3 +1,71 @@
+````markdown
+# Deacon Care System - Recent Updates
+
+NOTE: Formal MUST/SHOULD constraints were moved to `docs/REQUIREMENTS.md`. This file is a changelog and implementation summary; check REQUIREMENTS.md for authoritative requirements.
+
+## Summary of Changes Made
+
+### 1. Household field adjustments
+- `lastName` is the primary household identifier used in search and display.
+- Address, phone number, email, and notes are handled as optional fields in the household form; the system ensures a reachable contact point exists (household-level or member-level).
+
+### 2. Member field adjustments
+- Member records include fields for `firstName`, `lastName`, `householdId`, `relationship`, and `gender`.
+- A gender field was added; current data uses `male`/`female` values. (See `docs/REQUIREMENTS.md` for enforcement details.)
+- A tag system was implemented to replace a rigid status field; tags are stored as an array.
+
+### 3. Age vs Birthday Handling
+- The UI accepts either an approximate `age` OR a precise `birthDate` for a member. Both fields are supported in the data model; see the requirements doc for validation rules.
+
+### 4. Phone Number Validation
+- The UI and API validation were updated so the application enforces that at least one reachable phone number exists for a household (either at household level or via member entries).
+
+### 5. Updated Data Models (illustrative)
+
+#### Household Schema (illustrative)
+```javascript
+{
+  _id: ObjectId,
+  lastName: String,
+  address: { street: String, city: String, state: String, zipCode: String },
+  primaryPhone: String,
+  email: String,
+  notes: String,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+#### Member Schema (illustrative)
+```javascript
+{
+  _id: ObjectId,
+  firstName: String,
+  lastName: String,
+  householdId: ObjectId,
+  relationship: String,
+  gender: String,
+  tags: [String],
+  age: Number,
+  birthDate: Date,
+  phone: String,
+  email: String,
+  notes: String,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 6. Frontend Updates
+- Household form now displays optional fields clearly.
+- Member form includes gender selection and tag checkboxes.
+- UI supports either age or birth date input with clear labeling.
+- Display shows tags instead of the older status field.
+
+### 7. API Validation (implementation notes)
+- Household and member validation updated to reflect the changes above. See `docs/REQUIREMENTS.md` for authoritative validation rules and error messages.
+
+````
 # Deacon Care System - Recent Updates
 
 ## Summary of Changes Made
@@ -80,21 +148,3 @@
 - **Member creation**: Gender required, tags validated, age/birthDate mutual exclusion
 - **Phone validation**: Ensures at least one phone number per household
 - **Proper error messages** for all validation failures
-
-## Testing Completed
-- ✅ All unit tests pass
-- ✅ API endpoints work correctly
-- ✅ Validation works as expected
-- ✅ Frontend displays new data structure properly
-- ✅ Both age and birthDate handling works
-- ✅ Tags system functions correctly
-
-## Key Benefits
-1. **More flexible data entry** - only essential fields required
-2. **Better matching real-world scenarios** - addresses may be unknown
-3. **Improved member categorization** with tags vs rigid status
-4. **Clearer age handling** - age OR birthdate as appropriate
-5. **Ensured contact capability** - at least one phone number required
-6. **Maintained data integrity** - all validation and relationships intact
-
-The system now better matches the real-world workflow for church deacon care management while maintaining robust data validation and user experience.

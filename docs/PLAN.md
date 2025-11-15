@@ -1,3 +1,33 @@
+```markdown
+Summary of Deacon Care System Plan
+
+NOTE: Requirements and formal constraints have been moved to `docs/REQUIREMENTS.md`. That document is the authoritative source for MUST/SHOULD statements.
+
+**Overview**
+System needed for deacons to track and support church members in need.
+This project supports deacon workflows for tracking member well-being, prayer requests, and physical needs.
+
+**Deacon Workflow and Data Recording Needs**
+Deacons record member contacts, including member identity, needs, conversation notes, date, and time. Each deacon manages a subset of members for regular contact and the application supports monthly group review workflows.
+
+**Monthly Review and Validation Process**
+Capture member needs and discussion notes on a monthly cadence. Data is organized by household (for example: couples, widowed individuals).
+
+**Member Data Structure and Searchability**
+Household and member documents are organized to support quick lookup and search (household grouping, multiple contact methods, tag-based classification for needs/status).
+
+**Member Management and Status Tracking**
+The system supports adding and removing members and households, with events that summarize changes for review.
+
+**Deacon User Experience and Quick Access**
+Deacons can view member lists and add information to member profiles. The UI includes a quick-access list for assigned or recently interacted members.
+
+**Technical Implementation and Cost Goals**
+Design is web-first and cost-conscious. The current implementation uses AWS Lambda for backend operations and stores documents in S3 via the `sengo` library to enable document searchability. Target operational cost is low; the project emphasizes minimizing external recurring costs.
+
+**System Availability and Final Notes**
+The solution is on-demand and supports concurrent usage during meetings while remaining idle most of the time.
+```
 Summary of Deacon Care System Plan
 
 **Overview**
