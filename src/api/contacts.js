@@ -1,5 +1,5 @@
 import { getLogger } from '../logger.js';
-import { safeCollectionFind, safeCollectionInsert } from '../helpers.js';
+import { safeCollectionFind, safeCollectionInsert, getCache, setCache } from '../helpers.js';
 import { verifyRole } from '../auth.js';
 
 export default function registerContactRoutes(app) {
@@ -112,6 +112,24 @@ export default function registerContactRoutes(app) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
+      // Try to serve cached summary if available
+      try {
+        const cacheDoc = await getCache('reports_summary');
+        if (cacheDoc && cacheDoc.data) {
+          const lastModified = new Date(cacheDoc.updatedAt).toUTCString();
+          const ifModifiedSince = c.req.header('if-modified-since');
+          if (ifModifiedSince) {
+            const since = new Date(ifModifiedSince);
+            if (!isNaN(since.getTime()) && new Date(cacheDoc.updatedAt) <= since) {
+              return c.text('', 304);
+            }
+          }
+          c.header('Last-Modified', lastModified);
+          return c.json(cacheDoc.data);
+        }
+      } catch (cacheErr) {
+        getLogger().warn('Failed to read reports cache, will regenerate', cacheErr);
+      }
       // Fetch assignments first to know which households to include
       const assignments = await safeCollectionFind('assignments', { isActive: true });
       const householdIds = Array.from(new Set(assignments.map(a => a.householdId)));
@@ -172,6 +190,15 @@ export default function registerContactRoutes(app) {
           summary
         };
       });
+      // store the entire JSON response in cache for future requests
+      try {
+        const responseObj = { summary };
+        await setCache('reports_summary', responseObj);
+      } catch (cacheErr) {
+        getLogger().warn('Failed to write reports cache', cacheErr);
+      }
+      // set Last-Modified header from cache (just set to now)
+      c.header('Last-Modified', new Date().toUTCString());
       return c.json({ summary });
     } catch (error) {
       getLogger().error(error, 'Error fetching contact summary:');

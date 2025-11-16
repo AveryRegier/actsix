@@ -61,10 +61,12 @@ export function verifyToken(token) {
 export async function storeValidationCode(member, code, expiresAt) {
     member.validationCodes = member.validationCodes?.filter(vc => vc.expiresAt > Date.now()) ?? [];
     member.validationCodes.push({ code, expiresAt });
-    await  safeCollectionUpdate(
+    // This update only affects validation codes (login flow) and should NOT invalidate the reports cache
+    await safeCollectionUpdate(
         'members',
         { _id: member._id },
-        { $set: { validationCodes: member.validationCodes } }
+        { $set: { validationCodes: member.validationCodes } },
+        { skipCacheInvalidation: true }
     );
 }
 

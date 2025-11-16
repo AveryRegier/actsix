@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import qs from 'qs';
 import axios from 'axios';
 import { decode } from 'jsonwebtoken';
-import { safeCollectionFind, db } from '../helpers.js';
+import { safeCollectionFind, safeCollectionUpdate, db } from '../helpers.js';
 import { getLogger, follow, addContexts, addContext } from '../logger.js';
 import jwt from 'jsonwebtoken';
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
@@ -199,9 +199,12 @@ export default function registerOidcRoutes(app) {
                 member.organization_id = organization_id;
                 member.planningCenterId = planningCenterId;
 
-                await db.collection('members').updateOne(
+                // This update is part of an authentication/login flow; do not invalidate the cached reports summary
+                await safeCollectionUpdate(
+                    'members',
                     { _id: memberId },
-                    { $set: { organization_id, planningCenterId } }
+                    { $set: { organization_id, planningCenterId } },
+                    { skipCacheInvalidation: true }
                 );
             }
 
