@@ -1,8 +1,8 @@
 
 import jwt from 'jsonwebtoken';
-import { safeCollectionFind, safeCollectionUpdate } from './helpers.js';
-import { getLogger } from './logger.js';
-import { sendEmail as _origSendEmail, sendEmail } from './email.js';
+import { safeCollectionFind, safeCollectionUpdate } from '../util/helpers.js';
+import { getLogger } from '../util/logger.js';
+import { sendEmail as _origSendEmail, sendEmail } from '../util/email.js';
 
 export function generateAndSendValidationCode(member) {
     // Generate a random 6-digit code

@@ -3,11 +3,11 @@ import crypto from 'crypto';
 import qs from 'qs';
 import axios from 'axios';
 import { decode } from 'jsonwebtoken';
-import { safeCollectionFind, safeCollectionUpdate, db } from '../helpers.js';
+import { safeCollectionFind, safeCollectionUpdate, db } from '../util/helpers.js';
 import { getLogger, follow, addContexts, addContext } from '../logger.js';
 import jwt from 'jsonwebtoken';
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
-import { generateToken } from '../auth.js';
+import { generateToken } from './auth.js';
 // Type for OIDC config
 /**
  * @typedef {Object} OIDCConfig

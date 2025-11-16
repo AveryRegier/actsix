@@ -1,7 +1,7 @@
-import { getLogger } from '../logger.js';
-import { ApiError, handleApiError } from '../error.js';
-import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../helpers.js';
-import { verifyRole } from '../auth.js';
+import { getLogger } from '../util/logger.js';
+import { ApiError, handleApiError } from '../util/error.js';
+import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../util/helpers.js';
+import { verifyRole } from '../auth/auth.js';
 
 function validationErrorResponse(c, message, statusCode = 400) {
   throw new ApiError(message, statusCode);

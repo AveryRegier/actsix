@@ -1,6 +1,6 @@
 import { getCookie } from 'hono/cookie';
-import { authenticateUser, findMemberByEmail, generateToken, generateAndSendValidationCode, verifyToken } from '../auth.js';
-import { addContext, follow, getLogger } from '../logger.js';
+import { authenticateUser, findMemberByEmail, generateToken, generateAndSendValidationCode, verifyToken } from './auth.js';
+import { addContext, follow, getLogger } from '../util/logger.js';
 
 export default function registerEmailLoginRoutes(app) {
     app.use('*', async (c, next) => await follow(async () => {

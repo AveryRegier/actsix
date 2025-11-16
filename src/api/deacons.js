@@ -1,6 +1,6 @@
-import { getLogger } from '../logger.js';
-import { safeCollectionFind } from '../helpers.js';
-import { verifyRole } from '../auth.js';
+import { getLogger } from '../util/logger.js';
+import { safeCollectionFind } from '../util/helpers.js';
+import { verifyRole } from '../auth/auth.js';
 
 export default function registerDeaconRoutes(app) {
   app.get('/api/deacons', async (c) => {

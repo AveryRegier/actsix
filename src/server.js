@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server'
 import { createApp } from './api.js'
-import { getLogger } from './logger.js';
+import { getLogger } from './util/logger.js';
 
 const app = createApp()
 

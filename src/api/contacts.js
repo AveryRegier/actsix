@@ -1,6 +1,6 @@
-import { getLogger } from '../logger.js';
-import { safeCollectionFind, safeCollectionInsert, getCache, setCache } from '../helpers.js';
-import { verifyRole } from '../auth.js';
+import { getLogger } from '../util/logger.js';
+import { safeCollectionFind, safeCollectionInsert, getCache, setCache } from '../util/helpers.js';
+import { verifyRole } from '../auth/auth.js';
 
 export default function registerContactRoutes(app) {
   app.get('/api/contacts', async (c) => {

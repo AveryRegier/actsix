@@ -1,6 +1,6 @@
-import { getLogger } from '../logger.js';
-import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../helpers.js';
-import { verifyRole } from '../auth.js';
+import { getLogger } from '../util/logger.js';
+import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../util/helpers.js';
+import { verifyRole } from '../auth/auth.js';
 
 export default function registerAssignmentRoutes(app) {
   app.get('/api/assignments', async (c) => {
