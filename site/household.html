@@ -265,6 +265,8 @@ import { apiFetch } from './fetch-utils.js';
 const API_BASE_URL = '';
 let currentHouseholdId = null;
 let currentHousehold = null;
+let currentUser = null;
+let currentUserIsDeacon = false;
 
 // Get household ID from URL parameters
 function getHouseholdId() {
@@ -275,6 +277,23 @@ function getHouseholdId() {
 // Load data on page load
 document.addEventListener('DOMContentLoaded', function() {
     currentHouseholdId = getHouseholdId();
+    // Load current user (if available) to determine role/tags
+    const storedMemberId = (() => { try { return localStorage.getItem('memberId'); } catch(e){ return null; } })();
+    if (storedMemberId) {
+        apiFetch(`api/members/${storedMemberId}`).then(async res => {
+            if (res.ok) {
+                const data = await res.json();
+                currentUser = data.member || data;
+                if (currentUser && Array.isArray(currentUser.tags) && currentUser.tags.includes('deacon')) {
+                    currentUserIsDeacon = true;
+                }
+                // If household data already loaded, re-render members so conditional links appear
+                if (currentHouseholdId) {
+                    try { loadHouseholdData(); } catch(e) { /* ignore errors */ }
+                }
+            }
+        }).catch(err => console.warn('Failed to load current user', err));
+    }
     if (currentHouseholdId) {
         loadHouseholdData();
         loadContactHistory();
@@ -486,6 +505,11 @@ function displayMembers(members) {
                 <div class="member-name">${member.firstName} ${member.lastName}</div>
                 <div style="display:flex;align-items:center;gap:6px;">
                     ${member.tags && member.tags.length > 0 ? member.tags.map(tag => `<span class="status-badge status-active">${tag}</span>`).join(' ') : ''}
+                    ${currentUserIsDeacon && member.tags && member.tags.includes('deacon') ? `
+                        <a href="/deacon-quick-contact.html?deaconMemberId=${member._id}" class="icon-btn" title="Quick contact for ${member.firstName} ${member.lastName}" aria-label="Quick contact for ${member.firstName} ${member.lastName}">
+                            <span style="font-size:1.1em;color:#22c55e;line-height:1;">📞</span>
+                        </a>
+                    ` : ''}
                     <a href="edit-member.html?householdId=${member.householdId}&memberId=${member._id}" class="icon-btn" title="Edit Member">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
                     </a>

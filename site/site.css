@@ -303,6 +303,13 @@ body { padding-top: 48px; }
 	border-radius: 50%;
 	outline: none;
 }
+.icon-btn {
+	/* Ensure anchor-based icon buttons don't show link underlines or default link color */
+	text-decoration: none;
+	color: inherit;
+}
+.icon-btn svg { display: block; }
+.icon-btn span { display: inline-block; line-height: 1; }
 .icon-btn:hover, .icon-btn:focus {
 	background: #eef2ff;
 }
@@ -453,8 +460,7 @@ body {
 	transition: opacity 0.3s ease;
 }
 .nav-link:hover { opacity: 0.8; }
-.section {
-}
+/* .section rules intentionally keep default spacing; specific sections override when needed */
 .section-title {
 	font-size: 1.3em;
 	font-weight: 600;
