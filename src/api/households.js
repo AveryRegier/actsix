@@ -1,5 +1,6 @@
 import { getLogger } from '../util/logger.js';
 import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../util/helpers.js';
+import { triggerHouseholdSummary } from '../util/summaryTrigger.js';
 import { verifyRole } from '../auth/auth.js';
 
 function validateAddress(address) {
@@ -76,8 +77,10 @@ export default function registerHouseholdRoutes(app) {
         updatedAt: new Date().toISOString(),
       };
 
-      const result = await safeCollectionInsert('households', householdData);
-      return c.json({ message: 'Household created successfully', id: result.insertedId, household: householdData });
+  const result = await safeCollectionInsert('households', householdData);
+  // Trigger async summary generation (do not await)
+  try { triggerHouseholdSummary(result.insertedId?.toString() || householdData._id || result.insertedId); } catch (e) { /* ignore */ }
+  return c.json({ message: 'Household created successfully', id: result.insertedId, household: householdData });
     } catch (error) {
       getLogger().error(error, 'Error creating household:');
       return c.json({ error: 'Failed to create household', message: error.message }, 500);
@@ -128,13 +131,19 @@ export default function registerHouseholdRoutes(app) {
             notes: body.notes || ''
         };
 
-        const result = await safeCollectionUpdate('households', { _id: householdId }, { $set: updateData });
+    const result = await safeCollectionUpdate('households', { _id: householdId }, { $set: updateData });
 
-        if (result.modifiedCount > 0) {
-            return c.json({ message: 'Household updated successfully', householdId });
-        } else {
-            return c.json({ error: 'Update failed', message: 'No changes made to the household' }, 400);
-        }
+    // Only trigger AI summary generation if the update did not only change the aiSummary fields
+    const isAiSummaryOnly = Object.keys(body).every(k => ['aiSummary', 'aiSummaryUpdatedAt'].includes(k));
+    if (!isAiSummaryOnly) {
+      try { triggerHouseholdSummary(householdId); } catch (e) { /* ignore */ }
+    }
+
+    if (result.modifiedCount > 0) {
+      return c.json({ message: 'Household updated successfully', householdId });
+    } else {
+      return c.json({ error: 'Update failed', message: 'No changes made to the household' }, 400);
+    }
     } catch (error) {
         getLogger().error(error, 'Error updating household:');
         return c.json({ error: 'Failed to update household', message: error.message }, 500);

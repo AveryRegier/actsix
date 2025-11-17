@@ -1,6 +1,7 @@
 import { getLogger } from '../util/logger.js';
 import { ApiError, handleApiError } from '../util/error.js';
 import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../util/helpers.js';
+import { triggerHouseholdSummary } from '../util/summaryTrigger.js';
 import { verifyRole } from '../auth/auth.js';
 import { type } from 'os';
 
@@ -128,6 +129,8 @@ export default function registerMemberRoutes(app) {
       }
 
       const result = await safeCollectionInsert('members', memberData);
+  // Trigger summary generation for the household (fire-and-forget)
+  try { triggerHouseholdSummary(householdId); } catch (e) { /* ignore */ }
       return c.json({ message: 'Member created successfully', id: result.insertedId, member: memberData });
     } catch (error) {
       getLogger().error(error, 'Error creating member:');
@@ -203,6 +206,9 @@ export default function registerMemberRoutes(app) {
         { _id: memberId },
         { $set: updateData }
       );
+
+      // Trigger summary generation for the household (fire-and-forget)
+      try { triggerHouseholdSummary(updateData.householdId || existingMember.householdId); } catch (e) { /* ignore */ }
 
       if (result.modifiedCount === 0) {
         validationErrorResponse(c, 'No changes were made', 400);

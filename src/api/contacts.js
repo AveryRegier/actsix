@@ -1,5 +1,6 @@
 import { getLogger } from '../util/logger.js';
 import { safeCollectionFind, safeCollectionFindOne, safeCollectionInsert, getCache, setCache } from '../util/helpers.js';
+import { triggerHouseholdSummary } from '../util/summaryTrigger.js';
 import { verifyRole } from '../auth/auth.js';
 
 export default function registerContactRoutes(app) {
@@ -74,6 +75,14 @@ export default function registerContactRoutes(app) {
       };
 
       const result = await safeCollectionInsert('contacts', contactData);
+      // Trigger summary generation for affected households (members -> householdId)
+      try {
+        const affectedMembers = await safeCollectionFind('members', { _id: { $in: contactData.memberId } });
+        const householdIds = Array.from(new Set(affectedMembers.map(m => m.householdId).filter(Boolean)));
+        householdIds.forEach(hid => { try { triggerHouseholdSummary(hid); } catch (e) {} });
+      } catch (e) {
+        // best-effort
+      }
       return c.json({ message: 'Contact log created successfully', id: result.insertedId, contact: contactData });
     } catch (error) {
       getLogger().error(error, 'Error creating contact log:');
@@ -182,7 +191,7 @@ export default function registerContactRoutes(app) {
           .filter(a => a.householdId === household._id);
         const deaconMembers = deacons.filter(d => assignedDeacons.some(a => a.deaconMemberId === d._id));
         const lastContact = contacts.find(c => c?.memberId.some(id => householdMemberIds.includes(id))) || {};
-        const summary = lastContact?.summary || 'No contact logged';
+        const summary = lastContact?.summary || household.aiSummary || 'No contact logged';
         household.members = householdMembers;
         lastContact.contactedBy = deacons?.filter(d => lastContact?.deaconId?.includes(d._id));
         
