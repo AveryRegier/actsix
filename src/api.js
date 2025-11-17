@@ -9,6 +9,7 @@ import registerDeaconRoutes from './api/deacons.js'
 import registerContactRoutes from './api/contacts.js'
 // import registerOidcRoutes from './api/oidc.js'
 import registerEmailLoginRoutes from './auth/email-login.js'
+import registerInternalRoutes from './api/internal.js'
 
 // import { logger } from "./logger.js";
 import jwt from 'jsonwebtoken';
@@ -70,6 +71,7 @@ export function createApp() {
   registerAssignmentRoutes(app)
   registerDeaconRoutes(app)
   registerContactRoutes(app)
+  registerInternalRoutes(app)
 
   // API Health check endpoint
   app.get('/api', (c) => {
