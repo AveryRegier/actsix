@@ -60,7 +60,7 @@ export default function registerContactRoutes(app) {
         }
       }
 
-      const validContactTypes = ['phone', 'visit', 'church', 'voicemail'];
+      const validContactTypes = ['phone', 'visit', 'church', 'text', 'voicemail'];
       if (!validContactTypes.includes(body.contactType)) {
         return c.json({ error: 'Validation failed', message: `Invalid contactType. Must be one of: ${validContactTypes.join(', ')}` }, 400);
       }

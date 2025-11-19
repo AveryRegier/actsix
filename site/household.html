@@ -261,6 +261,7 @@
 
     <script type="module">
 import { apiFetch } from './fetch-utils.js';
+import { getContactedBy } from './contact-utils.js';
 
 const API_BASE_URL = '';
 let currentHouseholdId = null;
@@ -399,25 +400,7 @@ async function loadContactHistory() {
                 <tbody>
                     ${contacts.contacts.map(contact => {
                         const contactDate = contact.contactDate ? new Date(contact.contactDate).toLocaleDateString() : '';
-                        let contactedBy = '';
-                        switch (contact.contactType) {
-                            case 'phone':
-                                contactedBy = 'Called';
-                                break;
-                            case 'visit':
-                                contactedBy = 'Visited';
-                                break;
-                            case 'voicemail':
-                                contactedBy = 'Left voicemail';
-                                break;
-                            case 'church':
-                                contactedBy = 'Spoke at church';
-                                break;
-                        }
-                        if (contact.contactedBy?.length) {
-                            if (contactedBy) contactedBy += ' by ';
-                            contactedBy += contact.contactedBy.map(c => `${c.firstName} ${c.lastName}`).join(', ');
-                        }
+                        let contactedBy = getContactedBy(contact);
                         return `
                             <tr>
                                 <td style="border: 1px solid #ddd; padding: 8px;">${contactDate}</td>

@@ -29,6 +29,9 @@ export function getContactedBy(lastContact) {
         case 'voicemail':
             contactedBy = "Left voicemail";
             break;
+        case 'text':
+            contactedBy = "Texted";
+            break;
         case 'church':
             contactedBy = "Spoke at church";
             break;
