@@ -7,14 +7,7 @@ import registerHouseholdRoutes from './api/households.js'
 import registerAssignmentRoutes from './api/assignments.js'
 import registerDeaconRoutes from './api/deacons.js'
 import registerContactRoutes from './api/contacts.js'
-// import registerOidcRoutes from './api/oidc.js'
 import registerEmailLoginRoutes from './auth/email-login.js'
-
-// import { logger } from "./logger.js";
-import jwt from 'jsonwebtoken';
-import qs from 'qs';
-import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
-import { safeCollectionFind } from './util/helpers.js';
 import logger, {getLogger, follow, addContexts, addContext } from './util/logger.js';
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

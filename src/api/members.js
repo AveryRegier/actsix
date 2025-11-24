@@ -2,6 +2,7 @@ import { getLogger } from '../util/logger.js';
 import { ApiError, handleApiError } from '../util/error.js';
 import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../util/helpers.js';
 import { verifyRole } from '../auth/auth.js';
+import { type } from 'os';
 
 function validationErrorResponse(c, message, statusCode = 400) {
   throw new ApiError(message, statusCode);
@@ -212,4 +213,23 @@ export default function registerMemberRoutes(app) {
       return handleApiError(c, error);
     }
   });
-}
+
+  app.get('/api/tags', async (c) => {
+    return c.json({ tags: [
+      { name: 'deacon', description: 'Deacon', type: 'role' },
+      { name: 'deaconess', description: 'Deaconess', type: 'role' },
+      { name: 'elder', description: 'Elder', type: 'role' },
+      { name: 'staff', description: 'Staff', type: 'role' },
+      { name: 'member', description: 'Member', type: 'situation' },
+      { name: 'attender', description: 'Attender', type: 'situation' },
+      { name: 'in-small-group', description: 'In Small Group', type: 'situation' },
+      { name: 'shut-in', description: 'Shut-In', type: 'situation' },
+      { name: 'cancer', description: 'Has Cancer', type: 'situation' },
+      { name: 'long-term-needs', description: 'Has Long Term Needs', type: 'situation' },
+      { name: 'widow', description: 'Widow', type: 'status' },
+      { name: 'widower', description: 'Widower', type: 'status' },
+      { name: 'married', description: 'Married', type: 'status' },
+      { name: 'deceased', description: 'Deceased', type: 'status' },
+    ] });
+  })
+};

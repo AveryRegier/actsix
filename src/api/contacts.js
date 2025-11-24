@@ -1,5 +1,5 @@
 import { getLogger } from '../util/logger.js';
-import { safeCollectionFind, safeCollectionInsert, getCache, setCache } from '../util/helpers.js';
+import { safeCollectionFind, safeCollectionFindOne, safeCollectionInsert, getCache, setCache } from '../util/helpers.js';
 import { verifyRole } from '../auth/auth.js';
 
 export default function registerContactRoutes(app) {
@@ -142,18 +142,23 @@ export default function registerContactRoutes(app) {
         safeCollectionFind('members', { tags: { $in: ['deacon', 'deaconess', 'staff'] } })
       ]);
 
-      let contacts = [];
-      if (members && members.length) {
-        contacts = await safeCollectionFind('contacts', { memberId: { $in: members.map(m => m._id) } }) || [];
-      }
-      contacts = contacts.sort((a, b) => new Date(b.contactDate) - new Date(a.contactDate));
+      let contacts = await Promise.all(members.map(m => m._id).map(async memberId => {
+        const memberContacts = await safeCollectionFindOne('contacts', { memberId: {$in: [memberId]} }, {
+          sort: { contactDate: -1 }
+        });
+        return memberContacts;
+      }));
+      // if (members && members.length) {
+      //   contacts = await safeCollectionFind('contacts', { memberId: { $in: members.map(m => m._id) } }) || [];
+      // }
+      // contacts = contacts.sort((a, b) => new Date(b.contactDate) - new Date(a.contactDate));
       const summary = households.map(household => {
         const householdMembers = members.filter(m => m.householdId === household._id).filter(m => !m.tags?.includes('deceased'));
         const householdMemberIds = householdMembers.map(m => m._id);
         const assignedDeacons = assignments
           .filter(a => a.householdId === household._id);
         const deaconMembers = deacons.filter(d => assignedDeacons.some(a => a.deaconMemberId === d._id));
-        const lastContact = contacts.find(c => c.memberId.some(id => householdMemberIds.includes(id))) || {};
+        const lastContact = contacts.find(c => c?.memberId.some(id => householdMemberIds.includes(id))) || {};
         const summary = lastContact?.summary || 'No contact logged';
         household.members = householdMembers;
         lastContact.contactedBy = deacons?.filter(d => lastContact?.deaconId?.includes(d._id));

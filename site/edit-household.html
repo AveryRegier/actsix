@@ -271,7 +271,7 @@
                     });
 
                     if (response.ok) {
-                        window.location.href = `household.html?id=${householdId}`;
+                        window.location.href = document.referrer ?? `household.html?id=${householdId}`;
                     } else {
                         console.error('Failed to update household:', response.statusText);
                         alert('Failed to update household. Please try again.');

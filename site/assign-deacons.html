@@ -67,7 +67,8 @@
             body: JSON.stringify({ deaconIds: checked })
         });
         if (res.ok) {
-            window.location.href = `household.html?id=${householdId}`;
+            const where = document.referrer ?? `household.html?id=${householdId}`;
+            window.location.href = where;
         } else {
             alert('Failed to assign deacons');
         }

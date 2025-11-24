@@ -12,6 +12,17 @@ export async function safeCollectionFind(collectionName, query = {}) {
   }
 }
 
+export async function safeCollectionFindOne(collectionName, query = {}, options = {}) {
+  try {
+    const collection = db.collection(collectionName);
+    const result = await collection.findOne(query, options);
+    return result;
+  } catch (error) {
+    getLogger().error(error, `Error accessing collection ${collectionName}:`);
+    return null;
+  }
+}
+
 export async function safeCollectionInsert(collectionName, data, options = {}) {
   const maxRetries = 3;
   let attempts = 0;
