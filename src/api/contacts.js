@@ -107,6 +107,29 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  app.options('/api/reports/summary', async (c) => {
+    try {
+      const cacheDoc = await getCache('reports_summary');
+      if (cacheDoc && cacheDoc.updatedAt) {
+        const lastModified = new Date(cacheDoc.updatedAt).toUTCString();
+        const ifModifiedSince = c.req.header('If-Modified-Since');
+        if (ifModifiedSince) {
+          const since = new Date(ifModifiedSince);
+          if (!isNaN(since.getTime()) && new Date(cacheDoc.updatedAt) <= since) {
+            return c.text('', 304);
+          }
+        }
+        c.header('Last-Modified', lastModified);
+        return c.text('', 200);
+      }
+      // Cache doc not present, trigger reload by returning 404 or a special status
+      // Client should then call GET to regenerate
+      return c.text('', 404);
+    } catch (error) {
+      return c.text('', 500);
+    }
+  });
+
   app.get('/api/reports/summary', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);

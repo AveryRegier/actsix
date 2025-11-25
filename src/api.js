@@ -9,8 +9,19 @@ import registerDeaconRoutes from './api/deacons.js'
 import registerContactRoutes from './api/contacts.js'
 import registerEmailLoginRoutes from './auth/email-login.js'
 import logger, {getLogger, follow, addContexts, addContext } from './util/logger.js';
+import { statSync } from 'fs'
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+
+// Cache the deployment time (run once)
+let deploymentTime;
+try {
+  const stats = statSync(__filename);
+  deploymentTime = stats.mtime.toUTCString();
+} catch {
+  deploymentTime = new Date().toUTCString();
+}
 
 // MIME types for static files
 const mimeTypes = {
@@ -42,6 +53,9 @@ async function serveStatic(c, filePath) {
     const contentType = mimeTypes[ext] || 'application/octet-stream'
 
     c.header('Content-Type', contentType)
+    c.header('Cache-Control', 'public, max-age=300') // Cache for 5 minutes
+    // when the lambda was last deployed
+    c.header("Last-Modified", deploymentTime);
     return c.body(content)
   } catch (error) {
     getLogger().error(error, 'Error serving static file:');
@@ -79,6 +93,19 @@ export function createApp() {
   registerAssignmentRoutes(app)
   registerDeaconRoutes(app)
   registerContactRoutes(app)
+
+  app.options('/:filename', (c) => {
+    addContext('routeType', 'static');
+    const ifModifiedSince = c.req.header('If-Modified-Since');
+    if(ifModifiedSince) {
+      const sinceModified = new Date(ifModifiedSince);
+      const deployedDate = new Date(deploymentTime);
+      if(!isNaN(sinceModified.getTime()) && deployedDate <= sinceModified) {
+        return c.text('', 304);
+      }
+    }
+    return c.text('', 200);
+  });
 
   // Static file serving routes (serve the site)
   app.get('/', async (c) => {
