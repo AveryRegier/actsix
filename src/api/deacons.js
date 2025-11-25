@@ -98,17 +98,8 @@ export default function registerDeaconRoutes(app) {
         const lastContact = lastContactByHousehold.has(hId) ? lastContactByHousehold.get(hId) : null;
         let resolvedLastContact = null;
         if (lastContact) {
-          // Return the raw lastContact record (includes deaconId array).
-          // We avoid extra lookups to keep this route lightweight.
           resolvedLastContact = { ...lastContact };
         }
-
-        // assigned deacons for this household
-        const assigned = assignments.filter(asg => asg.householdId === hId).map(asg => asg.deaconMemberId);
-        const assignedDeacons = (assigned.length ? (async () => {
-          // resolve assigned deacon member info (sync below if needed)
-          return [];
-        })() : []);
 
         return {
           householdId: hId,

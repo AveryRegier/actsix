@@ -58,48 +58,37 @@ export function createApp() {
 
   registerEmailLoginRoutes(app)
   // registerOidcRoutes(app)
-  registerMemberRoutes(app)
-  registerHouseholdRoutes(app)
-  registerAssignmentRoutes(app)
-  registerDeaconRoutes(app)
-  registerContactRoutes(app)
 
   // API Health check endpoint
   app.get('/api', (c) => {
+    addContext('routeType', 'health');
     return c.json({
       message: 'Deacon Care System API',
       status: 'healthy',
       timestamp: new Date().toISOString()
     })
   })
-
-  // Hello world endpoint
-  app.get('/api/hello', (c) => {
-    return c.json({
-      message: 'Hello from Deacon Care System!',
-      version: '1.0.0'
-    })
-  })
   
+  app.use('/api/*', async (c, next) => {
+    addContext('routeType', 'api');
+    return await next();
+  });
+
+  registerMemberRoutes(app)
+  registerHouseholdRoutes(app)
+  registerAssignmentRoutes(app)
+  registerDeaconRoutes(app)
+  registerContactRoutes(app)
+
   // Static file serving routes (serve the site)
   app.get('/', async (c) => {
+    addContext('routeType', 'index');
     return await serveStatic(c, 'index.html')
-  })
-
-  app.get('/deacons.html', async (c) => {
-    return await serveStatic(c, 'deacons.html')
-  })
-
-  app.get('/household.html', async (c) => {
-    return await serveStatic(c, 'household.html')
-  })
-
-  app.get('/favicon.ico', async (c) => {
-    return await serveStatic(c, 'favicon.ico')
   })
 
   // Generic static file handler for other assets
   app.get('/:filename', async (c) => {
+    addContext('routeType', 'static');
     const filename = c.req.param('filename')
     // Only serve specific file types for security
     const allowedExtensions = ['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.json']

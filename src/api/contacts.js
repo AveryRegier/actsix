@@ -144,7 +144,7 @@ export default function registerContactRoutes(app) {
 
       let contacts = await Promise.all(members.map(m => m._id).map(async memberId => {
         const memberContacts = await safeCollectionFindOne('contacts', { memberId: {$in: [memberId]} }, {
-          sort: { contactDate: -1 }
+          sort: { _id: -1 }
         });
         return memberContacts;
       }));

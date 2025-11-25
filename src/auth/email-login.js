@@ -58,12 +58,18 @@ export default function registerEmailLoginRoutes(app) {
         }}, (logger) => {
             logger.addContexts({
                 requestId: c.req.header('x-request-id') || undefined,
-                path: c.req.path, method: c.req.method, url: c.req.url
+                path: c.req.path, method: c.req.method, url: c.req.url,
+                method: c.req.method
             });
         }, () => {
             return { status: c.res.status };
         }
     ));
+
+  app.use('/email*', async (c, next) => {
+    addContext('routeType', 'auth');
+    return await next();
+  });
 
   app.post('/email-validate', async (c) => {
     const logger = getLogger();
