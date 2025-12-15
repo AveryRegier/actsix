@@ -36,14 +36,18 @@ document.addEventListener('DOMContentLoaded', function() {
   let showBack = true;
   // Main nav page filenames
   const mainNavPages = ['deacon-quick-contact.html', 'index.html', 'members.html', 'contact-summary.html', 'summary-report.html'];
-  // Check Navigation API for POST
-  if (window.navigation && window.navigation.entries) {
-    const entries = window.navigation.entries();
-    if (entries && entries.length > 1) {
-      const prev = entries[entries.length - 2];
-      if (prev && prev.method && prev.method.toUpperCase() === 'POST') {
-        showBack = false;
+  // Check Navigation API for POST (only if supported)
+  if (typeof window.navigation !== 'undefined' && window.navigation && typeof window.navigation.entries === 'function') {
+    try {
+      const entries = window.navigation.entries();
+      if (entries && entries.length > 1) {
+        const prev = entries[entries.length - 2];
+        if (prev && prev.method && prev.method.toUpperCase() === 'POST') {
+          showBack = false;
+        }
       }
+    } catch (e) {
+      // Navigation API not fully supported, ignore
     }
   }
   // Fallback: check sessionStorage for last navigation type

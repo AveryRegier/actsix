@@ -70,86 +70,117 @@
         </div>
     </div>
     <script>
-        // Load reusable navigation bar
-        document.addEventListener('DOMContentLoaded', async () => {
+        // Polyfill Array.from for older browsers
+        if (!Array.from) {
+            Array.from = function(arrayLike) {
+                return Array.prototype.slice.call(arrayLike);
+            };
+        }
+
+        // Load reusable navigation bar and initialize page
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Load navigation first
             const navContainer = document.getElementById('site-nav-container');
             if (navContainer) {
-                const navResp = await fetch('site-nav.html');
-                if (navResp.ok) {
-                    navContainer.innerHTML = await navResp.text();
-                    const script = document.createElement('script');
-                    script.src = 'site-nav.js';
-                    document.body.appendChild(script);
+                try {
+                    const navResp = await fetch('site-nav.html');
+                    if (navResp.ok) {
+                        navContainer.innerHTML = await navResp.text();
+                        const script = document.createElement('script');
+                        script.src = 'site-nav.js';
+                        document.body.appendChild(script);
+                    }
+                } catch (error) {
+                    console.error('Error loading navigation:', error);
                 }
             }
-        });
-        document.addEventListener('DOMContentLoaded', async () => {
+
             // get household id from request parameter
             const urlParams = new URLSearchParams(window.location.search);
             const currentHouseholdId = urlParams.get('householdId');
 
-                // Dynamically preset contact date to today
-                const contactDateInput = document.getElementById('contact-date');
-                if (contactDateInput) {
-                    const today = new Date();
-                    const yyyy = today.getFullYear();
-                    const mm = String(today.getMonth() + 1).padStart(2, '0');
-                    const dd = String(today.getDate()).padStart(2, '0');
-                    contactDateInput.value = `${yyyy}-${mm}-${dd}`;
-                }
+            // Dynamically preset contact date to today
+            const contactDateInput = document.getElementById('contact-date');
+            if (contactDateInput) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                contactDateInput.value = yyyy + '-' + mm + '-' + dd;
+            }
             // Use the new API to fetch members
-            const membersResponse = await fetch(`api/households/${currentHouseholdId}/members`);
-            console.log('Members Response Status:', membersResponse.status);
-            const membersData = await membersResponse.json();
-            console.log('Members Response:', membersData);
-            const members = membersData.members;
+            try {
+                const membersResponse = await fetch('api/households/' + currentHouseholdId + '/members');
+                console.log('Members Response Status:', membersResponse.status);
+                const membersData = await membersResponse.json();
+                console.log('Members Response:', membersData);
+                const members = membersData.members;
 
-            // Populate members section
-            const membersSection = document.getElementById('membersSection');
-            membersSection.innerHTML = members.filter(m=>!m.tags.includes('deceased')).map(member => {
-                const isSelected = member.tags && member.tags.some(tag => ['cancer', 'shut-in', 'long-term-needs'].includes(tag));
-                const displayName = member.relationship === 'head' ? `${member.firstName} ${member.lastName}` : `${member.firstName} ${member.lastName} (${member.relationship})`;
-                return `
-                    <div class="member-item">
-                        <input type="checkbox" id="member-${member._id}" name="memberId" value="${member._id}" ${isSelected ? 'checked' : ''}>
-                        <label for="member-${member._id}">${displayName}</label>
-                        &nbsp;<p>${member.phone}</p>
-                    </div>
-                `;
-            }).join('');
+                // Populate members section
+                const membersSection = document.getElementById('membersSection');
+                var memberItems = [];
+                for (var i = 0; i < members.length; i++) {
+                    var member = members[i];
+                    if (member.tags && member.tags.includes('deceased')) continue;
+                    
+                    var isSelected = member.tags && member.tags.some(function(tag) { 
+                        return ['cancer', 'shut-in', 'long-term-needs'].includes(tag); 
+                    });
+                    var displayName = member.relationship === 'head' 
+                        ? member.firstName + ' ' + member.lastName 
+                        : member.firstName + ' ' + member.lastName + ' (' + member.relationship + ')';
+                    
+                    memberItems.push(
+                        '<div class="member-item">' +
+                        '<input type="checkbox" id="member-' + member._id + '" name="memberId" value="' + member._id + '" ' + (isSelected ? 'checked' : '') + '>' +
+                        '<label for="member-' + member._id + '">' + displayName + '</label>' +
+                        '&nbsp;<p>' + member.phone + '</p>' +
+                        '</div>'
+                    );
+                }
+                membersSection.innerHTML = memberItems.join('');
 
-            // Fetch assigned deacons
-            const assignmentsResponse = await fetch(`api/households/${currentHouseholdId}/assignments`);
-            const assignmentsData = await assignmentsResponse.json();
-            const assignedDeacons = assignmentsData.assignments;
+                // Fetch assigned deacons
+                const assignmentsResponse = await fetch('api/households/' + currentHouseholdId + '/assignments');
+                const assignmentsData = await assignmentsResponse.json();
+                const assignedDeacons = assignmentsData.assignments;
 
-            // Populate assigned deacons section
-            const deaconsSection = document.getElementById('deaconsSection');
-            deaconsSection.innerHTML = assignedDeacons.map(assignment => `
-                <div class="member-item">
-                    <input type="checkbox" id="deacon-${assignment.deacon._id}" name="deaconId" value="${assignment.deacon._id}" checked>
-                    <label for="deacon-${assignment.deacon._id}">${assignment.deacon.firstName} ${assignment.deacon.lastName}</label>
-                </div>
-            `).join('');
+                // Populate assigned deacons section
+                const deaconsSection = document.getElementById('deaconsSection');
+                var deaconItems = [];
+                for (var j = 0; j < assignedDeacons.length; j++) {
+                    var assignment = assignedDeacons[j];
+                    deaconItems.push(
+                        '<div class="member-item">' +
+                        '<input type="checkbox" id="deacon-' + assignment.deacon._id + '" name="deaconId" value="' + assignment.deacon._id + '" checked>' +
+                        '<label for="deacon-' + assignment.deacon._id + '">' + assignment.deacon.firstName + ' ' + assignment.deacon.lastName + '</label>' +
+                        '</div>'
+                    );
+                }
+                deaconsSection.innerHTML = deaconItems.join('');
 
-            // Fetch household details
-            const householdResponse = await fetch(`api/households/${currentHouseholdId}`);
-            const household = await householdResponse.json();
+                // Fetch household details
+                const householdResponse = await fetch('api/households/' + currentHouseholdId);
+                const household = await householdResponse.json();
 
-            // Display household phone numbers and address
-            const contactTypeSection = document.getElementById('contact-type').parentElement;
-            const householdInfo = document.createElement('div');
-            householdInfo.innerHTML = (household.primaryPhone ?`
-                <div class="form-group">
-                    <label>Household Phone</label>
-                    <p>${household.primaryPhone}</p>
-                </div>` : '') + 
-                (household.address ? `
-                <div class="form-group">
-                    <label>Address</label>
-                    <p>${household.address.street}, ${household.address.city}, ${household.address.state} ${household.address.zipCode}</p>
-                </div>` : '');
-            contactTypeSection.insertAdjacentElement('afterend', householdInfo);
+                // Display household phone numbers and address
+                const contactTypeSection = document.getElementById('contact-type').parentElement;
+                const householdInfo = document.createElement('div');
+                var infoHtml = '';
+                if (household.primaryPhone) {
+                    infoHtml += '<div class="form-group"><label>Household Phone</label><p>' + household.primaryPhone + '</p></div>';
+                }
+                if (household.address) {
+                    infoHtml += '<div class="form-group"><label>Address</label><p>' + 
+                        household.address.street + ', ' + household.address.city + ', ' + 
+                        household.address.state + ' ' + household.address.zipCode + '</p></div>';
+                }
+                householdInfo.innerHTML = infoHtml;
+                contactTypeSection.insertAdjacentElement('afterend', householdInfo);
+            } catch (error) {
+                console.error('Error loading page data:', error);
+                alert('Error loading page data. Please try again.');
+            }
         });
 
         function showParticipantModal() {
@@ -162,44 +193,64 @@
         }
 
         async function loadParticipants() {
-            const response = await fetch('api/participants');
-            const participants = await response.json();
-            const participantList = document.getElementById('participantList');
-            participantList.innerHTML = participants.participants.map(p => `
-                <div class="member-item">
-                    <input type="checkbox" id="participant-${p._id}" name="participantId" value="${p._id}">
-                    <label for="participant-${p._id}">${p.firstName} ${p.lastName} (${p.role})</label>
-                </div>
-            `).join('');
+            try {
+                const response = await fetch('api/participants');
+                const participants = await response.json();
+                const participantList = document.getElementById('participantList');
+                var participantItems = [];
+                for (var i = 0; i < participants.participants.length; i++) {
+                    var p = participants.participants[i];
+                    participantItems.push(
+                        '<div class="member-item">' +
+                        '<input type="checkbox" id="participant-' + p._id + '" name="participantId" value="' + p._id + '">' +
+                        '<label for="participant-' + p._id + '">' + p.firstName + ' ' + p.lastName + ' (' + p.role + ')</label>' +
+                        '</div>'
+                    );
+                }
+                participantList.innerHTML = participantItems.join('');
+            } catch (error) {
+                console.error('Error loading participants:', error);
+            }
         }
 
         function addSelectedParticipant() {
-            const selectedParticipants = Array.from(document.querySelectorAll('#participantList input:checked'));
-            const deaconsSection = document.getElementById('deaconsSection');
-            const existingIds = Array.from(deaconsSection.querySelectorAll('input')).map(input => input.value);
+            var selectedParticipants = Array.from(document.querySelectorAll('#participantList input:checked'));
+            var deaconsSection = document.getElementById('deaconsSection');
+            var existingInputs = Array.from(deaconsSection.querySelectorAll('input'));
+            var existingIds = [];
+            for (var i = 0; i < existingInputs.length; i++) {
+                existingIds.push(existingInputs[i].value);
+            }
 
-            selectedParticipants.forEach(sp => {
-                if (!existingIds.includes(sp.value)) {
-                    const participantName = document.querySelector(`label[for="${sp.id}"]`).textContent;
-                    deaconsSection.innerHTML += `
-                        <div class="member-item">
-                            <input type="checkbox" id="${sp.id}" name="deaconId" value="${sp.value}" checked>
-                            <label for="${sp.id}">${participantName}</label>
-                        </div>
-                    `;
+            for (var j = 0; j < selectedParticipants.length; j++) {
+                var sp = selectedParticipants[j];
+                var isExisting = false;
+                for (var k = 0; k < existingIds.length; k++) {
+                    if (existingIds[k] === sp.value) {
+                        isExisting = true;
+                        break;
+                    }
                 }
-            });
+                if (!isExisting) {
+                    var participantName = document.querySelector('label[for="' + sp.id + '"]').textContent;
+                    deaconsSection.innerHTML += 
+                        '<div class="member-item">' +
+                        '<input type="checkbox" id="' + sp.id + '" name="deaconId" value="' + sp.value + '" checked>' +
+                        '<label for="' + sp.id + '">' + participantName + '</label>' +
+                        '</div>';
+                }
+            }
             closeParticipantModal();
         }
 
-        document.getElementById('contact-form').addEventListener('submit', async (event) => {
+        document.getElementById('contact-form').addEventListener('submit', async function(event) {
             event.preventDefault();
 
-            const formData = new FormData(event.target);
+            var formData = new FormData(event.target);
 
             // Get all members and selected members
-            const allMembers = Array.from(document.querySelectorAll('#membersSection input'));
-            let selectedMembers = Array.from(document.querySelectorAll('#membersSection input:checked'));
+            var allMembers = Array.from(document.querySelectorAll('#membersSection input'));
+            var selectedMembers = Array.from(document.querySelectorAll('#membersSection input:checked'));
 
             // Automatically select the single member if only one exists
             if (selectedMembers.length === 0 && allMembers.length === 1) {
@@ -214,28 +265,40 @@
             }
 
             // Format the body to match the requirements of the /api/contacts REST API
-            const contactData = {
-                memberId: Array.from(document.querySelectorAll('#membersSection input:checked')).map(input => input.value),
-                deaconId: Array.from(document.querySelectorAll('#deaconsSection input:checked')).map(input => input.value),
+            var memberIds = [];
+            var memberCheckboxes = document.querySelectorAll('#membersSection input:checked');
+            for (var i = 0; i < memberCheckboxes.length; i++) {
+                memberIds.push(memberCheckboxes[i].value);
+            }
+            
+            var deaconIds = [];
+            var deaconCheckboxes = document.querySelectorAll('#deaconsSection input:checked');
+            for (var j = 0; j < deaconCheckboxes.length; j++) {
+                deaconIds.push(deaconCheckboxes[j].value);
+            }
+            
+            var contactData = {
+                memberId: memberIds,
+                deaconId: deaconIds,
                 contactType: formData.get('contactType'),
                 summary: formData.get('summary'),
                 contactDate: new Date(formData.get('contactDate')).toISOString(),
-                followUpRequired: false, // Default value
+                followUpRequired: false
             };
 
             try {
-                const response = await fetch('api/contacts', {
+                var response = await fetch('api/contacts', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(contactData),
+                    body: JSON.stringify(contactData)
                 });
 
                 if (response.ok) {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const currentHouseholdId = urlParams.get('householdId');
-                    window.location.href = `/household.html?id=${currentHouseholdId}`;
+                    var urlParams = new URLSearchParams(window.location.search);
+                    var currentHouseholdId = urlParams.get('householdId');
+                    window.location.href = '/household.html?id=' + currentHouseholdId;
                 } else {
                     console.error('Failed to submit contact:', response.statusText);
                     alert('Failed to submit contact. Please try again.');
