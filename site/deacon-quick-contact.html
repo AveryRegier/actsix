@@ -37,22 +37,37 @@
 		</div>
 
 	<script type="module">
-	import { getContactedBy } from './contact-utils.js';
-	// Load reusable navigation bar
-	document.addEventListener('DOMContentLoaded', async () => {
-		const navContainer = document.getElementById('site-nav-container');
-		if (navContainer) {
-			const navResp = await fetch('site-nav.html');
-			if (navResp.ok) {
-				navContainer.innerHTML = await navResp.text();
-				const script = document.createElement('script');
-				script.src = 'site-nav.js';
-				document.body.appendChild(script);
-			}
-		}
-	});
+	// Polyfill Array.from for older browsers
+	if (!Array.from) {
+		Array.from = function(arrayLike) {
+			return Array.prototype.slice.call(arrayLike);
+		};
+	}
 
-	document.addEventListener('DOMContentLoaded', async () => {
+	import { getContactedBy } from './contact-utils.js';
+
+	// Consolidated DOMContentLoaded listener
+	document.addEventListener('DOMContentLoaded', function() {
+		// Load reusable navigation bar
+		var navContainer = document.getElementById('site-nav-container');
+		if (navContainer) {
+			fetch('site-nav.html')
+				.then(function(navResp) {
+					if (navResp.ok) {
+						return navResp.text();
+					}
+					throw new Error('Failed to load navigation');
+				})
+				.then(function(navHtml) {
+					navContainer.innerHTML = navHtml;
+					var script = document.createElement('script');
+					script.src = 'site-nav.js';
+					document.body.appendChild(script);
+				})
+				.catch(function(error) {
+					console.error('Error loading navigation:', error);
+				});
+		}
 		// Get deacon memberId from actsix cookie
 		// function getCookie(name) {
 		// 	const value = `; ${document.cookie}`;
@@ -87,80 +102,130 @@
 		// }
 
 		// Fetch precomputed quick contacts in one call
-		const requestDeaconMemberId = new URLSearchParams(window.location.search).get('deaconMemberId');
-		const deaconMemberId = requestDeaconMemberId || localStorage.getItem('memberId') || 'unknown';
-		const qcRes = await fetch(`/api/deacons/${deaconMemberId}/quickContacts`);
-		const qcData = await qcRes.json();
-		const quickContacts = qcData.quickContacts || [];
+		var requestDeaconMemberId = new URLSearchParams(window.location.search).get('deaconMemberId');
+		var deaconMemberId = requestDeaconMemberId || localStorage.getItem('memberId') || 'unknown';
+		fetch('/api/deacons/' + deaconMemberId + '/quickContacts')
+			.then(function(qcRes) {
+				return qcRes.json();
+			})
+			.then(function(qcData) {
+				var quickContacts = qcData.quickContacts || [];
 
-		// Render two-line rows using returned data. Use CSS classes defined in site.css.
-		const tbody = document.querySelector('#quickContactsTable tbody');
+				// Render two-line rows using returned data. Use CSS classes defined in site.css.
+				var tbody = document.querySelector('#quickContactsTable tbody');
 
-		// Build clickable contact HTML for phone/address on the deacon quick page only.
-		function buildClickableContact(item) {
-			const members = item.members || [];
-			const parts = [];
-			// member phones first
-			members.forEach(m => {
-				if (m.phone) parts.push({label: `${m.firstName?.charAt(0)}: `, value: m.phone});
+				// Build clickable contact HTML for phone/address on the deacon quick page only.
+				function buildClickableContact(item) {
+					var members = item.members || [];
+					var parts = [];
+					// member phones first
+					for (var i = 0; i < members.length; i++) {
+						var m = members[i];
+						if (m.phone) {
+							var initial = m.firstName ? m.firstName.charAt(0) : '';
+							parts.push({label: initial + ': ', value: m.phone});
+						}
+					}
+					// household primary phone
+					if (item.primaryPhone) parts.push({label: 'P: ', value: item.primaryPhone});
+					if (parts.length) {
+						var html = [];
+						for (var j = 0; j < parts.length; j++) {
+							var p = parts[j];
+							html.push('<a href="tel:' + encodeURIComponent(p.value) + '">' + p.label + p.value + '</a>');
+						}
+						return html.join('<br>');
+					}
+					// fallback to address link
+					if (item.address && item.address.street) {
+						var addressParts = [item.address.street, item.address.city, item.address.state, item.address.postalCode];
+						var filtered = [];
+						for (var k = 0; k < addressParts.length; k++) {
+							if (addressParts[k]) filtered.push(addressParts[k]);
+						}
+						var q = encodeURIComponent(filtered.join(', '));
+						var url = 'https://www.google.com/maps/search/?api=1&query=' + q;
+						return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + item.address.street + '<br>' + (item.address.city || '') + '</a>';
+					}
+					return '(Contact)';
+				}
+
+				var rowsHtml = [];
+				for (var idx = 0; idx < quickContacts.length; idx++) {
+					var item = quickContacts[idx];
+					var householdLink = 'household.html?id=' + item.householdId;
+					var contactLink = 'record-contact.html?householdId=' + item.householdId;
+					var lastDate = item.lastContact && item.lastContact.contactDate ? new Date(item.lastContact.contactDate).toLocaleDateString() : '(needed)';
+
+					// compute clickable best contact locally (tel: links and maps)
+					var bestContactHtml = buildClickableContact(item);
+
+					// display label: prefer the specific member(s) from lastContact.memberId
+					var contactTargetName = '';
+					if (item.lastContact && item.lastContact.memberId && item.members && item.members.length) {
+						var targets = [];
+						for (var mi = 0; mi < item.members.length; mi++) {
+							var mem = item.members[mi];
+							for (var mj = 0; mj < item.lastContact.memberId.length; mj++) {
+								if (item.lastContact.memberId[mj] === mem._id) {
+									targets.push(mem);
+									break;
+								}
+							}
+						}
+						if (targets.length === 1) {
+							contactTargetName = targets[0].firstName + ' ' + targets[0].lastName;
+						} else if (targets.length > 1) {
+							var targetNames = [];
+							for (var ti = 0; ti < targets.length; ti++) {
+								targetNames.push(targets[ti].firstName + ' ' + targets[ti].lastName);
+							}
+							contactTargetName = targetNames.join(' & ');
+						}
+					}
+					var displayLabel = contactTargetName || item.displayName;
+
+					var deacons = '(Assign)';
+					if (item.assignedDeacons && item.assignedDeacons.length) {
+						var deaconNames = [];
+						for (var di = 0; di < item.assignedDeacons.length; di++) {
+							var d = item.assignedDeacons[di];
+							deaconNames.push(d.firstName + ' ' + d.lastName);
+						}
+						deacons = deaconNames.join(', ');
+					}
+
+					var contactedBy = getContactedBy(item.lastContact);
+					var summary = (item.lastContact && item.lastContact.summary) || item.summary || '';
+
+					var rowClass = idx % 2 === 0 ? 'even' : 'odd';
+
+					rowsHtml.push(
+						'<tbody class="summary-group">' +
+						'<tr class="summary-row ' + rowClass + '">' +
+						'<td class="summary-badge-col name-col">' +
+						'<a class="member-link" href="' + householdLink + '">' + displayLabel + '</a>' +
+						'</td>' +
+						'<td class="summary-badge-col contact-col">' +
+						'<div class="contact-cell">' + bestContactHtml + '</div>' +
+						'</td>' +
+						'<td class="summary-badge-col action-col">' +
+						'<a href="' + contactLink + '" class="btn record-btn" role="button" aria-label="Record contact for ' + displayLabel + '" title="Record contact for ' + displayLabel + '">Record</a>' +
+						'</td>' +
+						'</tr>' +
+						'<tr class="summary-row ' + rowClass + ' second-row">' +
+						'<td class="last-contact-col howwhen-col">' + (contactedBy ? contactedBy + ' on ' + lastDate : lastDate) + '</td>' +
+						'<td class="notes-col" colspan="2">' + summary + '</td>' +
+						'</tr>' +
+						'</tbody>'
+					);
+				}
+				tbody.innerHTML = rowsHtml.join('');
+			})
+			.catch(function(error) {
+				console.error('Error loading quick contacts:', error);
+				alert('Failed to load quick contacts. Please try again.');
 			});
-			// household primary phone
-			if (item.primaryPhone) parts.push({label: 'P: ', value: item.primaryPhone});
-			if (parts.length) {
-				return parts.map(p => `<a href="tel:${encodeURIComponent(p.value)}">${p.label}${p.value}</a>`).join('<br>');
-			}
-			// fallback to address link
-			if (item.address && item.address.street) {
-				const q = encodeURIComponent([item.address.street, item.address.city, item.address.state, item.address.postalCode].filter(Boolean).join(', '));
-				const url = `https://www.google.com/maps/search/?api=1&query=${q}`;
-				return `<a href="${url}" target="_blank" rel="noopener noreferrer">${item.address.street}<br>${item.address.city || ''}</a>`;
-			}
-			return '(Contact)';
-		}
-		tbody.innerHTML = quickContacts.map((item, idx) => {
-			const householdLink = `household.html?id=${item.householdId}`;
-			const contactLink = `record-contact.html?householdId=${item.householdId}`;
-			const lastDate = item.lastContact?.contactDate ? new Date(item.lastContact.contactDate).toLocaleDateString() : '(needed)';
-
-			// compute clickable best contact locally (tel: links and maps)
-			const bestContactHtml = buildClickableContact(item);
-
-			// display label: prefer the specific member(s) from lastContact.memberId
-			let contactTargetName = '';
-			if (item.lastContact?.memberId && item.members?.length) {
-				const targets = item.members.filter(m => item.lastContact.memberId.includes(m._id));
-				if (targets.length === 1) contactTargetName = `${targets[0].firstName} ${targets[0].lastName}`;
-				else if (targets.length > 1) contactTargetName = targets.map(t => `${t.firstName} ${t.lastName}`).join(' & ');
-			}
-			const displayLabel = contactTargetName || item.displayName;
-
-			const deacons = item.assignedDeacons?.map(d => `${d.firstName} ${d.lastName}`).join(', ') || '(Assign)';
-
-			const contactedBy = getContactedBy(item.lastContact);
-			const summary = item.lastContact?.summary || item.summary || '';
-
-			const rowClass = idx % 2 === 0 ? 'even' : 'odd';
-
-			return `
-				<tbody class="summary-group">
-					<tr class="summary-row ${rowClass}">
-						<td class="summary-badge-col name-col">
-							<a class="member-link" href="${householdLink}">${displayLabel}</a>
-						</td>
-						<td class="summary-badge-col contact-col">
-							<div class="contact-cell">${bestContactHtml}</div>
-						</td>
-						<td class="summary-badge-col action-col">
-							<a href="${contactLink}" class="btn record-btn" role="button" aria-label="Record contact for ${displayLabel}" title="Record contact for ${displayLabel}">Record</a>
-						</td>
-					</tr>
-					<tr class="summary-row ${rowClass} second-row">
-						<td class="last-contact-col howwhen-col">${contactedBy ? `${contactedBy} on ${lastDate}` : lastDate}</td>
-						<td class="notes-col" colspan="2">${summary}</td>
-					</tr>
-				</tbody>
-			`;
-		}).join('');
 	});
 	</script>
 </body>
