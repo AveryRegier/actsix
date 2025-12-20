@@ -10,19 +10,12 @@
         <!-- Reusable navigation bar -->
         <div id="site-nav-container"></div>
         <script>
-        // Load reusable navigation bar
-        document.addEventListener('DOMContentLoaded', async () => {
-            const navContainer = document.getElementById('site-nav-container');
-            if (navContainer) {
-                const navResp = await fetch('site-nav.html');
-                if (navResp.ok) {
-                    navContainer.innerHTML = await navResp.text();
-                    const script = document.createElement('script');
-                    script.src = 'site-nav.js';
-                    document.body.appendChild(script);
-                }
-            }
-        });
+        // Polyfill Array.from for older browsers
+        if (!Array.from) {
+            Array.from = function(arrayLike) {
+                return Array.prototype.slice.call(arrayLike);
+            };
+        }
         </script>
     <div class="container" style="margin-top:60px; max-width:600px;">
         <h1 id="formTitle">Add Member</h1>
@@ -84,42 +77,69 @@
         </form>
     </div>
     <script type="module">
-    // Tag badge checked/unchecked state toggle
-    document.addEventListener('DOMContentLoaded', function() {
-        function updateTagBadges() {
-            document.querySelectorAll('.tag-badge').forEach(label => {
-                const cb = label.querySelector('input[type="checkbox"]');
-                if (cb && cb.checked) {
-                    label.classList.remove('tag-unchecked');
-                } else {
-                    label.classList.add('tag-unchecked');
-                }
-            });
-        }
-        document.querySelectorAll('.tag-badge input[type="checkbox"]').forEach(cb => {
-            cb.addEventListener('change', updateTagBadges);
-        });
-        updateTagBadges();
-    });
     import { apiFetch } from './fetch-utils.js';
 
     // Get memberId and householdId from query params
     function getParams() {
-        const urlParams = new URLSearchParams(window.location.search);
+        var urlParams = new URLSearchParams(window.location.search);
         return {
             memberId: urlParams.get('memberId'),
             householdId: urlParams.get('householdId')
         };
     }
-    const { memberId, householdId } = getParams();
-    // If editing, load member data after DOM is ready
-    if (memberId) {
-        document.addEventListener('DOMContentLoaded', function() {
+    var params = getParams();
+    var memberId = params.memberId;
+    var householdId = params.householdId;
+
+    // Consolidated DOMContentLoaded listener
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load reusable navigation bar
+        var navContainer = document.getElementById('site-nav-container');
+        if (navContainer) {
+            fetch('site-nav.html')
+                .then(function(navResp) {
+                    if (navResp.ok) {
+                        return navResp.text();
+                    }
+                    throw new Error('Failed to load navigation');
+                })
+                .then(function(navHtml) {
+                    navContainer.innerHTML = navHtml;
+                    var script = document.createElement('script');
+                    script.src = 'site-nav.js';
+                    document.body.appendChild(script);
+                })
+                .catch(function(error) {
+                    console.error('Error loading navigation:', error);
+                });
+        }
+
+        // Tag badge checked/unchecked state toggle
+        function updateTagBadges() {
+            var labels = document.querySelectorAll('.tag-badge');
+            for (var i = 0; i < labels.length; i++) {
+                var label = labels[i];
+                var cb = label.querySelector('input[type="checkbox"]');
+                if (cb && cb.checked) {
+                    label.classList.remove('tag-unchecked');
+                } else {
+                    label.classList.add('tag-unchecked');
+                }
+            }
+        }
+        var tagCheckboxes = document.querySelectorAll('.tag-badge input[type="checkbox"]');
+        for (var j = 0; j < tagCheckboxes.length; j++) {
+            tagCheckboxes[j].addEventListener('change', updateTagBadges);
+        }
+        updateTagBadges();
+
+        // If editing, load member data
+        if (memberId) {
             document.getElementById('formTitle').textContent = 'Edit Member';
-            apiFetch(`api/members/${memberId}`)
-                .then(response => response.json())
-                .then(data => {
-                    const member = data.member || data;
+            apiFetch('api/members/' + memberId)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    var member = data.member || data;
                     console.log('Loaded member:', member);
                     document.getElementById('memberId').value = member._id || '';
                     document.getElementById('firstName').value = member.firstName || '';
@@ -130,66 +150,79 @@
                     document.getElementById('relationship').value = member.relationship || '';
                     // Set tags
                     var tags = member.tags || [];
-                    Array.from(document.querySelectorAll('input[name="tags"]')).forEach(cb => {
-                        cb.checked = tags.includes(cb.value);
-                    });
+                    var tagInputs = Array.from(document.querySelectorAll('input[name="tags"]'));
+                    for (var k = 0; k < tagInputs.length; k++) {
+                        var cb = tagInputs[k];
+                        cb.checked = tags.indexOf(cb.value) !== -1;
+                    }
                 })
-                .catch(() => {
+                .catch(function() {
                     document.getElementById('formError').textContent = 'Could not load member data.';
                     document.getElementById('formError').style.display = 'block';
                 });
-        });
-    }
+        }
+    });
     // Save handler
-    document.getElementById('memberForm').onsubmit = async function(e) {
+    document.getElementById('memberForm').onsubmit = function(e) {
         e.preventDefault();
-        const form = e.target;
-        const member = {
+        var form = e.target;
+        var checkedTags = Array.from(form.querySelectorAll('input[name="tags"]:checked'));
+        var tagValues = [];
+        for (var i = 0; i < checkedTags.length; i++) {
+            tagValues.push(checkedTags[i].value);
+        }
+        
+        var member = {
             firstName: form.firstName.value,
             lastName: form.lastName.value,
             phone: form.phone.value,
             email: form.email.value,
             gender: form.gender.value,
             relationship: form.relationship.value,
-            tags: Array.from(form.querySelectorAll('input[name="tags"]:checked')).map(cb => cb.value)
+            tags: tagValues
         };
-        let url = '/api/members';
-        let method = 'POST';
+        var url = '/api/members';
+        var method = 'POST';
         if (memberId) {
-            url = `/api/members/${memberId}`;
+            url = '/api/members/' + memberId;
             method = 'PUT';
         } else {
             // For new member, need householdId
             member.householdId = householdId;
         }
-        try {
-            const res = await apiFetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(member)
-            });
+        
+        apiFetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(member)
+        })
+        .then(function(res) {
             if (res.ok) {
                 document.getElementById('formSuccess').style.display = 'block';
-                const data = await res.json();
-                // Use householdId from API response if available
-                const redirectHouseholdId = data.member && data.member.householdId ? data.member.householdId : householdId;
-                setTimeout(() => {
-                    window.location.href = `household.html?id=${redirectHouseholdId}`;
-                }, 800);
+                return res.json().then(function(data) {
+                    // Use householdId from API response if available
+                    var redirectHouseholdId = data.member && data.member.householdId ? data.member.householdId : householdId;
+                    setTimeout(function() {
+                        window.location.href = 'household.html?id=' + redirectHouseholdId;
+                    }, 800);
+                });
             } else {
-                const data = await res.json();
-                document.getElementById('formError').textContent = data.message || 'Error saving member.';
-                document.getElementById('formError').style.display = 'block';
+                return res.json().then(function(data) {
+                    document.getElementById('formError').textContent = data.message || 'Error saving member.';
+                    document.getElementById('formError').style.display = 'block';
+                });
             }
-        } catch (err) {
+        })
+        .catch(function(err) {
+            console.error('Error saving member:', err);
             document.getElementById('formError').textContent = 'Error saving member.';
             document.getElementById('formError').style.display = 'block';
-        }
+        });
     };
     // Cancel handler
     document.getElementById('cancelBtn').onclick = function(e) {
         e.preventDefault();
-        window.location.href = `household.html?id=${householdId}`;
+        window.location.href = 'household.html?id=' + householdId;
     };
     </script>
     <script src="redirect-handler.js"></script>

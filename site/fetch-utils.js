@@ -37,21 +37,18 @@ export async function apiFetch(url, options = {}) {
 
   // Build headers; only include Authorization when we have a token. Keep existing behavior where
   // options.headers can override defaults by spreading them last.
-  const defaultHeaders = {};
+  var defaultHeaders = {};
   if (authToken) {
-    defaultHeaders['Authorization'] = `Bearer ${authToken}`;
+    defaultHeaders['Authorization'] = 'Bearer ' + authToken;
   }
 
-  const defaultOptions = {
+  var defaultOptions = {
     credentials: 'include', // Send cookies with requests
-    headers: {
-      ...defaultHeaders,
-      ...(options.headers || {}),
-    },
+    headers: Object.assign({}, defaultHeaders, options.headers || {})
   };
 
   // Perform the fetch and await the response so we can inspect cookies/localStorage after.
-  const response = await fetch(url, { ...defaultOptions, ...options });
+  var response = await fetch(url, Object.assign({}, defaultOptions, options));
 
   // If the server set a cookie via Set-Cookie, the browser will update document.cookie when allowed.
   // Try reading the cookie again and persist to localStorage if it changed/appeared.
