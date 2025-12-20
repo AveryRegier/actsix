@@ -139,86 +139,153 @@
     </div>
 
     <script type="module">
+        // Polyfill Array.from for older browsers
+        if (!Array.from) {
+            Array.from = function(arrayLike) {
+                return Array.prototype.slice.call(arrayLike);
+            };
+        }
+
         import { apiFetch } from './fetch-utils.js';
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const householdId = urlParams.get('householdId');
+        document.addEventListener('DOMContentLoaded', function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var householdId = urlParams.get('householdId');
 
             if (!householdId) {
                 alert('No household ID provided');
                 return;
             }
 
-            let zipCodeData;
-            try {
-                const zipResponse = await fetch('iowa_zip_codes.json');
-                zipCodeData = await zipResponse.json();
-            } catch (error) {
-                console.warn('Zip code data is not available:', error);
-            }
+            var zipCodeData;
+            fetch('iowa_zip_codes.json')
+                .then(function(zipResponse) {
+                    return zipResponse.json();
+                })
+                .then(function(data) {
+                    zipCodeData = data;
+                    return loadHouseholdData();
+                })
+                .catch(function(error) {
+                    console.warn('Zip code data is not available:', error);
+                    return loadHouseholdData();
+                });
 
-            try {
-                const response = await apiFetch(`api/households/${householdId}`);
-                const household = await response.json();
+            function loadHouseholdData() {
 
-                document.getElementById('lastName').value = household.lastName || '';
-                document.getElementById('addressStreet').value = household.address?.street || '';
-                document.getElementById('addressCity').value = household.address?.city || '';
-                document.getElementById('addressState').value = household.address?.state || '';
-                document.getElementById('addressZipCode').value = household.address?.zipCode || '';
+                return apiFetch('api/households/' + householdId)
+                    .then(function(response) {
+                        return response.json();
+                    })
+                    .then(function(household) {
+                        document.getElementById('lastName').value = household.lastName || '';
+                        document.getElementById('addressStreet').value = household.address && household.address.street || '';
+                        document.getElementById('addressCity').value = household.address && household.address.city || '';
+                        document.getElementById('addressState').value = household.address && household.address.state || '';
+                        document.getElementById('addressZipCode').value = household.address && household.address.zipCode || '';
 
-                if (zipCodeData) {
-                    // Prefill zip code if city matches and has only one zip code
-                    const city = household.address?.city;
-                    if (city) {
-                        for (const county in zipCodeData) {
-                            const cityEntries = zipCodeData[county];
-                            if (Array.isArray(cityEntries)) {
-                                const cityData = cityEntries.find(entry => entry.city === city);
-                                if (cityData && Array.isArray(cityData.zips) && cityData.zips.length === 1) {
-                                    document.getElementById('addressZipCode').value = cityData.zips[0];
+                        if (zipCodeData) {
+                            // Prefill zip code if city matches and has only one zip code
+                            var city = household.address && household.address.city;
+                            if (city) {
+                                for (var county in zipCodeData) {
+                                    if (zipCodeData.hasOwnProperty(county)) {
+                                        var cityEntries = zipCodeData[county];
+                                        if (Array.isArray(cityEntries)) {
+                                            var cityData = null;
+                                            for (var i = 0; i < cityEntries.length; i++) {
+                                                if (cityEntries[i].city === city) {
+                                                    cityData = cityEntries[i];
+                                                    break;
+                                                }
+                                            }
+                                            if (cityData && Array.isArray(cityData.zips) && cityData.zips.length === 1) {
+                                                document.getElementById('addressZipCode').value = cityData.zips[0];
+                                            }
+                                        }
+                                    }
+                                }
+
+                            }
+
+                            // Override city if zip code matches and city does not match any valid cities for the zip code
+                            var zipCode = household.address && household.address.zipCode;
+                            var currentCity = household.address && household.address.city;
+                            if (zipCode) {
+                                for (var county2 in zipCodeData) {
+                                    if (zipCodeData.hasOwnProperty(county2)) {
+                                        var cityEntries2 = zipCodeData[county2];
+                                        if (Array.isArray(cityEntries2)) {
+                                            var validCities = [];
+                                            for (var j = 0; j < cityEntries2.length; j++) {
+                                                var entry = cityEntries2[j];
+                                                if (Array.isArray(entry.zips)) {
+                                                    for (var k = 0; k < entry.zips.length; k++) {
+                                                        if (entry.zips[k] === zipCode) {
+                                                            validCities.push(entry.city);
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            var cityFound = false;
+                                            for (var m = 0; m < validCities.length; m++) {
+                                                if (validCities[m] === currentCity) {
+                                                    cityFound = true;
+                                                    break;
+                                                }
+                                            }
+                                            if (validCities.length > 0 && !cityFound) {
+                                                document.getElementById('addressCity').value = validCities[0];
+                                                break;
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-
-                    // Override city if zip code matches and city does not match any valid cities for the zip code
-                    const zipCode = household.address?.zipCode;
-                    const currentCity = household.address?.city;
-                    if (zipCode) {
-                        for (const county in zipCodeData) {
-                            const cityEntries = zipCodeData[county];
-                            if (Array.isArray(cityEntries)) {
-                                const validCities = cityEntries.filter(entry => Array.isArray(entry.zips) && entry.zips.includes(zipCode)).map(entry => entry.city);
-                                if (validCities.length > 0 && !validCities.includes(currentCity)) {
-                                    document.getElementById('addressCity').value = validCities[0];
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error fetching household data:', error);
-                alert('Failed to load household data');
+                    })
+                    .catch(function(error) {
+                        console.error('Error fetching household data:', error);
+                        alert('Failed to load household data');
+                    });
             }
 
-            const zipField = document.getElementById('addressZipCode');
-            const cityField = document.getElementById('addressCity');
+            var zipField = document.getElementById('addressZipCode');
+            var cityField = document.getElementById('addressCity');
 
-            zipField.addEventListener('blur', () => {
+            zipField.addEventListener('blur', function() {
                 if (zipCodeData) {
-                    const zipCode = zipField.value;
-                    const currentCity = cityField.value;
+                    var zipCode = zipField.value;
+                    var currentCity = cityField.value;
                     if (zipCode) {
-                        for (const county in zipCodeData) {
-                            const cityEntries = zipCodeData[county];
-                            if (Array.isArray(cityEntries)) {
-                                const validCities = cityEntries.filter(entry => Array.isArray(entry.zips) && entry.zips.includes(zipCode)).map(entry => entry.city);
-                                if (validCities.length > 0 && !validCities.includes(currentCity)) {
-                                    cityField.value = validCities[0];
-                                    break;
+                        for (var county in zipCodeData) {
+                            if (zipCodeData.hasOwnProperty(county)) {
+                                var cityEntries = zipCodeData[county];
+                                if (Array.isArray(cityEntries)) {
+                                    var validCities = [];
+                                    for (var i = 0; i < cityEntries.length; i++) {
+                                        var entry = cityEntries[i];
+                                        if (Array.isArray(entry.zips)) {
+                                            for (var j = 0; j < entry.zips.length; j++) {
+                                                if (entry.zips[j] === zipCode) {
+                                                    validCities.push(entry.city);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    var cityFound = false;
+                                    for (var k = 0; k < validCities.length; k++) {
+                                        if (validCities[k] === currentCity) {
+                                            cityFound = true;
+                                            break;
+                                        }
+                                    }
+                                    if (validCities.length > 0 && !cityFound) {
+                                        cityField.value = validCities[0];
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -226,16 +293,24 @@
                 }
             });
 
-            cityField.addEventListener('blur', () => {
+            cityField.addEventListener('blur', function() {
                 if (zipCodeData) {
-                    const city = cityField.value;
+                    var city = cityField.value;
                     if (city) {
-                        for (const county in zipCodeData) {
-                            const cityEntries = zipCodeData[county];
-                            if (Array.isArray(cityEntries)) {
-                                const cityData = cityEntries.find(entry => entry.city === city);
-                                if (cityData && Array.isArray(cityData.zips) && cityData.zips.length === 1) {
-                                    zipField.value = cityData.zips[0];
+                        for (var county in zipCodeData) {
+                            if (zipCodeData.hasOwnProperty(county)) {
+                                var cityEntries = zipCodeData[county];
+                                if (Array.isArray(cityEntries)) {
+                                    var cityData = null;
+                                    for (var i = 0; i < cityEntries.length; i++) {
+                                        if (cityEntries[i].city === city) {
+                                            cityData = cityEntries[i];
+                                            break;
+                                        }
+                                    }
+                                    if (cityData && Array.isArray(cityData.zips) && cityData.zips.length === 1) {
+                                        zipField.value = cityData.zips[0];
+                                    }
                                 }
                             }
                         }
@@ -243,12 +318,12 @@
                 }
             });
 
-            document.getElementById('edit-household-form').addEventListener('submit', async (event) => {
+            document.getElementById('edit-household-form').addEventListener('submit', function(event) {
                 event.preventDefault();
 
-                const formData = new FormData(event.target);
+                var formData = new FormData(event.target);
 
-                const householdData = {
+                var householdData = {
                     lastName: formData.get('lastName'),
                     address: {
                         street: formData.get('addressStreet') || '',
@@ -261,25 +336,26 @@
                     notes: formData.get('notes')
                 };
 
-                try {
-                    const response = await apiFetch(`api/households/${householdId}`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(householdData),
-                    });
-
+                apiFetch('api/households/' + householdId, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(householdData)
+                })
+                .then(function(response) {
                     if (response.ok) {
-                        window.location.href = document.referrer ?? `household.html?id=${householdId}`;
+                        var redirectUrl = document.referrer || ('household.html?id=' + householdId);
+                        window.location.href = redirectUrl;
                     } else {
                         console.error('Failed to update household:', response.statusText);
                         alert('Failed to update household. Please try again.');
                     }
-                } catch (error) {
+                })
+                .catch(function(error) {
                     console.error('Error updating household:', error);
                     alert('An error occurred while updating the household. Please try again.');
-                }
+                });
             });
         });
     </script>
