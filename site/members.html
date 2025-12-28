@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Members - Deacon Care System</title>
     <link rel="stylesheet" href="site.css">
+    <style>
+        .tag-filter-container {
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .tag-filter {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -24,7 +37,14 @@
                     <th onclick="sortTable('firstName')">First Name &#x25B2;&#x25BC;</th>
                     <th>Phone</th>
                     <th>Email</th>
-                    <th>Tags</th>
+                    <th>
+                        Tags
+                        <span class="tag-filter-container">
+                            <select id="tagFilter" class="tag-filter" onchange="filterByTag()">
+                                <option value="">All Tags</option>
+                            </select>
+                        </span>
+                    </th>
                 </tr>
             </thead>
             <tbody id="memberTableBody"></tbody>
@@ -51,10 +71,42 @@
 
     let membersCache = [];
     let currentSort = { key: 'lastName', asc: true };
+    let currentTagFilter = '';
     async function fetchMembers() {
         const res = await apiFetch('/api/members');
         const data = await res.json();
         return data.members || [];
+    }
+    function getAllTags() {
+        const tagsSet = new Set();
+        membersCache.forEach(member => {
+            if (member.tags && Array.isArray(member.tags)) {
+                member.tags.forEach(tag => tagsSet.add(tag));
+            }
+        });
+        return Array.from(tagsSet).sort();
+    }
+    function populateTagFilter() {
+        const tagFilter = document.getElementById('tagFilter');
+        const tags = getAllTags();
+        tagFilter.innerHTML = '<option value="">All Tags</option>';
+        tags.forEach(tag => {
+            const option = document.createElement('option');
+            option.value = tag;
+            option.textContent = tag
+                .split('-')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+            if (tag === currentTagFilter) {
+                option.selected = true;
+            }
+            tagFilter.appendChild(option);
+        });
+    }
+    window.filterByTag = function() {
+        const tagFilter = document.getElementById('tagFilter');
+        currentTagFilter = tagFilter.value;
+        renderMemberTable();
     }
     function sortTable(key) {
         if (currentSort.key === key) {
@@ -69,12 +121,20 @@
         if (!membersCache.length) {
             membersCache = await fetchMembers();
         }
+        populateTagFilter();
         const tbody = document.getElementById('memberTableBody');
         if (!membersCache.length) {
             tbody.innerHTML = '<tr><td colspan="5">No members found.</td></tr>';
             return;
         }
-        membersCache.sort((a, b) => {
+        // Filter by tag
+        let filteredMembers = membersCache;
+        if (currentTagFilter) {
+            filteredMembers = membersCache.filter(member => 
+                member.tags && member.tags.includes(currentTagFilter)
+            );
+        }
+        filteredMembers.sort((a, b) => {
             let ka = (a[currentSort.key] || '').toLowerCase();
             let kb = (b[currentSort.key] || '').toLowerCase();
             if (ka < kb) return currentSort.asc ? -1 : 1;
@@ -89,7 +149,11 @@
             return 0;
         });
         tbody.innerHTML = '';
-        membersCache.forEach(member => {
+        if (!filteredMembers.length) {
+            tbody.innerHTML = '<tr><td colspan="5">No members found with the selected tag.</td></tr>';
+            return;
+        }
+        filteredMembers.forEach(member => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><a class="member-link" href="household.html?id=${encodeURIComponent(member.householdId)}">${member.lastName}</a></td>
