@@ -436,11 +436,11 @@ function displayHouseholdInfo(household) {
             ` : ''}
             ${household.primaryPhone ? `
                 <span class="info-label">Primary Phone</span>
-                <span class="info-value">${household.primaryPhone}</span>
+                <span class="info-value"><a href="tel:${encodeURIComponent(household.primaryPhone)}" style="color:#667eea;text-decoration:none;">${household.primaryPhone}</a></span>
             ` : ''}
             ${household.email ? `
                 <span class="info-label">Email</span>
-                <span class="info-value">${household.email}</span>
+                <span class="info-value"><a href="mailto:${household.email}" style="color:#667eea;text-decoration:none;">${household.email}</a></span>
             ` : ''}
         </div>
         ${household.notes ? `
@@ -512,11 +512,11 @@ function displayMembers(members) {
                 ` : ''}
                 ${member.phone ? `
                     <span class="info-label">Phone</span>
-                    <span class="info-value">${member.phone}</span>
+                    <span class="info-value"><a href="tel:${encodeURIComponent(member.phone)}" style="color:#667eea;text-decoration:none;">${member.phone}</a></span>
                 ` : ''}
                 ${member.email ? `
                     <span class="info-label">Email</span>
-                    <span class="info-value">${member.email}</span>
+                    <span class="info-value"><a href="mailto:${member.email}" style="color:#667eea;text-decoration:none;">${member.email}</a></span>
                 ` : ''}
             </div>
             ${member.notes ? `
