@@ -106,7 +106,7 @@
         currentTagFilter = tagFilter.value;
         renderMemberTable();
     }
-    function sortTable(key) {
+    window.sortTable = function(key) {
         if (currentSort.key === key) {
             currentSort.asc = !currentSort.asc;
         } else {
