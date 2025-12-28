@@ -167,10 +167,12 @@ export default function registerContactRoutes(app) {
 
       let contacts = await Promise.all(members.map(m => m._id).map(async memberId => {
         const memberContacts = await safeCollectionFindOne('contacts', { memberId: {$in: [memberId]} }, {
-          sort: { _id: -1 }
+          sort: { contactDate: -1 }
         });
         return memberContacts;
       }));
+      contacts = contacts.filter(c => c); // remove nulls
+      contacts.sort((a, b) => new Date(b.contactDate) - new Date(a.contactDate));
       // if (members && members.length) {
       //   contacts = await safeCollectionFind('contacts', { memberId: { $in: members.map(m => m._id) } }) || [];
       // }
