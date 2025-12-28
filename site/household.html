@@ -427,13 +427,29 @@ function displayHouseholdInfo(household) {
     document.getElementById('householdTitle').textContent = `${household.lastName} Household`;
     
     const householdInfo = document.getElementById('householdInfo');
+    
+    // Build address link if address exists
+    let addressHtml = '';
+    if (household.address && household.address.street) {
+        const addressParts = [
+            household.address.street,
+            household.address.city,
+            household.address.state,
+            household.address.zipCode
+        ].filter(part => part);
+        const addressQuery = encodeURIComponent(addressParts.join(', '));
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${addressQuery}`;
+        const displayAddress = `${household.address.street}${household.address.city ? `<br>${household.address.city}` : ''}${household.address.state ? `, ${household.address.state}` : ''}${household.address.zipCode ? ` ${household.address.zipCode}` : ''}`;
+        addressHtml = `
+            <span class="info-label">Address</span>
+            <span class="info-value"><a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" style="color:#667eea;text-decoration:none;">${displayAddress}</a></span>
+        `;
+    }
+    
     householdInfo.innerHTML = `
         <h3>${household.lastName} Household</h3>
         <div class="info-grid">
-            ${household.address ? `
-                <span class="info-label">Address</span>
-                <span class="info-value">${household.address.street}${household.address.city ? `<br>${household.address.city}` : ''}${household.address.state ? `, ${household.address.state}` : ''}${household.address.zipCode ? ` ${household.address.zipCode}` : ''}</span>
-            ` : ''}
+            ${addressHtml}
             ${household.primaryPhone ? `
                 <span class="info-label">Primary Phone</span>
                 <span class="info-value"><a href="tel:${encodeURIComponent(household.primaryPhone)}" style="color:#667eea;text-decoration:none;">${household.primaryPhone}</a></span>
