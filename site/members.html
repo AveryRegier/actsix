@@ -35,8 +35,6 @@
                 <tr>
                     <th onclick="sortTable('lastName')">Last Name &#x25B2;&#x25BC;</th>
                     <th onclick="sortTable('firstName')">First Name &#x25B2;&#x25BC;</th>
-                    <th>Phone</th>
-                    <th>Email</th>
                     <th>
                         Tags
                         <span class="tag-filter-container">
@@ -124,7 +122,7 @@
         populateTagFilter();
         const tbody = document.getElementById('memberTableBody');
         if (!membersCache.length) {
-            tbody.innerHTML = '<tr><td colspan="5">No members found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3">No members found.</td></tr>';
             return;
         }
         // Filter by tag
@@ -150,7 +148,7 @@
         });
         tbody.innerHTML = '';
         if (!filteredMembers.length) {
-            tbody.innerHTML = '<tr><td colspan="5">No members found with the selected tag.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3">No members found with the selected tag.</td></tr>';
             return;
         }
         filteredMembers.forEach(member => {
@@ -158,8 +156,6 @@
             tr.innerHTML = `
                 <td><a class="member-link" href="household.html?id=${encodeURIComponent(member.householdId)}">${member.lastName}</a></td>
                 <td><a class="member-link" href="household.html?id=${encodeURIComponent(member.householdId)}">${member.firstName}</a></td>
-                <td>${member.phone || ''}</td>
-                <td>${member.email || ''}</td>
                 <td>${(member.tags || []).map(tag => `<span class='status-badge'>${tag}</span>`).join(' ')}</td>
             `;
             tbody.appendChild(tr);
