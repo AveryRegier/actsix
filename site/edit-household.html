@@ -108,19 +108,19 @@
             </div>
             <div class="form-group">
                 <label for="addressStreet">Street</label>
-                <input type="text" id="addressStreet" name="addressStreet" required>
+                <input type="text" id="addressStreet" name="addressStreet">
             </div>
             <div class="form-group">
                 <label for="addressCity">City</label>
-                <input type="text" id="addressCity" name="addressCity" required>
+                <input type="text" id="addressCity" name="addressCity">
             </div>
             <div class="form-group">
                 <label for="addressState">State</label>
-                <input type="text" id="addressState" name="addressState" required>
+                <input type="text" id="addressState" name="addressState">
             </div>
             <div class="form-group">
                 <label for="addressZipCode">Zip Code</label>
-                <input type="text" id="addressZipCode" name="addressZipCode" required>
+                <input type="text" id="addressZipCode" name="addressZipCode">
             </div>
             <div class="form-group">
                 <label for="primaryPhone">Primary Phone</label>
@@ -211,6 +211,7 @@
                             // Override city if zip code matches and city does not match any valid cities for the zip code
                             var zipCode = household.address && household.address.zipCode;
                             var currentCity = household.address && household.address.city;
+                            document.getElementById('addressCity').value = currentCity || '';
                             if (zipCode) {
                                 for (var county2 in zipCodeData) {
                                     if (zipCodeData.hasOwnProperty(county2)) {
@@ -323,18 +324,27 @@
 
                 var formData = new FormData(event.target);
 
+                var street = formData.get('addressStreet') || '';
+                var city = formData.get('addressCity') || '';
+                var state = formData.get('addressState') || '';
+                var zipCode = formData.get('addressZipCode') || '';
+
                 var householdData = {
                     lastName: formData.get('lastName'),
-                    address: {
-                        street: formData.get('addressStreet') || '',
-                        city: formData.get('addressCity') || '',
-                        state: formData.get('addressState') || '',
-                        zipCode: formData.get('addressZipCode') || ''
-                    },
                     primaryPhone: formData.get('primaryPhone'),
                     email: formData.get('email'),
                     notes: formData.get('notes')
                 };
+
+                // Only include address if at least one field has a value
+                if (street || city || state || zipCode) {
+                    householdData.address = {
+                        street: street,
+                        city: city,
+                        state: state,
+                        zipCode: zipCode
+                    };
+                }
 
                 apiFetch('api/households/' + householdId, {
                     method: 'PATCH',
