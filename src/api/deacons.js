@@ -68,7 +68,11 @@ export default function registerDeaconRoutes(app) {
 
       // Filter contacts to only those belonging to these members
       const householdMemberIds = new Set(members.map(m => m._id));
-      const relevantContacts = (contacts || []).filter(ct => ct.memberId && ct.memberId.some(id => householdMemberIds.has(id)));
+      const relevantContacts = (contacts || []).filter(ct => {
+        if(!ct.memberId) return false;
+        ct.memberId = Array.isArray(ct.memberId) ? ct.memberId : [ct.memberId];
+        return ct.memberId.some(id => householdMemberIds.has(id));
+      });
 
       // Build last contact per household map
       const lastContactByHousehold = new Map();
