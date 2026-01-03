@@ -8,6 +8,7 @@ import registerAssignmentRoutes from './api/assignments.js'
 import registerDeaconRoutes from './api/deacons.js'
 import registerContactRoutes from './api/contacts.js'
 import registerEmailLoginRoutes from './auth/email-login.js'
+import registerContactFormRoutes from './form/contact-form.js'
 import logger, {getLogger, follow, addContexts, addContext } from './util/logger.js';
 import { statSync } from 'fs'
 
@@ -72,6 +73,9 @@ export function createApp() {
 
   registerEmailLoginRoutes(app)
   // registerOidcRoutes(app)
+
+  // Form routes (must be after auth middleware)
+  registerContactFormRoutes(app)
 
   // API Health check endpoint
   app.get('/api', (c) => {

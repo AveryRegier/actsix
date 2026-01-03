@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Record Contact - Deacon Care System</title>
+    <script>
+        // Polyfill Array.from for older browsers (must load first)
+        if (!Array.from) {
+            Array.from = function(arrayLike) {
+                return Array.prototype.slice.call(arrayLike);
+            };
+        }
+    </script>
     <link rel="stylesheet" href="site.css">
 </head>
 <body>
@@ -17,7 +25,8 @@
             </h1>
         </div>
         <div class="content">
-            <form id="contact-form">
+            <form id="contact-form" action="/form/record-contact" method="POST">
+                <input type="hidden" id="householdId" name="householdId" value="">
                 <div class="form-group">
                     <label for="contact-date">Contact Date</label>
                     <!-- dynamically preset to today's date -->
@@ -70,13 +79,6 @@
         </div>
     </div>
     <script>
-        // Polyfill Array.from for older browsers
-        if (!Array.from) {
-            Array.from = function(arrayLike) {
-                return Array.prototype.slice.call(arrayLike);
-            };
-        }
-
         // Load reusable navigation bar and initialize page
         document.addEventListener('DOMContentLoaded', async function() {
             // Load navigation first
@@ -98,6 +100,12 @@
             // get household id from request parameter
             const urlParams = new URLSearchParams(window.location.search);
             const currentHouseholdId = urlParams.get('householdId');
+            
+            // Set hidden field value
+            const householdIdInput = document.getElementById('householdId');
+            if (householdIdInput && currentHouseholdId) {
+                householdIdInput.value = currentHouseholdId;
+            }
 
             // Dynamically preset contact date to today
             const contactDateInput = document.getElementById('contact-date');
@@ -243,11 +251,8 @@
             closeParticipantModal();
         }
 
-        document.getElementById('contact-form').addEventListener('submit', async function(event) {
-            event.preventDefault();
-
-            var formData = new FormData(event.target);
-
+        // Form validation before submit (no async/fetch needed)
+        document.getElementById('contact-form').addEventListener('submit', function(event) {
             // Get all members and selected members
             var allMembers = Array.from(document.querySelectorAll('#membersSection input'));
             var selectedMembers = Array.from(document.querySelectorAll('#membersSection input:checked'));
@@ -255,58 +260,18 @@
             // Automatically select the single member if only one exists
             if (selectedMembers.length === 0 && allMembers.length === 1) {
                 allMembers[0].checked = true;
+                selectedMembers = [allMembers[0]];
             }
-            selectedMembers = Array.from(document.querySelectorAll('#membersSection input:checked'));
             
             // Require at least one member to be selected
             if (selectedMembers.length === 0) {
+                event.preventDefault();
                 alert('Please select at least one member.');
-                return;
-            }
-
-            // Format the body to match the requirements of the /api/contacts REST API
-            var memberIds = [];
-            var memberCheckboxes = document.querySelectorAll('#membersSection input:checked');
-            for (var i = 0; i < memberCheckboxes.length; i++) {
-                memberIds.push(memberCheckboxes[i].value);
+                return false;
             }
             
-            var deaconIds = [];
-            var deaconCheckboxes = document.querySelectorAll('#deaconsSection input:checked');
-            for (var j = 0; j < deaconCheckboxes.length; j++) {
-                deaconIds.push(deaconCheckboxes[j].value);
-            }
-            
-            var contactData = {
-                memberId: memberIds,
-                deaconId: deaconIds,
-                contactType: formData.get('contactType'),
-                summary: formData.get('summary'),
-                contactDate: new Date(formData.get('contactDate')).toISOString(),
-                followUpRequired: false
-            };
-
-            try {
-                var response = await fetch('api/contacts', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(contactData)
-                });
-
-                if (response.ok) {
-                    var urlParams = new URLSearchParams(window.location.search);
-                    var currentHouseholdId = urlParams.get('householdId');
-                    window.location.href = '/household.html?id=' + currentHouseholdId;
-                } else {
-                    console.error('Failed to submit contact:', response.statusText);
-                    alert('Failed to submit contact. Please try again.');
-                }
-            } catch (error) {
-                console.error('Error submitting contact:', error);
-                alert('An error occurred while submitting the contact. Please try again.');
-            }
+            // Form will submit normally to /form/record-contact
+            return true;
         });
     </script>
     <script src="redirect-handler.js"></script>
