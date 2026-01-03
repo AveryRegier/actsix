@@ -2,6 +2,22 @@
 
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
+## Architecture Layers
+
+**Respect layer boundaries - do NOT bypass:**
+
+- **Site** (`site/*.html`) - Static pages, client JS for display only
+- **Form** (`src/form/*`) - POST handlers → call `/api/*` → redirect browser
+- **API** (`src/api/*`) - JSON endpoints → business logic → `safeCollection*`
+- **Auth** (`src/auth/*`) - Middleware sets `c.req.memberId`, `c.req.role`
+- **Data** (`src/util/helpers.js`) - `safeCollection*` functions only
+
+**Rules:**
+- Form layer calls API layer (never direct DB)
+- API layer contains all validation and business logic
+- Use `verifyRole(c, ['deacon','staff'])` for authorization
+- Register routes: `export default function register*Routes(app)`
+
 ## Quick Reference
 
 ```bash
