@@ -1,5 +1,6 @@
 import { verifyRole } from '../auth/auth.js';
 import { getLogger } from '../util/logger.js';
+import { safeCollectionInsert } from '../util/helpers.js';
 
 export default function registerContactFormRoutes(app) {
   app.post('/form/record-contact', async (c) => {
@@ -60,50 +61,28 @@ export default function registerContactFormRoutes(app) {
         followUpRequired: formData.followUpRequired === 'true' || formData.followUpRequired === true
       };
 
-      logger.info('Submitting contact data to API', { contactData });
+      logger.info('Creating contact via data layer', { contactData });
 
-      // Call the existing API endpoint internally
-      const apiRequest = new Request(new URL('/api/contacts', c.req.url), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(contactData)
-      });
+      // Validate contact type (business logic from API layer)
+      const validContactTypes = ['phone', 'visit', 'church', 'text', 'voicemail'];
+      if (!validContactTypes.includes(contactData.contactType)) {
+        throw new Error(`Invalid contactType. Must be one of: ${validContactTypes.join(', ')}`);
+      }
 
-      // Create a new context for the API call with auth info
-      const apiResponse = await app.fetch(apiRequest, {
-        ...c.env,
-        req: {
-          ...c.req,
-          memberId: c.req.memberId,
-          role: c.req.role
-        }
-      });
+      // Add timestamps
+      contactData.createdAt = new Date().toISOString();
 
-      if (apiResponse.ok) {
+      // Call data layer directly (respects architecture: Form → Data)
+      const result = await safeCollectionInsert('contacts', contactData);
+
+      if (result && result.insertedId) {
         // Success - redirect to household page
-        logger.info('Contact created successfully, redirecting', { householdId });
+        logger.info('Contact created successfully, redirecting', { householdId, contactId: result.insertedId });
         return c.redirect(`/household.html?id=${householdId}`);
       } else {
-        // API returned an error
-        const errorData = await apiResponse.json().catch(() => ({ error: 'Unknown error' }));
-        logger.error('API error creating contact', { status: apiResponse.status, error: errorData });
-        
-        return c.html(`
-          <!DOCTYPE html>
-          <html>
-          <head><title>Error</title><link rel="stylesheet" href="/site.css"></head>
-          <body>
-            <div class="container">
-              <h1>Error Recording Contact</h1>
-              <p>${errorData.message || errorData.error || 'Failed to record contact'}</p>
-              <a href="/record-contact.html?householdId=${householdId}" class="btn">Try Again</a>
-              <a href="/household.html?id=${householdId}" class="btn">Cancel</a>
-            </div>
-          </body>
-          </html>
-        `, apiResponse.status);
+        // Insert failed
+        logger.error('Failed to insert contact', { result });
+        throw new Error('Failed to create contact record');
       }
     } catch (error) {
       logger.error(error, 'Error processing contact form:');
