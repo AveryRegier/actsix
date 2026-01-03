@@ -21,14 +21,26 @@ export default function registerEmailLoginRoutes(app) {
                 }
             }
 
+            // Check for JWT in Authorization header (for server-to-server calls)
+            const authHeader = (c.req.header('authorization') || '').toString();
+            if (authHeader.startsWith('Bearer ')) {
+                const token = authHeader.slice(7);
+                const decoded = verifyToken(token);
+                if (decoded) {
+                    c.req.memberId = addContext("memberId", decoded.id);
+                    c.req.role = addContext("role", decoded.role);
+                    logger.info("authenticated via Authorization header");
+                    return await next();
+                }
+            }
+
             // Extract API-key header for scripted generation (fast automation). If provided and matches
             // the configured GENERATION_API_KEY, consider the request authenticated as a script user.
             const generationKey = process.env.GENERATION_API_KEY;
-            const authHeader = (c.req.header('authorization') || '').toString();
             const xApiKey = c.req.header('x-api-key') || '';
 
-            if (generationKey && (authHeader.startsWith('Bearer ') || xApiKey)) {
-                const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : xApiKey;
+            if (generationKey && xApiKey) {
+                const token = xApiKey;
                 if (token === generationKey) {
                     // Authenticated as a scripted generator: grant high privileges for seeding
                     const memberId = 'script-generator';
