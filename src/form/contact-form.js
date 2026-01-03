@@ -1,5 +1,6 @@
 import { verifyRole } from '../auth/auth.js';
 import { getLogger } from '../util/logger.js';
+import { getCookie } from 'hono/cookie';
 
 export default function registerContactFormRoutes(app) {
   app.post('/form/record-contact', async (c) => {
@@ -62,48 +63,32 @@ export default function registerContactFormRoutes(app) {
 
       logger.info('Submitting contact data to API', { contactData });
 
-      // Call the existing API endpoint internally
-      const apiRequest = new Request(new URL('/api/contacts', c.req.url), {
+      // Get JWT token from cookie to pass to API
+      const jwtToken = getCookie(c, 'actsix');
+      
+      if (!jwtToken) {
+        throw new Error('No authentication token found');
+      }
+
+      // Call the existing API endpoint via HTTP with Authorization header
+      const apiUrl = new URL('/api/contacts', c.req.url);
+      const apiResponse = await fetch(apiUrl.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`
         },
         body: JSON.stringify(contactData)
       });
 
-      // Create a new context for the API call with auth info
-      const apiResponse = await app.fetch(apiRequest, {
-        ...c.env,
-        req: {
-          ...c.req,
-          memberId: c.req.memberId,
-          role: c.req.role
-        }
-      });
-
       if (apiResponse.ok) {
-        // Success - redirect to household page
-        logger.info('Contact created successfully, redirecting', { householdId });
+        const result = await apiResponse.json();
+        logger.info('Contact created successfully', { contactId: result.id });
         return c.redirect(`/household.html?id=${householdId}`);
       } else {
-        // API returned an error
-        const errorData = await apiResponse.json().catch(() => ({ error: 'Unknown error' }));
-        logger.error('API error creating contact', { status: apiResponse.status, error: errorData });
-        
-        return c.html(`
-          <!DOCTYPE html>
-          <html>
-          <head><title>Error</title><link rel="stylesheet" href="/site.css"></head>
-          <body>
-            <div class="container">
-              <h1>Error Recording Contact</h1>
-              <p>${errorData.message || errorData.error || 'Failed to record contact'}</p>
-              <a href="/record-contact.html?householdId=${householdId}" class="btn">Try Again</a>
-              <a href="/household.html?id=${householdId}" class="btn">Cancel</a>
-            </div>
-          </body>
-          </html>
-        `, apiResponse.status);
+        const errorText = await apiResponse.text();
+        logger.error('API error:', errorText);
+        throw new Error(`API request failed: ${apiResponse.status} ${errorText}`);
       }
     } catch (error) {
       logger.error(error, 'Error processing contact form:');

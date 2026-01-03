@@ -14,6 +14,7 @@ This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get sta
 
 **Rules:**
 - Form layer calls API layer (never direct DB)
+- Form → API calls use HTTP with JWT in Authorization header
 - API layer contains all validation and business logic
 - Use `verifyRole(c, ['deacon','staff'])` for authorization
 - Register routes: `export default function register*Routes(app)`
