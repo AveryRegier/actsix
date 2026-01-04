@@ -148,8 +148,8 @@
     <!-- End of Member Form -->
 
     <!-- Edit Member Modal -->
-    <div id="editMemberModal" class="modal">
-        <div class="modal-content" style="display:none;">
+    <div id="editMemberModal" class="modal" style="display:none;">
+        <div class="modal-content">
             <span class="close" onclick="closeEditModal()">&times;</span>
             <h2>Edit Member</h2>
             <form id="editMemberForm">
@@ -259,6 +259,19 @@
         </div>
     </div>
 
+    <script>
+    // Polyfill for Array.from (iOS 8-10 compatibility)
+    if (!Array.from) {
+        Array.from = function(arrayLike) {
+            var items = [];
+            for (var i = 0; i < arrayLike.length; i++) {
+                items.push(arrayLike[i]);
+            }
+            return items;
+        };
+    }
+    </script>
+
     <script type="module">
 import { apiFetch } from './fetch-utils.js';
 import { getContactedBy } from './contact-utils.js';
@@ -298,18 +311,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (currentHouseholdId) {
         loadHouseholdData();
         loadContactHistory();
-    // Set add member link (guarded)
-    const addMemberBtn = document.getElementById('addMemberBtn');
-    if (addMemberBtn) addMemberBtn.href = `edit-member.html?householdId=${currentHouseholdId}`;
-    // Set assign deacon button link (guarded)
-    const assignDeaconBtn = document.getElementById('assignDeaconBtn');
-    if (assignDeaconBtn) assignDeaconBtn.href = `assign-deacons.html?householdId=${currentHouseholdId}`;
-    // Set record contact link (may be created later when contact history is rendered)
-    const recordContactAnchor = document.querySelector('a[href="record-contact.html?householdId="]');
-    if (recordContactAnchor) recordContactAnchor.href = `record-contact.html?householdId=${currentHouseholdId}`;
-    // Set edit household link (guarded)
-    const editHouseholdBtn = document.getElementById('editHouseholdBtn');
-    if (editHouseholdBtn) editHouseholdBtn.href = `edit-household.html?householdId=${currentHouseholdId}`;
+        // Set add member link (guarded)
+        const addMemberBtn = document.getElementById('addMemberBtn');
+        if (addMemberBtn) addMemberBtn.href = `edit-member.html?householdId=${currentHouseholdId}`;
+        // Set assign deacon button link (guarded)
+        const assignDeaconBtn = document.getElementById('assignDeaconBtn');
+        if (assignDeaconBtn) assignDeaconBtn.href = `assign-deacons.html?householdId=${currentHouseholdId}`;
+        // Set record contact link (may be created later when contact history is rendered)
+        const recordContactAnchor = document.querySelector('a[href="record-contact.html?householdId="]');
+        if (recordContactAnchor) recordContactAnchor.href = `record-contact.html?householdId=${currentHouseholdId}`;
+        // Set edit household link (guarded)
+        const editHouseholdBtn = document.getElementById('editHouseholdBtn');
+        if (editHouseholdBtn) editHouseholdBtn.href = `edit-household.html?householdId=${currentHouseholdId}`;
     } else {
         showError('No household ID provided');
     }
@@ -629,8 +642,13 @@ async function editMember(memberId) {
             checkbox.checked = member.tags && member.tags.includes(checkbox.value);
         });
         
-        // Show modal
-        document.getElementById('editMemberModal').style.display = 'block';
+        // Show modal - both overlay and content
+        const modal = document.getElementById('editMemberModal');
+        modal.style.display = 'block';
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.style.display = 'block';
+        }
     } catch (error) {
         alert('Error loading member data');
     }
@@ -638,7 +656,12 @@ async function editMember(memberId) {
 
 // Close edit modal
 function closeEditModal() {
-    document.getElementById('editMemberModal').style.display = 'none';
+    const modal = document.getElementById('editMemberModal');
+    modal.style.display = 'none';
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.style.display = 'none';
+    }
 }
 
 // Close modal when clicking outside

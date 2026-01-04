@@ -44,7 +44,7 @@ export async function findMemberByEmail(email) {
 export function generateToken(user) {
     const role = (user.tags || []).includes('deacon') ? 'deacon' : ((user.tags || []).includes('staff') ? 'staff' : null);
 
-    const token = jwt.sign({ id: user._id, email: user.email, role }, process.env.JWT_SECRET, { expiresIn: '60d' });
+    const token = jwt.sign({ id: user._id, email: user.email, role }, process.env.JWT_SECRET, { expiresIn: '361d' });
     return token;
 }
 
