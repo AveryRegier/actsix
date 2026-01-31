@@ -258,6 +258,74 @@
             var zipField = document.getElementById('addressZipCode');
             var cityField = document.getElementById('addressCity');
             var stateField = document.getElementById('addressState');
+            var streetField = document.getElementById('addressStreet');
+
+            // Parse full address pasted into street field
+            streetField.addEventListener('input', function() {
+                var value = streetField.value;
+                
+                // Check if value contains a zip code pattern (5 digits or 5+4 format)
+                var zipMatch = value.match(/\b(\d{5}(?:-\d{4})?)\b/);
+                
+                if (zipMatch) {
+                    var extractedZip = zipMatch[1];
+                    
+                    // Try to parse the full address
+                    // Common formats: "123 Main St, Des Moines, IA 50301" or "123 Main St, Des Moines IA 50301"
+                    var parts = value.split(',').map(function(p) { return p.trim(); });
+                    
+                    if (parts.length >= 2) {
+                        // First part is street
+                        var street = parts[0];
+                        
+                        var extractedState = '';
+                        var extractedCity = '';
+                        
+                        if (parts.length === 3) {
+                            // Format: "street, city, state zip"
+                            extractedCity = parts[1];
+                            var stateZip = parts[2];
+                            var stateMatch = stateZip.match(/\b([A-Z]{2}|Iowa|iowa)\b/i);
+                            if (stateMatch) {
+                                extractedState = stateMatch[1].toUpperCase();
+                                if (extractedState === 'IOWA') extractedState = 'IA';
+                            }
+                        } else {
+                            // Format: "street, city state zip" (only 2 parts)
+                            var lastPart = parts[parts.length - 1];
+                            
+                            // Extract zip from last part
+                            var zipInLast = lastPart.match(/\b(\d{5}(?:-\d{4})?)\b/);
+                            if (zipInLast) {
+                                // Remove zip from last part to get city/state
+                                var cityStatePart = lastPart.replace(zipInLast[0], '').trim();
+                                
+                                // Try to extract state (2-letter code or full name at end)
+                                var stateMatch2 = cityStatePart.match(/\b([A-Z]{2}|Iowa|iowa)\s*$/i);
+                                
+                                if (stateMatch2) {
+                                    extractedState = stateMatch2[1].toUpperCase();
+                                    if (extractedState === 'IOWA') extractedState = 'IA';
+                                    extractedCity = cityStatePart.replace(stateMatch2[0], '').trim();
+                                } else {
+                                    extractedCity = cityStatePart;
+                                }
+                            }
+                        }
+                        
+                        // Update fields - set city BEFORE zip so validation can check it
+                        streetField.value = street;
+                        if (extractedCity) cityField.value = extractedCity;
+                        if (extractedState) stateField.value = extractedState;
+                        zipField.value = extractedZip;
+                        
+                        // Trigger zip field blur to auto-fill city/state from zip data if available
+                        setTimeout(function() {
+                            zipField.dispatchEvent(new Event('blur'));
+                        }, 0);
+                    }
+                }
+            });
 
             zipField.addEventListener('blur', function() {
                 if (zipCodeData) {
@@ -265,16 +333,21 @@
                     var currentCity = cityField.value;
                     if (zipCode) {
                         var zipFound = false;
+                        var validCities = [];
+                        
+                        // Extract 5-digit portion for validation (handle ZIP+4 format)
+                        var zipBase = zipCode.split('-')[0];
+                        
+                        // Collect all valid cities for this zip code
                         for (var county in zipCodeData) {
                             if (zipCodeData.hasOwnProperty(county)) {
                                 var cityEntries = zipCodeData[county];
                                 if (Array.isArray(cityEntries)) {
-                                    var validCities = [];
                                     for (var i = 0; i < cityEntries.length; i++) {
                                         var entry = cityEntries[i];
                                         if (Array.isArray(entry.zips)) {
                                             for (var j = 0; j < entry.zips.length; j++) {
-                                                if (entry.zips[j] === zipCode) {
+                                                if (entry.zips[j] === zipBase) {
                                                     validCities.push(entry.city);
                                                     zipFound = true;
                                                     break;
@@ -282,20 +355,24 @@
                                             }
                                         }
                                     }
-                                    var cityFound = false;
-                                    for (var k = 0; k < validCities.length; k++) {
-                                        if (validCities[k] === currentCity) {
-                                            cityFound = true;
-                                            break;
-                                        }
-                                    }
-                                    if (validCities.length > 0 && !cityFound) {
-                                        cityField.value = validCities[0];
-                                        break;
-                                    }
                                 }
                             }
                         }
+                        
+                        // Check if current city is valid for this zip code
+                        var cityFound = false;
+                        for (var k = 0; k < validCities.length; k++) {
+                            if (validCities[k] === currentCity) {
+                                cityFound = true;
+                                break;
+                            }
+                        }
+                        
+                        // Only change city if current value is not valid for this zip
+                        if (validCities.length > 0 && !cityFound) {
+                            cityField.value = validCities[0];
+                        }
+                        
                         // If zip code found in Iowa data, set state to IA
                         if (zipFound) {
                             stateField.value = 'IA';
