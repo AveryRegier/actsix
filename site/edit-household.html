@@ -257,12 +257,14 @@
 
             var zipField = document.getElementById('addressZipCode');
             var cityField = document.getElementById('addressCity');
+            var stateField = document.getElementById('addressState');
 
             zipField.addEventListener('blur', function() {
                 if (zipCodeData) {
                     var zipCode = zipField.value;
                     var currentCity = cityField.value;
                     if (zipCode) {
+                        var zipFound = false;
                         for (var county in zipCodeData) {
                             if (zipCodeData.hasOwnProperty(county)) {
                                 var cityEntries = zipCodeData[county];
@@ -274,6 +276,7 @@
                                             for (var j = 0; j < entry.zips.length; j++) {
                                                 if (entry.zips[j] === zipCode) {
                                                     validCities.push(entry.city);
+                                                    zipFound = true;
                                                     break;
                                                 }
                                             }
@@ -292,6 +295,10 @@
                                     }
                                 }
                             }
+                        }
+                        // If zip code found in Iowa data, set state to IA
+                        if (zipFound) {
+                            stateField.value = 'IA';
                         }
                     }
                 }
