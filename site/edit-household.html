@@ -183,6 +183,9 @@
                         document.getElementById('addressCity').value = household.address && household.address.city || '';
                         document.getElementById('addressState').value = household.address && household.address.state || '';
                         document.getElementById('addressZipCode').value = household.address && household.address.zipCode || '';
+                        document.getElementById('primaryPhone').value = household.primaryPhone || '';
+                        document.getElementById('email').value = household.email || '';
+                        document.getElementById('notes').value = household.notes || '';
 
                         if (zipCodeData) {
                             // Prefill zip code if city matches and has only one zip code
