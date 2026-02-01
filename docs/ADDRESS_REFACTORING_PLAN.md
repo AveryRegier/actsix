@@ -125,19 +125,19 @@ export function formatAddressForMaps(addressObj) { ... }
    - Uses utility functions instead of inline logic
    - All existing functionality preserved and tested
 
-#### Phase 2: Refactor Other Pages (Next)
+#### Phase 2: Refactor Other Pages ✅ COMPLETED
 
-1. **Update `household.html`**
-   - Import address-utils.js
+1. **✅ Update `household.html`**
+   - Import address-utils.js as ES6 module
    - Use `formatAddressForDisplay()` for consistent display
    - Use `formatAddressForMaps()` for Google Maps links
 
-2. **Update `record-contact.html`**
-   - Import address-utils.js
+2. **✅ Update `record-contact.html`**
+   - Import address-utils.js as ES6 module
    - Use `formatAddressForDisplay()` for address display
 
-3. **Update `deacon-quick-contact.html`**
-   - Import address-utils.js
+3. **✅ Update `deacon-quick-contact.html`**
+   - Import address-utils.js as ES6 module
    - Use formatting utilities for consistency
 
 #### Phase 3: Backend Support for Member Temporary Addresses
