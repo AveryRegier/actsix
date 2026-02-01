@@ -10,7 +10,8 @@
         "zipCode": "50309"
       },
       "phone": "(515) 241-6212",
-      "website": "https://www.unitypoint.org/locations/unitypoint-health---iowa-methodist-medical-center"
+      "website": "https://www.unitypoint.org/locations/unitypoint-health---iowa-methodist-medical-center",
+      "visitingHours": "Open 24/7 (visitor hours may vary by unit)"
     },
     {
       "name": "MercyOne Des Moines Medical Center",
@@ -22,7 +23,8 @@
         "zipCode": "50314"
       },
       "phone": "(515) 247-3121",
-      "website": "https://www.mercyone.org/location/mercyone-des-moines-medical-center-1"
+      "website": "https://www.mercyone.org/location/mercyone-des-moines-medical-center-1",
+      "visitingHours": "7:00 AM - 8:00 PM daily"
     },
     {
       "name": "UnityPoint Health - Iowa Lutheran Hospital",
@@ -34,7 +36,8 @@
         "zipCode": "50316"
       },
       "phone": "(515) 263-5612",
-      "website": "https://www.unitypoint.org/locations/unitypoint-health---iowa-lutheran-hospital"
+      "website": "https://www.unitypoint.org/locations/unitypoint-health---iowa-lutheran-hospital",
+      "visitingHours": "Open 24/7 (visitor hours may vary by unit)"
     },
     {
       "name": "MercyOne West Des Moines Medical Center",
@@ -46,7 +49,8 @@
         "zipCode": "50266"
       },
       "phone": "(515) 358-8000",
-      "website": "https://www.mercyone.org/location/mercyone-west-des-moines-medical-center"
+      "website": "https://www.mercyone.org/location/mercyone-west-des-moines-medical-center",
+      "visitingHours": "7:00 AM - 8:00 PM daily"
     },
     {
       "name": "UnityPoint Health - Methodist West Hospital",
@@ -58,7 +62,8 @@
         "zipCode": "50266"
       },
       "phone": "(515) 343-1000",
-      "website": "https://www.unitypoint.org/locations/unitypoint-health---methodist-west-hospital"
+      "website": "https://www.unitypoint.org/locations/unitypoint-health---methodist-west-hospital",
+      "visitingHours": "Open 24/7 (visitor hours may vary by unit)"
     },
     {
       "name": "Broadlawns Medical Center",
@@ -70,7 +75,8 @@
         "zipCode": "50314"
       },
       "phone": "(515) 282-2200",
-      "website": "https://www.broadlawns.org"
+      "website": "https://www.broadlawns.org",
+      "visitingHours": "Open 24/7 (contact facility for specific unit policies)"
     },
     {
       "name": "VA Central Iowa Health Care System",
@@ -82,7 +88,8 @@
         "zipCode": "50310"
       },
       "phone": "(515) 699-5999",
-      "website": "https://www.centraliowa.va.gov"
+      "website": "https://www.centraliowa.va.gov",
+      "visitingHours": "Varies by unit (call for specific unit hours)"
     },
     {
       "name": "MercyOne Children's Hospital",
@@ -94,7 +101,8 @@
         "zipCode": "50314"
       },
       "phone": "(515) 247-3121",
-      "website": "https://www.mercyone.org/location/mercyone-childrens-hospital"
+      "website": "https://www.mercyone.org/location/mercyone-childrens-hospital",
+      "visitingHours": "7:00 AM - 8:00 PM daily"
     },
     {
       "name": "Calvin Community",
@@ -106,7 +114,8 @@
         "zipCode": "50310"
       },
       "phone": "(515) 277-6141",
-      "website": "https://www.calvincommunity.org"
+      "website": "https://www.calvincommunity.org",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible for families)"
     },
     {
       "name": "Wesley on Grand",
@@ -118,7 +127,8 @@
         "zipCode": "50312"
       },
       "phone": "(515) 271-6500",
-      "website": "https://www.wesleylife.org/wesley-on-grand"
+      "website": "https://www.wesleylife.org/wesley-on-grand",
+      "visitingHours": "8:00 AM - 8:00 PM daily (call for specific unit hours)"
     },
     {
       "name": "Edencrest at Beaverdale",
@@ -130,7 +140,8 @@
         "zipCode": "50310"
       },
       "phone": "(515) 329-9080",
-      "website": "https://edencrestliving.com/beaverdale"
+      "website": "https://edencrestliving.com/beaverdale",
+      "visitingHours": "8:00 AM - 8:00 PM daily (call for specific hours)"
     },
     {
       "name": "Independence Village of Des Moines",
@@ -142,7 +153,8 @@
         "zipCode": "50310"
       },
       "phone": "(515) 278-1715",
-      "website": "https://www.storypoint.com/community/des-moines-ia"
+      "website": "https://www.storypoint.com/community/des-moines-ia",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible hours)"
     },
     {
       "name": "Ramsey Village Continuing Care",
@@ -154,7 +166,8 @@
         "zipCode": "50311"
       },
       "phone": "(515) 706-1397",
-      "website": "https://www.crmscommunities.com/senior-living/ia/des-moines/ramsey-village"
+      "website": "https://www.crmscommunities.com/senior-living/ia/des-moines/ramsey-village",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible hours)"
     },
     {
       "name": "Pine Acres Rehabilitation & Care Center",
@@ -166,7 +179,8 @@
         "zipCode": "50265"
       },
       "phone": "(515) 223-1223",
-      "website": "https://pineacrescenter.com"
+      "website": "https://pineacrescenter.com",
+      "visitingHours": "Open 24/7 (admissions accepted around the clock)"
     },
     {
       "name": "Royal Oaks Nursing and Rehabilitation",
@@ -178,7 +192,8 @@
         "zipCode": "50322"
       },
       "phone": "(515) 270-6838",
-      "website": "https://royaloaksnursing.com"
+      "website": "https://royaloaksnursing.com",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible for families)"
     },
     {
       "name": "Azria Health Park Place",
@@ -190,7 +205,8 @@
         "zipCode": "50316"
       },
       "phone": "(515) 262-9303",
-      "website": "https://www.azriahealth.com/locations/azria-health-park-place"
+      "website": "https://www.azriahealth.com/locations/azria-health-park-place",
+      "visitingHours": "8:00 AM - 8:00 PM daily (contact for specific hours)"
     },
     {
       "name": "Bickford of Urbandale",
@@ -202,7 +218,8 @@
         "zipCode": "50322"
       },
       "phone": "(515) 854-5161",
-      "website": "https://www.bickfordseniorliving.com/urbandale"
+      "website": "https://www.bickfordseniorliving.com/urbandale",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible hours welcome)"
     },
     {
       "name": "Calvin Community",
@@ -214,7 +231,8 @@
         "zipCode": "50310"
       },
       "phone": "(515) 277-6141",
-      "website": "https://www.calvincommunity.org"
+      "website": "https://www.calvincommunity.org",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible for families)"
     },
     {
       "name": "Edencrest at Beaverdale",
@@ -226,7 +244,8 @@
         "zipCode": "50310"
       },
       "phone": "(515) 329-9080",
-      "website": "https://edencrestliving.com/beaverdale"
+      "website": "https://edencrestliving.com/beaverdale",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible hours welcome)"
     },
     {
       "name": "Elite Lodge of Ashworth",
@@ -238,7 +257,8 @@
         "zipCode": "50265"
       },
       "phone": "(515) 729-9100",
-      "website": "https://eliteloa.com"
+      "website": "https://eliteloa.com",
+      "visitingHours": "8:00 AM - 8:00 PM daily (call for specific hours)"
     },
     {
       "name": "Woodlands Creek Senior Living",
@@ -250,7 +270,8 @@
         "zipCode": "50325"
       },
       "phone": "(515) 223-9755",
-      "website": "https://dialseniorliving.com/find-a-community/woodlands-creek-dial-senior-living-clive-ia"
+      "website": "https://dialseniorliving.com/find-a-community/woodlands-creek-dial-senior-living-clive-ia",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible hours welcome)"
     },
     {
       "name": "Grand Living at Tower Place",
@@ -262,7 +283,8 @@
         "zipCode": "50265"
       },
       "phone": "(515) 850-5540",
-      "website": "https://grandliving.com/communities/senior-living-at-tower-place-west-des-moines-iowa"
+      "website": "https://grandliving.com/communities/senior-living-at-tower-place-west-des-moines-iowa",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible hours welcome)"
     },
     {
       "name": "Ramsey Village Continuing Care",
@@ -274,7 +296,8 @@
         "zipCode": "50311"
       },
       "phone": "(515) 706-1397",
-      "website": "https://www.crmscommunities.com/senior-living/ia/des-moines/ramsey-village"
+      "website": "https://www.crmscommunities.com/senior-living/ia/des-moines/ramsey-village",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible hours)"
     },
     {
       "name": "Holiday Illahee Hills",
@@ -286,7 +309,8 @@
         "zipCode": "50322"
       },
       "phone": "(515) 251-4604",
-      "website": "https://www.holidayseniorliving.com/retirement-communities/holiday-illahee-hills-urbandale-ia"
+      "website": "https://www.holidayseniorliving.com/retirement-communities/holiday-illahee-hills-urbandale-ia",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible hours welcome)"
     },
     {
       "name": "Independence Village of Waukee",
@@ -298,7 +322,8 @@
         "zipCode": "50263"
       },
       "phone": "(515) 987-4100",
-      "website": "https://www.storypoint.com/community/waukee-ia"
+      "website": "https://www.storypoint.com/community/waukee-ia",
+      "visitingHours": "8:00 AM - 8:00 PM daily (flexible hours)"
     },
     {
       "name": "Select Specialty Hospital - Des Moines",
@@ -310,7 +335,8 @@
         "zipCode": "50314"
       },
       "phone": "(515) 247-4400",
-      "website": "https://www.selectspecialtyhospitals.com/locations-and-tours/IA/Des-Moines/Des-Moines"
+      "website": "https://www.selectspecialtyhospitals.com/locations-and-tours/IA/Des-Moines/Des-Moines",
+      "visitingHours": "7:00 AM - 7:00 PM daily"
     },
     {
       "name": "Pine Acres Rehabilitation & Care Center",
@@ -322,7 +348,8 @@
         "zipCode": "50265"
       },
       "phone": "(515) 223-1223",
-      "website": "https://pineacrescenter.com"
+      "website": "https://pineacrescenter.com",
+      "visitingHours": "Open 24/7 (admissions accepted around the clock)"
     }
   ]
 }
