@@ -6,6 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Deacon Quick Contact - Deacon Care System</title>
 	<link rel="stylesheet" href="site.css">
+	<script src="address-utils.js"></script>
 </head>
 <body>
 	<div class="container">
@@ -138,14 +139,9 @@
 					}
 					// fallback to address link
 					if (item.address && item.address.street) {
-						var addressParts = [item.address.street, item.address.city, item.address.state, item.address.postalCode];
-						var filtered = [];
-						for (var k = 0; k < addressParts.length; k++) {
-							if (addressParts[k]) filtered.push(addressParts[k]);
-						}
-						var q = encodeURIComponent(filtered.join(', '));
-						var url = 'https://www.google.com/maps/search/?api=1&query=' + q;
-						return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + item.address.street + '<br>' + (item.address.city || '') + '</a>';
+						var url = window.addressUtils.formatAddressForMaps(item.address);
+						var displayAddress = window.addressUtils.formatAddressForDisplay(item.address);
+						return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + displayAddress + '</a>';
 					}
 					return '(Contact)';
 				}

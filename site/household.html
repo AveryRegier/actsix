@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Household Details - Deacon Care System</title>
     <link rel="stylesheet" href="site.css">
+    <script src="address-utils.js"></script>
 </head>
 <body>
     <div class="container">
@@ -444,15 +445,8 @@ function displayHouseholdInfo(household) {
     // Build address link if address exists
     let addressHtml = '';
     if (household.address && household.address.street) {
-        const addressParts = [
-            household.address.street,
-            household.address.city,
-            household.address.state,
-            household.address.zipCode
-        ].filter(part => part);
-        const addressQuery = encodeURIComponent(addressParts.join(', '));
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${addressQuery}`;
-        const displayAddress = `${household.address.street}${household.address.city ? `<br>${household.address.city}` : ''}${household.address.state ? `, ${household.address.state}` : ''}${household.address.zipCode ? ` ${household.address.zipCode}` : ''}`;
+        const mapsUrl = window.addressUtils.formatAddressForMaps(household.address);
+        const displayAddress = window.addressUtils.formatAddressForDisplay(household.address);
         addressHtml = `
             <span class="info-label">Address</span>
             <span class="info-value"><a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" style="color:#667eea;text-decoration:none;">${displayAddress}</a></span>

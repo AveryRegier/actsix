@@ -13,6 +13,7 @@
         }
     </script>
     <link rel="stylesheet" href="site.css">
+    <script src="address-utils.js"></script>
 </head>
 <body>
     <div class="container">
@@ -180,9 +181,8 @@
                     infoHtml += '<div class="form-group"><label>Household Phone</label><p>' + household.primaryPhone + '</p></div>';
                 }
                 if (household.address) {
-                    infoHtml += '<div class="form-group"><label>Address</label><p>' + 
-                        household.address.street + ', ' + household.address.city + ', ' + 
-                        household.address.state + ' ' + household.address.zipCode + '</p></div>';
+                    const displayAddress = window.addressUtils.formatAddressForDisplay(household.address).replace(/<br>/g, ', ');
+                    infoHtml += '<div class="form-group"><label>Address</label><p>' + displayAddress + '</p></div>';
                 }
                 householdInfo.innerHTML = infoHtml;
                 contactTypeSection.insertAdjacentElement('afterend', householdInfo);

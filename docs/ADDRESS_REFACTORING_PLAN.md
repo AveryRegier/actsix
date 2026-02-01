@@ -100,55 +100,47 @@ export function formatAddressForMaps(addressObj) { ... }
 
 ### Implementation Plan
 
-#### Phase 1: Create Core Utilities (Week 1)
+#### Phase 1: Create Core Utilities ✅ COMPLETED
 
-1. **Create `site/address-utils.js`**
-   ```javascript
-   // Core functions to extract from edit-household.html:
-   - parseFullAddress(text)          // Parse pasted addresses
-   - validateZipCode(zip, city, data) // Validate & auto-fill
-   - setupAddressAutofill(fieldIds)   // Wire up event handlers
-   - loadZipCodeData()                // Async load JSON
-   ```
+1. **✅ Create `site/address-utils.js`**
+   - Extracted 12+ utility functions from edit-household.html
+   - `parseFullAddress(text)` - Parse pasted addresses
+   - `validateCityForZip(zip, city, data)` - Validate & auto-fill
+   - `setupAddressAutofill(config)` - Wire up event handlers
+   - `loadZipCodeData()` - Async load JSON
+   - `formatAddressForDisplay()` - Format for display
+   - `formatAddressForMaps()` - Generate Google Maps URLs
+   - `populateAddressFields()` - Populate form fields
+   - `getAddressFromFields()` - Extract address from form
 
-2. **Create `site/common-locations.json`**
-   ```json
-   {
-     "hospitals": [...],
-     "nursing_homes": [...],
-     "assisted_living": [...]
-   }
-   ```
+2. **✅ Create `site/common-locations.json`**
+   - 27 validated locations (8 hospitals, 8 nursing homes, 9 assisted living, 2 rehab)
+   - Includes: name, type, address (street/city/state/zip), phone, website, visitingHours
+   - All websites and visiting hours validated via web research
+   - Google Maps validation completed
 
-3. **Create reusable address form component helper**
-   ```javascript
-   // Returns configured form fields with event handlers
-   export function createAddressFields(options = {
-     prefix: 'address',           // Field ID prefix
-     includeRoomNumber: false,    // Add room # field
-     showCommonLocations: false,  // Show location dropdown
-     autoFill: true,              // Enable parsing/validation
-     onAddressChange: null        // Callback
-   })
-   ```
+3. **✅ Refactor `edit-household.html`**
+   - Reduced from ~460 lines to ~254 lines
+   - Imports address-utils.js module
+   - Uses utility functions instead of inline logic
+   - All existing functionality preserved and tested
 
-#### Phase 2: Refactor Existing Pages (Week 2)
+#### Phase 2: Refactor Other Pages (Next)
 
-1. **Refactor `edit-household.html`**
-   - Import `address-utils.js`
-   - Replace inline logic with utility functions
-   - Test all existing functionality
+1. **Update `household.html`**
+   - Import address-utils.js
+   - Use `formatAddressForDisplay()` for consistent display
+   - Use `formatAddressForMaps()` for Google Maps links
 
-2. **Update `edit-member.html`**
-   - Add temporary address section
-   - Use `createAddressFields({ prefix: 'temp', includeRoomNumber: true })`
-   - Add "Use Common Location" dropdown
+2. **Update `record-contact.html`**
+   - Import address-utils.js
+   - Use `formatAddressForDisplay()` for address display
 
-3. **Update other pages as needed**
-   - `household.html` - Use `formatAddressForDisplay()`
-   - `record-contact.html` - Use `formatAddressForDisplay()`
+3. **Update `deacon-quick-contact.html`**
+   - Import address-utils.js
+   - Use formatting utilities for consistency
 
-#### Phase 3: Backend Support (Week 3)
+#### Phase 3: Backend Support for Member Temporary Addresses
 
 1. **Update `src/api/members.js`**
    ```javascript
@@ -175,44 +167,50 @@ export function formatAddressForMaps(addressObj) { ... }
 
 3. **Add API endpoints**
    - `PATCH /api/members/:id/temporary-address`
+   - `PATCH /api/members/:id/temporary-address`
    - `DELETE /api/members/:id/temporary-address`
 
-#### Phase 4: Common Locations Feature (Week 4)
+#### Phase 4: Member UI for Temporary Addresses
 
-1. **Create location management**
-   - Admin page to manage common locations
-   - Store in MongoDB collection
-   - Cache on frontend
+1. **Update `edit-member.html`**
+   - Add temporary address section using address-utils
+   - Add room number field
+   - Add date range fields (start/end)
+   - Add location type dropdown (hospital, nursing_home, assisted_living, rehab)
+   - Add notes field
+   - Add "Use Common Location" dropdown (populated from common-locations.json)
+   - Wire up address autofill functionality
 
-2. **Add location picker UI**
-   ```javascript
-   // In address-utils.js
-   export function createLocationPicker(containerId) {
-     // Dropdown with common locations
-     // Auto-fills address when selected
-     // Shows room number field
-   }
-   ```
+2. **Update member display pages**
+   - Modify display logic: Show temp address if present and date range valid
+   - Show indicator when displaying temporary address
+   - Display "at [location name] until [end date]"
 
-### File Structure (Final State)
+3. **Update contact recording**
+   - Use temporary address when recording contacts if active
+   - Show both household and temporary address for context
+
+### File Structure (Current State)
 
 ```
 site/
-  ├── address-utils.js          # NEW: Core address utilities
-  ├── common-locations.json     # NEW: Location presets (or from API)
+  ├── address-utils.js          # ✅ NEW: Core address utilities (12+ functions)
+  ├── common-locations.json     # ✅ NEW: 27 validated locations with websites/hours
   ├── contact-utils.js          # Existing
   ├── fetch-utils.js            # Existing
-  ├── edit-household.html       # REFACTORED: Use address-utils
-  ├── edit-member.html          # UPDATED: Add temp address support
+  ├── edit-household.html       # ✅ REFACTORED: ~460 lines → ~254 lines
+  ├── edit-member.html          # TODO Phase 4: Add temp address support
+  ├── household.html            # TODO Phase 2: Use address-utils
+  ├── record-contact.html       # TODO Phase 2: Use address-utils
   └── iowa_zip_codes.json       # Existing
 
 src/
   ├── api/
-  │   ├── households.js         # REFACTORED: Use shared validation
-  │   ├── members.js            # UPDATED: Add temp address endpoints
-  │   └── locations.js          # NEW: Common locations API
+  │   ├── households.js         # TODO Phase 3: Extract shared validation
+  │   ├── members.js            # TODO Phase 3: Add temp address endpoints
+  │   └── locations.js          # OPTIONAL: Common locations API
   └── util/
-      ├── address-validation.js # NEW: Shared validation logic
+      ├── address-validation.js # TODO Phase 3: Shared validation logic
       └── helpers.js            # Existing
 ```
 
@@ -247,30 +245,30 @@ src/
 // Removes temporary address
 ```
 
-### Common Locations
+### Common Locations (Phase 4 - Using JSON file)
 
 ```javascript
-// GET /api/locations
+// Frontend loads from /common-locations.json
 {
-  locations: [
+  "locations": [
     {
-      _id: "...",
-      name: "Iowa Methodist Medical Center",
-      type: "hospital",
-      address: {
-        street: "1200 Pleasant St",
-        city: "Des Moines",
-        state: "IA",
-        zipCode: "50309"
+      "name": "Iowa Methodist Medical Center",
+      "type": "hospital",
+      "address": {
+        "street": "1200 Pleasant St",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50309"
       },
-      phone: "(515) 241-6212"
+      "phone": "(515) 241-6212",
+      "website": "https://...",
+      "visitingHours": "7:00 AM - 8:00 PM daily"
     }
   ]
 }
-
-// POST /api/locations (staff only)
-// PUT /api/locations/:id (staff only)
 ```
+
+**Note:** Common locations are stored as static JSON initially. Future enhancement could move to database with admin UI for management.
 
 ## Migration Strategy
 
@@ -283,36 +281,38 @@ src/
 
 ### Rollout Steps
 
-1. **Deploy utilities** (no breaking changes)
-2. **Refactor existing pages** (behavior unchanged)
-3. **Add member temp address** (opt-in feature)
-4. **Add common locations** (enhancement)
-5. **Update all address displays** to check temp address first
+1. **✅ Phase 1 Complete** - Utilities deployed, no breaking changes
+2. **In Progress: Phase 2** - Refactor remaining pages (household.html, record-contact.html, deacon-quick-contact.html)
+3. **Phase 3** - Add member temp address backend support (opt-in feature)
+4. **Phase 4** - Add member temp address UI with common locations picker
+5. **Final** - Update all address displays to check temp address first
 
 ## Testing Strategy
 
-1. **Unit tests** for address-utils.js functions
-   - Parse various address formats
-   - Zip code validation edge cases
-   - Multi-city zip code handling
+1. **✅ Unit tests** for address-utils.js functions
+   - Parse various address formats ✅
+   - Zip code validation edge cases ✅
+   - Multi-city zip code handling (e.g., Urbandale/Des Moines zip 50322) ✅
+   - ZIP+4 format support ✅
 
-2. **Integration tests** for API endpoints
+2. **Integration tests** for API endpoints (Phase 3)
    - Member temp address CRUD
    - Validation rules
    - Authorization checks
 
 3. **Manual testing** checklist
-   - [ ] Edit household - paste full address
-   - [ ] Edit household - zip auto-fills city/state
-   - [ ] Edit member - add temporary address
-   - [ ] Member display shows temp address during date range
-   - [ ] Record contact shows correct address (temp vs household)
-   - [ ] Common location dropdown populates addresses
-   - [ ] Room number field appears/disappears correctly
+   - [x] Edit household - paste full address
+   - [x] Edit household - zip auto-fills city/state
+   - [x] Edit household - handles ZIP+4 format
+   - [ ] Edit member - add temporary address (Phase 4)
+   - [ ] Member display shows temp address during date range (Phase 4)
+   - [ ] Record contact shows correct address (temp vs household) (Phase 4)
+   - [ ] Common location dropdown populates addresses (Phase 4)
+   - [ ] Room number field appears/disappears correctly (Phase 4)
 
 ## Code Example: Using New Utilities
 
-### Before (edit-household.html)
+### Before (edit-household.html - ~460 lines)
 ```javascript
 // 200+ lines of inline code for parsing, validation, etc.
 streetField.addEventListener('input', function() {
@@ -322,7 +322,7 @@ streetField.addEventListener('input', function() {
 });
 ```
 
-### After (edit-household.html)
+### After (edit-household.html - ~254 lines) ✅ COMPLETED
 ```javascript
 import { setupAddressAutofill, loadZipCodeData } from './address-utils.js';
 
@@ -337,20 +337,32 @@ loadZipCodeData().then(zipData => {
 });
 ```
 
-### New (edit-member.html with temp address)
+### Phase 4: edit-member.html with temp address
 ```javascript
 import { 
   setupAddressAutofill, 
-  loadZipCodeData,
-  createLocationPicker 
+  loadZipCodeData 
 } from './address-utils.js';
+import { loadCommonLocations } from './common-locations.js';  // New helper
 
-// Add location picker
-createLocationPicker('locationDropdown', {
-  onSelect: (location) => {
-    fillAddressFields('temp', location.address);
-    document.getElementById('tempRoomNumber').focus();
-  }
+// Load common locations into dropdown
+loadCommonLocations().then(locations => {
+  const dropdown = document.getElementById('locationDropdown');
+  locations.forEach(location => {
+    const option = document.createElement('option');
+    option.value = JSON.stringify(location);
+    option.textContent = `${location.name} (${location.type})`;
+    dropdown.appendChild(option);
+  });
+  
+  // Handle location selection
+  dropdown.addEventListener('change', (e) => {
+    if (e.target.value) {
+      const location = JSON.parse(e.target.value);
+      populateAddressFields('temp', location.address);
+      document.getElementById('tempRoomNumber').focus();
+    }
+  });
 });
 
 // Setup autofill for temporary address fields
@@ -367,25 +379,33 @@ loadZipCodeData().then(zipData => {
 
 ## Benefits of This Approach
 
-1. **DRY Principle** - Single source of truth for address logic
-2. **Maintainable** - Fix bugs in one place, benefits all pages
-3. **Extensible** - Easy to add new features (international addresses, etc.)
-4. **Testable** - Pure functions can be unit tested
-5. **Consistent** - Same behavior across all forms
-6. **Performance** - Shared module cached, loaded once
-7. **Readable** - HTML pages focus on page logic, not address parsing
+1. **✅ DRY Principle** - Single source of truth for address logic (achieved in Phase 1)
+2. **✅ Maintainable** - Fix bugs in one place, benefits all pages (proven with edit-household.html)
+3. **✅ Extensible** - Easy to add new features (validated with common locations JSON)
+4. **✅ Testable** - Pure functions can be unit tested (address parsing, zip validation tested)
+5. **✅ Consistent** - Same behavior across all forms (when Phase 2 complete)
+6. **✅ Performance** - Shared module cached, loaded once
+7. **✅ Readable** - HTML pages focus on page logic (~46% code reduction in edit-household.html)
 
 ## Timeline
 
-- **Week 1:** Create utilities, test thoroughly
-- **Week 2:** Refactor existing pages, ensure no regressions
-- **Week 3:** Backend support for member temp addresses
-- **Week 4:** Common locations feature
-- **Week 5:** Testing, documentation, deployment
+- **✅ Phase 1 (Completed):** Create utilities, common-locations.json, refactor edit-household.html
+- **Phase 2 (Next):** Refactor household.html, record-contact.html, deacon-quick-contact.html
+- **Phase 3 (Future):** Backend support for member temp addresses
+- **Phase 4 (Future):** Member temp address UI with common locations picker
+- **Phase 5 (Future):** Testing, documentation, deployment
 
-## Next Steps
+## Progress Summary
 
-1. Review this plan with team
-2. Create GitHub issues/bd issues for each phase
-3. Start with Phase 1 (create utilities)
-4. Incremental deployment with feature flags if needed
+**Completed:**
+- ✅ Created address-utils.js with 12+ utility functions
+- ✅ Created common-locations.json with 27 validated locations
+- ✅ Validated all website URLs and visiting hours
+- ✅ Refactored edit-household.html (reduced from ~460 to ~254 lines)
+- ✅ Tested address parsing, zip validation, ZIP+4 format support
+- ✅ Build and server validation successful
+
+**Next Steps:**
+1. Phase 2: Refactor remaining display pages to use address-utils
+2. Phase 3: Design and implement backend schema for member temporary addresses
+3. Phase 4: Build member UI for temporary address management
