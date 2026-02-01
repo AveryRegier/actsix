@@ -6,9 +6,12 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Deacon Quick Contact - Deacon Care System</title>
 	<link rel="stylesheet" href="site.css">
-	<script src="address-utils.js"></script>
 </head>
 <body>
+	<script type="module">
+		import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.js';
+		window.addressUtils = { formatAddressForDisplay, formatAddressForMaps };
+	</script>
 	<div class="container">
 		<!-- Reusable navigation bar -->
 		<div id="site-nav-container"></div>

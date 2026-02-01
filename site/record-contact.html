@@ -13,9 +13,12 @@
         }
     </script>
     <link rel="stylesheet" href="site.css">
-    <script src="address-utils.js"></script>
 </head>
 <body>
+    <script type="module">
+        import { formatAddressForDisplay } from './address-utils.js';
+        window.addressUtils = { formatAddressForDisplay };
+    </script>
     <div class="container">
         <!-- Reusable navigation bar -->
         <div id="site-nav-container"></div>
