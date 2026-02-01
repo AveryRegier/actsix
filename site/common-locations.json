@@ -1,0 +1,186 @@
+{
+  "hospitals": [
+    {
+      "name": "Iowa Methodist Medical Center",
+      "address": {
+        "street": "1200 Pleasant St",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50309"
+      },
+      "phone": "(515) 241-6212",
+      "type": "hospital"
+    },
+    {
+      "name": "Mercy Medical Center - Des Moines",
+      "address": {
+        "street": "1111 6th Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50314"
+      },
+      "phone": "(515) 247-3121",
+      "type": "hospital"
+    },
+    {
+      "name": "MercyOne Des Moines Medical Center",
+      "address": {
+        "street": "1111 6th Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50314"
+      },
+      "phone": "(515) 247-3121",
+      "type": "hospital"
+    },
+    {
+      "name": "Unity Point Health - Iowa Lutheran Hospital",
+      "address": {
+        "street": "700 E University Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50316"
+      },
+      "phone": "(515) 263-5612",
+      "type": "hospital"
+    }
+  ],
+  "nursing_homes": [
+    {
+      "name": "Brio Living Services - Johnston",
+      "address": {
+        "street": "8485 Birchwood Ct",
+        "city": "Johnston",
+        "state": "IA",
+        "zipCode": "50131"
+      },
+      "phone": "(515) 251-1293",
+      "type": "nursing_home"
+    },
+    {
+      "name": "Wesley Acres",
+      "address": {
+        "street": "3520 Grand Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50312"
+      },
+      "phone": "(515) 271-6500",
+      "type": "nursing_home"
+    },
+    {
+      "name": "Edencrest at Beaverdale",
+      "address": {
+        "street": "2901 Beaver Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50310"
+      },
+      "phone": "(515) 255-1015",
+      "type": "nursing_home"
+    },
+    {
+      "name": "Northcrest Specialty Care",
+      "address": {
+        "street": "5651 NE 14th St",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50313"
+      },
+      "phone": "(515) 265-2571",
+      "type": "nursing_home"
+    },
+    {
+      "name": "Calvin Community",
+      "address": {
+        "street": "4210 Hickman Rd",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50310"
+      },
+      "phone": "(515) 277-6141",
+      "type": "nursing_home"
+    }
+  ],
+  "assisted_living": [
+    {
+      "name": "Bickford of Urbandale",
+      "address": {
+        "street": "3720 70th St",
+        "city": "Urbandale",
+        "state": "IA",
+        "zipCode": "50322"
+      },
+      "phone": "(515) 270-0390",
+      "type": "assisted_living"
+    },
+    {
+      "name": "The Cottages Senior Living",
+      "address": {
+        "street": "1845 NW 86th St",
+        "city": "Clive",
+        "state": "IA",
+        "zipCode": "50325"
+      },
+      "phone": "(515) 223-4700",
+      "type": "assisted_living"
+    },
+    {
+      "name": "Edencrest at Green Meadows",
+      "address": {
+        "street": "6750 Corporate Dr",
+        "city": "Johnston",
+        "state": "IA",
+        "zipCode": "50131"
+      },
+      "phone": "(515) 331-2265",
+      "type": "assisted_living"
+    },
+    {
+      "name": "Wesley Life",
+      "address": {
+        "street": "3520 Grand Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50312"
+      },
+      "phone": "(515) 271-6500",
+      "type": "assisted_living"
+    },
+    {
+      "name": "Symphony House",
+      "address": {
+        "street": "4857 EP True Pkwy",
+        "city": "West Des Moines",
+        "state": "IA",
+        "zipCode": "50265"
+      },
+      "phone": "(515) 224-0400",
+      "type": "assisted_living"
+    }
+  ],
+  "rehab_centers": [
+    {
+      "name": "Mercy Rehab Hospital",
+      "address": {
+        "street": "1111 6th Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50314"
+      },
+      "phone": "(515) 643-8700",
+      "type": "rehab"
+    },
+    {
+      "name": "Select Specialty Hospital - Des Moines",
+      "address": {
+        "street": "1111 6th Ave, 4th Floor",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50314"
+      },
+      "phone": "(515) 247-4400",
+      "type": "rehab"
+    }
+  ]
+}
