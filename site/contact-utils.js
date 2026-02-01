@@ -44,6 +44,9 @@ export function getContactedBy(lastContact) {
         case 'church':
             contactedBy = "Spoke at church";
             break;
+        case 'note':
+            contactedBy = "Updated";
+            break;
     }
     if (lastContact.contactedBy && lastContact.contactedBy.length) {
         if (contactedBy) contactedBy += " by ";
