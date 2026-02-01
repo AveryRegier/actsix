@@ -8,10 +8,6 @@
 	<link rel="stylesheet" href="site.css">
 </head>
 <body>
-	<script type="module">
-		import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.js';
-		window.addressUtils = { formatAddressForDisplay, formatAddressForMaps };
-	</script>
 	<div class="container">
 		<!-- Reusable navigation bar -->
 		<div id="site-nav-container"></div>
@@ -49,6 +45,7 @@
 	}
 
 	import { getContactedBy } from './contact-utils.js';
+	import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.js';
 
 	// Consolidated DOMContentLoaded listener
 	document.addEventListener('DOMContentLoaded', function() {
@@ -142,8 +139,8 @@
 					}
 					// fallback to address link
 					if (item.address && item.address.street) {
-						var url = window.addressUtils.formatAddressForMaps(item.address);
-						var displayAddress = window.addressUtils.formatAddressForDisplay(item.address);
+						var url = formatAddressForMaps(item.address);
+						var displayAddress = formatAddressForDisplay(item.address);
 						return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + displayAddress + '</a>';
 					}
 					return '(Contact)';

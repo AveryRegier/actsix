@@ -15,10 +15,6 @@
     <link rel="stylesheet" href="site.css">
 </head>
 <body>
-    <script type="module">
-        import { formatAddressForDisplay } from './address-utils.js';
-        window.addressUtils = { formatAddressForDisplay };
-    </script>
     <div class="container">
         <!-- Reusable navigation bar -->
         <div id="site-nav-container"></div>
@@ -83,7 +79,9 @@
             </form>
         </div>
     </div>
-    <script>
+    <script type="module">
+        import { formatAddressForDisplay } from './address-utils.js';
+        
         // Load reusable navigation bar and initialize page
         document.addEventListener('DOMContentLoaded', async function() {
             // Load navigation first
@@ -184,7 +182,7 @@
                     infoHtml += '<div class="form-group"><label>Household Phone</label><p>' + household.primaryPhone + '</p></div>';
                 }
                 if (household.address) {
-                    const displayAddress = window.addressUtils.formatAddressForDisplay(household.address).replace(/<br>/g, ', ');
+                    const displayAddress = formatAddressForDisplay(household.address).replace(/<br>/g, ', ');
                     infoHtml += '<div class="form-group"><label>Address</label><p>' + displayAddress + '</p></div>';
                 }
                 householdInfo.innerHTML = infoHtml;

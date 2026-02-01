@@ -11,8 +11,6 @@
         <!-- Reusable navigation bar -->
         <div id="site-nav-container"></div>
         <script type="module">
-        import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.js';
-        window.addressUtils = { formatAddressForDisplay, formatAddressForMaps };
             // Load reusable navigation bar
             document.addEventListener('DOMContentLoaded', async () => {
                 const navContainer = document.getElementById('site-nav-container');
@@ -277,6 +275,7 @@
     <script type="module">
 import { apiFetch } from './fetch-utils.js';
 import { getContactedBy } from './contact-utils.js';
+import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.js';
 
 const API_BASE_URL = '';
 let currentHouseholdId = null;
@@ -446,8 +445,8 @@ function displayHouseholdInfo(household) {
     // Build address link if address exists
     let addressHtml = '';
     if (household.address && household.address.street) {
-        const mapsUrl = window.addressUtils.formatAddressForMaps(household.address);
-        const displayAddress = window.addressUtils.formatAddressForDisplay(household.address);
+        const mapsUrl = formatAddressForMaps(household.address);
+        const displayAddress = formatAddressForDisplay(household.address);
         addressHtml = `
             <span class="info-label">Address</span>
             <span class="info-value"><a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" style="color:#667eea;text-decoration:none;">${displayAddress}</a></span>
