@@ -1,7 +1,8 @@
 {
-  "hospitals": [
+  "locations": [
     {
-      "name": "Iowa Methodist Medical Center",
+      "name": "UnityPoint Health - Iowa Methodist Medical Center",
+      "type": "hospital",
       "address": {
         "street": "1200 Pleasant St",
         "city": "Des Moines",
@@ -9,21 +10,11 @@
         "zipCode": "50309"
       },
       "phone": "(515) 241-6212",
-      "type": "hospital"
-    },
-    {
-      "name": "Mercy Medical Center - Des Moines",
-      "address": {
-        "street": "1111 6th Ave",
-        "city": "Des Moines",
-        "state": "IA",
-        "zipCode": "50314"
-      },
-      "phone": "(515) 247-3121",
-      "type": "hospital"
+      "website": "https://www.unitypoint.org/locations/unitypoint-health---iowa-methodist-medical-center"
     },
     {
       "name": "MercyOne Des Moines Medical Center",
+      "type": "hospital",
       "address": {
         "street": "1111 6th Ave",
         "city": "Des Moines",
@@ -31,10 +22,11 @@
         "zipCode": "50314"
       },
       "phone": "(515) 247-3121",
-      "type": "hospital"
+      "website": "https://www.mercyone.org/location/mercyone-des-moines-medical-center-1"
     },
     {
-      "name": "Unity Point Health - Iowa Lutheran Hospital",
+      "name": "UnityPoint Health - Iowa Lutheran Hospital",
+      "type": "hospital",
       "address": {
         "street": "700 E University Ave",
         "city": "Des Moines",
@@ -42,56 +34,71 @@
         "zipCode": "50316"
       },
       "phone": "(515) 263-5612",
-      "type": "hospital"
-    }
-  ],
-  "nursing_homes": [
-    {
-      "name": "Brio Living Services - Johnston",
-      "address": {
-        "street": "8485 Birchwood Ct",
-        "city": "Johnston",
-        "state": "IA",
-        "zipCode": "50131"
-      },
-      "phone": "(515) 251-1293",
-      "type": "nursing_home"
+      "website": "https://www.unitypoint.org/locations/unitypoint-health---iowa-lutheran-hospital"
     },
     {
-      "name": "Wesley Acres",
+      "name": "MercyOne West Des Moines Medical Center",
+      "type": "hospital",
       "address": {
-        "street": "3520 Grand Ave",
+        "street": "1755 59th Pl",
+        "city": "West Des Moines",
+        "state": "IA",
+        "zipCode": "50266"
+      },
+      "phone": "(515) 358-8000",
+      "website": "https://www.mercyone.org/location/mercyone-west-des-moines-medical-center"
+    },
+    {
+      "name": "UnityPoint Health - Methodist West Hospital",
+      "type": "hospital",
+      "address": {
+        "street": "1660 60th St",
+        "city": "West Des Moines",
+        "state": "IA",
+        "zipCode": "50266"
+      },
+      "phone": "(515) 343-1000",
+      "website": "https://www.unitypoint.org/locations/unitypoint-health---methodist-west-hospital"
+    },
+    {
+      "name": "Broadlawns Medical Center",
+      "type": "hospital",
+      "address": {
+        "street": "1801 Hickman Rd",
         "city": "Des Moines",
         "state": "IA",
-        "zipCode": "50312"
+        "zipCode": "50314"
       },
-      "phone": "(515) 271-6500",
-      "type": "nursing_home"
+      "phone": "(515) 282-2200",
+      "website": "https://www.broadlawns.org"
     },
     {
-      "name": "Edencrest at Beaverdale",
+      "name": "VA Central Iowa Health Care System",
+      "type": "hospital",
       "address": {
-        "street": "2901 Beaver Ave",
+        "street": "3600 30th St",
         "city": "Des Moines",
         "state": "IA",
         "zipCode": "50310"
       },
-      "phone": "(515) 255-1015",
-      "type": "nursing_home"
+      "phone": "(515) 699-5999",
+      "website": "https://www.centraliowa.va.gov"
     },
     {
-      "name": "Northcrest Specialty Care",
+      "name": "MercyOne Children's Hospital",
+      "type": "hospital",
       "address": {
-        "street": "5651 NE 14th St",
+        "street": "1111 6th Ave, East Tower",
         "city": "Des Moines",
         "state": "IA",
-        "zipCode": "50313"
+        "zipCode": "50314"
       },
-      "phone": "(515) 265-2571",
-      "type": "nursing_home"
+      "phone": "(515) 247-3121",
+      "website": "https://www.mercyone.org/location/mercyone-childrens-hospital"
     },
     {
       "name": "Calvin Community",
+      "type": "nursing_home",
       "address": {
         "street": "4210 Hickman Rd",
         "city": "Des Moines",
@@ -99,45 +106,11 @@
         "zipCode": "50310"
       },
       "phone": "(515) 277-6141",
-      "type": "nursing_home"
-    }
-  ],
-  "assisted_living": [
-    {
-      "name": "Bickford of Urbandale",
-      "address": {
-        "street": "3720 70th St",
-        "city": "Urbandale",
-        "state": "IA",
-        "zipCode": "50322"
-      },
-      "phone": "(515) 270-0390",
-      "type": "assisted_living"
+      "website": "https://www.calvincommunity.org"
     },
     {
-      "name": "The Cottages Senior Living",
-      "address": {
-        "street": "1845 NW 86th St",
-        "city": "Clive",
-        "state": "IA",
-        "zipCode": "50325"
-      },
-      "phone": "(515) 223-4700",
-      "type": "assisted_living"
-    },
-    {
-      "name": "Edencrest at Green Meadows",
-      "address": {
-        "street": "6750 Corporate Dr",
-        "city": "Johnston",
-        "state": "IA",
-        "zipCode": "50131"
-      },
-      "phone": "(515) 331-2265",
-      "type": "assisted_living"
-    },
-    {
-      "name": "Wesley Life",
+      "name": "Wesley on Grand",
+      "type": "nursing_home",
       "address": {
         "street": "3520 Grand Ave",
         "city": "Des Moines",
@@ -145,42 +118,211 @@
         "zipCode": "50312"
       },
       "phone": "(515) 271-6500",
-      "type": "assisted_living"
+      "website": "https://www.wesleylife.org/wesley-on-grand"
     },
     {
-      "name": "Symphony House",
+      "name": "Edencrest at Beaverdale",
+      "type": "nursing_home",
       "address": {
-        "street": "4857 EP True Pkwy",
+        "street": "3410 Beaver Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50310"
+      },
+      "phone": "(515) 329-9080",
+      "website": "https://edencrestliving.com/beaverdale"
+    },
+    {
+      "name": "Independence Village of Des Moines",
+      "type": "nursing_home",
+      "address": {
+        "street": "4610 Douglas Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50310"
+      },
+      "phone": "(515) 278-1715",
+      "website": "https://www.storypoint.com/community/des-moines-ia"
+    },
+    {
+      "name": "Ramsey Village Continuing Care",
+      "type": "nursing_home",
+      "address": {
+        "street": "1611 27th St",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50311"
+      },
+      "phone": "(515) 706-1397",
+      "website": "https://www.crmscommunities.com/senior-living/ia/des-moines/ramsey-village"
+    },
+    {
+      "name": "Pine Acres Rehabilitation & Care Center",
+      "type": "nursing_home",
+      "address": {
+        "street": "1501 Office Park Rd",
         "city": "West Des Moines",
         "state": "IA",
         "zipCode": "50265"
       },
-      "phone": "(515) 224-0400",
-      "type": "assisted_living"
-    }
-  ],
-  "rehab_centers": [
+      "phone": "(515) 223-1223",
+      "website": "https://pineacrescenter.com"
+    },
     {
-      "name": "Mercy Rehab Hospital",
+      "name": "Royal Oaks Nursing and Rehabilitation",
+      "type": "nursing_home",
       "address": {
-        "street": "1111 6th Ave",
+        "street": "4614 84th St",
+        "city": "Urbandale",
+        "state": "IA",
+        "zipCode": "50322"
+      },
+      "phone": "(515) 270-6838",
+      "website": "https://royaloaksnursing.com"
+    },
+    {
+      "name": "Azria Health Park Place",
+      "type": "nursing_home",
+      "address": {
+        "street": "2401 E 8th St",
         "city": "Des Moines",
         "state": "IA",
-        "zipCode": "50314"
+        "zipCode": "50316"
       },
-      "phone": "(515) 643-8700",
-      "type": "rehab"
+      "phone": "(515) 262-9303",
+      "website": "https://www.azriahealth.com/locations/azria-health-park-place"
+    },
+    {
+      "name": "Bickford of Urbandale",
+      "type": "assisted_living",
+      "address": {
+        "street": "5915 Sutton Pl",
+        "city": "Urbandale",
+        "state": "IA",
+        "zipCode": "50322"
+      },
+      "phone": "(515) 854-5161",
+      "website": "https://www.bickfordseniorliving.com/urbandale"
+    },
+    {
+      "name": "Calvin Community",
+      "type": "assisted_living",
+      "address": {
+        "street": "4210 Hickman Rd",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50310"
+      },
+      "phone": "(515) 277-6141",
+      "website": "https://www.calvincommunity.org"
+    },
+    {
+      "name": "Edencrest at Beaverdale",
+      "type": "assisted_living",
+      "address": {
+        "street": "3410 Beaver Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50310"
+      },
+      "phone": "(515) 329-9080",
+      "website": "https://edencrestliving.com/beaverdale"
+    },
+    {
+      "name": "Elite Lodge of Ashworth",
+      "type": "assisted_living",
+      "address": {
+        "street": "909 Ashworth Rd",
+        "city": "West Des Moines",
+        "state": "IA",
+        "zipCode": "50265"
+      },
+      "phone": "(515) 729-9100",
+      "website": "https://eliteloa.com"
+    },
+    {
+      "name": "Woodlands Creek Senior Living",
+      "type": "assisted_living",
+      "address": {
+        "street": "12605 Woodlands Pkwy",
+        "city": "Clive",
+        "state": "IA",
+        "zipCode": "50325"
+      },
+      "phone": "(515) 223-9755",
+      "website": "https://dialseniorliving.com/find-a-community/woodlands-creek-dial-senior-living-clive-ia"
+    },
+    {
+      "name": "Grand Living at Tower Place",
+      "type": "assisted_living",
+      "address": {
+        "street": "540 S 51st St",
+        "city": "West Des Moines",
+        "state": "IA",
+        "zipCode": "50265"
+      },
+      "phone": "(515) 850-5540",
+      "website": "https://grandliving.com/communities/senior-living-at-tower-place-west-des-moines-iowa"
+    },
+    {
+      "name": "Ramsey Village Continuing Care",
+      "type": "assisted_living",
+      "address": {
+        "street": "1611 27th St",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50311"
+      },
+      "phone": "(515) 706-1397",
+      "website": "https://www.crmscommunities.com/senior-living/ia/des-moines/ramsey-village"
+    },
+    {
+      "name": "Holiday Illahee Hills",
+      "type": "assisted_living",
+      "address": {
+        "street": "8308 Colby Pkwy",
+        "city": "Urbandale",
+        "state": "IA",
+        "zipCode": "50322"
+      },
+      "phone": "(515) 251-4604",
+      "website": "https://www.holidayseniorliving.com/retirement-communities/holiday-illahee-hills-urbandale-ia"
+    },
+    {
+      "name": "Independence Village of Waukee",
+      "type": "assisted_living",
+      "address": {
+        "street": "1650 SE Holiday Crest Cir",
+        "city": "Waukee",
+        "state": "IA",
+        "zipCode": "50263"
+      },
+      "phone": "(515) 987-4100",
+      "website": "https://www.storypoint.com/community/waukee-ia"
     },
     {
       "name": "Select Specialty Hospital - Des Moines",
+      "type": "rehab",
       "address": {
-        "street": "1111 6th Ave, 4th Floor",
+        "street": "1111 6th Ave, Main 4th Floor",
         "city": "Des Moines",
         "state": "IA",
         "zipCode": "50314"
       },
       "phone": "(515) 247-4400",
-      "type": "rehab"
+      "website": "https://www.selectspecialtyhospitals.com/locations-and-tours/IA/Des-Moines/Des-Moines"
+    },
+    {
+      "name": "Pine Acres Rehabilitation & Care Center",
+      "type": "rehab",
+      "address": {
+        "street": "1501 Office Park Rd",
+        "city": "West Des Moines",
+        "state": "IA",
+        "zipCode": "50265"
+      },
+      "phone": "(515) 223-1223",
+      "website": "https://pineacrescenter.com"
     }
   ]
 }
