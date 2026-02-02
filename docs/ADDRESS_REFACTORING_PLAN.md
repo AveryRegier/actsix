@@ -142,33 +142,52 @@ export function formatAddressForMaps(addressObj) { ... }
 
 #### Phase 3: Backend Support for Member Temporary Addresses
 
-1. **Update `src/api/members.js`**
+**Objective:** Add database and API support for tracking members at temporary locations (hospitals, nursing homes, etc.)
+
+See [PHASE3_TEMP_ADDRESS_DESIGN.md](PHASE3_TEMP_ADDRESS_DESIGN.md) for full technical specification.
+
+**Key Changes:**
+
+1. **Create `common_locations` collection**
+   - Migrate 27 locations from `site/common-locations.json`
+   - Add auto-generated ObjectIds
+   - Schema: `{_id, name, type, address, phone, website, visitingHours, isActive}`
+   - Indices: `type`, `isActive`
+
+2. **Update Member schema**
    ```javascript
-   // Add temporary address fields to member schema
-   {
-     temporaryAddress: {
-       street: String,
-       city: String,
-       state: String,
-       zipCode: String,
-       roomNumber: String,
-       startDate: Date,
-       endDate: Date,
-       locationType: String,  // 'hospital', 'nursing_home', etc.
-       notes: String
-     }
+   temporaryAddress: {           // Optional
+     locationId: ObjectId,       // Reference to common_locations
+     roomNumber: String,         // "Room 312"
+     startDate: Date,
+     endDate: Date,              // Optional
+     notes: String,              // Optional
+     isActive: Boolean           // true = currently at location
    }
    ```
+   - New indices: `temporaryAddress.isActive_1`, `temporaryAddress.locationId_1`
 
-2. **Extract validation to shared module**
-   - Create `src/util/address-validation.js`
-   - Move `validateAddress()` from households.js
-   - Reuse in both households and members APIs
+3. **Create `src/api/common-locations.js`**
+   - `GET /api/common-locations` - List all active locations
+   - `GET /api/common-locations/:id` - Get specific location
+   - `POST /api/common-locations` - Add location (staff only)
+   - `PUT /api/common-locations/:id` - Update location (staff only)
+   - `DELETE /api/common-locations/:id` - Soft delete (staff only)
 
-3. **Add API endpoints**
-   - `PATCH /api/members/:id/temporary-address`
-   - `PATCH /api/members/:id/temporary-address`
-   - `DELETE /api/members/:id/temporary-address`
+4. **Update `src/api/members.js`**
+   - `PUT /api/members/:id/temporary-address` - Set/update temp address
+   - `DELETE /api/members/:id/temporary-address` - Clear temp address
+   - `GET /api/members/:id/temporary-address-history` - View history
+   - `GET /api/temporary-locations/active` - All members at temp locations
+
+5. **Create migration script**
+   - `scripts/migrate-locations.js` - Migrate JSON to collection
+
+**Validation:**
+- LocationId must exist in common_locations
+- Only one active temp address per member
+- Room number required
+- Start date cannot be in far future
 
 #### Phase 4: Member UI for Temporary Addresses
 
