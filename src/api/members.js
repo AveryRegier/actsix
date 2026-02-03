@@ -9,6 +9,65 @@ function validationErrorResponse(c, message, statusCode = 400) {
   // return c.json({ error: 'Validation failed', message }, statusCode); 
 }
 
+function validateTemporaryAddress(temporaryAddress) {
+  if (!temporaryAddress) return null;
+
+  const errors = [];
+
+  // locationId is required
+  if (!temporaryAddress.locationId) {
+    errors.push('temporaryAddress.locationId is required');
+  }
+
+  // roomNumber is optional but should be string if provided
+  if (temporaryAddress.roomNumber !== undefined && typeof temporaryAddress.roomNumber !== 'string') {
+    errors.push('temporaryAddress.roomNumber must be a string');
+  }
+
+  // startDate is required
+  if (!temporaryAddress.startDate) {
+    errors.push('temporaryAddress.startDate is required');
+  } else {
+    // Validate date format
+    const startDate = new Date(temporaryAddress.startDate);
+    if (isNaN(startDate.getTime())) {
+      errors.push('temporaryAddress.startDate must be a valid date');
+    }
+  }
+
+  // endDate is optional but should be valid if provided
+  if (temporaryAddress.endDate) {
+    const endDate = new Date(temporaryAddress.endDate);
+    if (isNaN(endDate.getTime())) {
+      errors.push('temporaryAddress.endDate must be a valid date');
+    }
+    
+    // endDate should be after startDate
+    if (temporaryAddress.startDate) {
+      const startDate = new Date(temporaryAddress.startDate);
+      if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && endDate <= startDate) {
+        errors.push('temporaryAddress.endDate must be after startDate');
+      }
+    }
+  }
+
+  // notes is optional but should be string if provided
+  if (temporaryAddress.notes !== undefined && typeof temporaryAddress.notes !== 'string') {
+    errors.push('temporaryAddress.notes must be a string');
+  }
+
+  // isActive should be boolean if provided, defaults to true
+  if (temporaryAddress.isActive !== undefined && typeof temporaryAddress.isActive !== 'boolean') {
+    errors.push('temporaryAddress.isActive must be a boolean');
+  }
+
+  if (errors.length > 0) {
+    return errors.join('; ');
+  }
+
+  return null;
+}
+
 export default function registerMemberRoutes(app) {
   app.get('/api/members', async (c) => {
     try {
@@ -114,6 +173,23 @@ export default function registerMemberRoutes(app) {
         return c.json({ error: 'Validation failed', message: 'Age must be between 0 and 150' }, 400);
       }
 
+      // Validate temporaryAddress if provided
+      if (body.temporaryAddress) {
+        const tempAddressError = validateTemporaryAddress(body.temporaryAddress);
+        if (tempAddressError) {
+          return c.json({ error: 'Validation failed', message: tempAddressError }, 400);
+        }
+        // Verify the location exists
+        const locations = await safeCollectionFind('common_locations', { _id: body.temporaryAddress.locationId });
+        if (locations.length === 0) {
+          return c.json({ error: 'Validation failed', message: 'Invalid locationId: location not found' }, 400);
+        }
+        // Set isActive to true by default for new temporary addresses
+        if (body.temporaryAddress.isActive === undefined) {
+          body.temporaryAddress.isActive = true;
+        }
+      }
+
       const memberData = {
         ...body,
         householdId,
@@ -172,6 +248,19 @@ export default function registerMemberRoutes(app) {
 
       if (body.age && (body.age < 0 || body.age > 150)) {
         validationErrorResponse(c, 'Age must be between 0 and 150');
+      }
+
+      // Validate temporaryAddress if provided
+      if (body.temporaryAddress) {
+        const tempAddressError = validateTemporaryAddress(body.temporaryAddress);
+        if (tempAddressError) {
+          validationErrorResponse(c, tempAddressError);
+        }
+        // Verify the location exists
+        const locations = await safeCollectionFind('common_locations', { _id: body.temporaryAddress.locationId });
+        if (locations.length === 0) {
+          validationErrorResponse(c, 'Invalid locationId: location not found');
+        }
       }
 
       const members = await safeCollectionFind('members', { _id: memberId });
