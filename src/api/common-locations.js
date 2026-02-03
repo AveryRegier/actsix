@@ -1,6 +1,6 @@
 import { getLogger } from '../util/logger.js';
 import { ApiError } from '../util/error.js';
-import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate, safeCollectionDelete } from '../util/helpers.js';
+import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '../util/helpers.js';
 import { verifyRole } from '../auth/auth.js';
 
 /**
