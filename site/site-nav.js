@@ -74,19 +74,27 @@ document.addEventListener('DOMContentLoaded', function() {
   } else {
     showBack = false;
   }
-  document.getElementById('siteNavBackLink').style.display = showBack ? '' : 'none';
-  document.getElementById('siteNavBackLinkMobile').style.display = showBack ? '' : 'none';
+  const backLink = document.getElementById('siteNavBackLink');
+  if (backLink) {
+    backLink.style.display = showBack ? '' : 'none';
+  }
+  const backLinkMobile = document.getElementById('siteNavBackLinkMobile');
+  if (backLinkMobile) {
+    backLinkMobile.style.display = showBack ? '' : 'none';
+  }
 
   // Hide nav link for current page
   hideCurrentPageNavLinks();
 
   // Add auto-close for mobile menu
   const mobileMenu = document.getElementById('navMobileMenu');
-  mobileMenu.querySelectorAll('a.nav-link').forEach(link => {
-    link.addEventListener('click', function() {
-      mobileMenu.classList.remove('open');
+  if (mobileMenu) {
+    mobileMenu.querySelectorAll('a.nav-link').forEach(link => {
+      link.addEventListener('click', function() {
+        mobileMenu.classList.remove('open');
+      });
     });
-  });
+  }
 });
 document.addEventListener('submit', function(e) {
   if (e.target && e.target.method && e.target.method.toUpperCase() === 'POST') {
