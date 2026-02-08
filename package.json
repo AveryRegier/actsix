@@ -24,6 +24,7 @@
     "validate": "npm run test && npm run lint",
     "deploy:prep": "npm run clean && npm run build:validate",
     "generate": "node scripts/generate_data.cjs",
+    "migrate:locations": "node scripts/migrate-locations.js",
     "dist": "node scripts/dist.cjs",
     "deploy": "powershell.exe -File scripts/deploy-cloudformation.ps1"
   },

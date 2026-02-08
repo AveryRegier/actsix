@@ -46,6 +46,7 @@
     <script type="module">
         import { apiFetch } from './fetch-utils.js';
         import { getBestContactMethod, getContactedBy, getContactDateClass } from './contact-utils.js';
+        import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.js';
 
         // Load reusable navigation bar
         document.addEventListener('DOMContentLoaded', async () => {
@@ -79,42 +80,107 @@
                 const contactedBy = getContactedBy(item.lastContact);
                 let contactDateClass = getContactDateClass(lastContactDate);
 
+                // Find any member with an active temporary location
+                let tempMember = null;
+                if (item.household.members && item.household.members.length > 0) {
+                    for (const member of item.household.members) {
+                        if (member.temporaryAddress && member.temporaryAddress.isActive && member.temporaryAddress.locationId) {
+                            tempMember = member;
+                            break;
+                        }
+                    }
+                }
+
                 const rowClass = idx % 2 === 0 ? 'even' : 'odd';
+                const summaryContent = `${item.summary}`;
+                
                 return `
-                    <tbody class="summary-group">
-                        <tr class="summary-row ${rowClass}">
-                            <td class="summary-badge-col">
-                                <a class="member-link" href="household.html?id=${currentHouseholdId}">${item.household.lastName}</a>
-                                <span class="cell-badge">Last</span>
-                            </td>
-                            <td class="summary-badge-col">
-                                <a class="member-link" href="household.html?id=${currentHouseholdId}">${householdName}</a>
-                                <span class="cell-badge">First</span>
-                            </td>
-                            <td class="summary-badge-col">
-                                <a href="record-contact.html?householdId=${currentHouseholdId}">${phoneNumbers}</a>
-                                <span class="cell-badge">Make Contact</span>
-                            </td>
-                            <td class="summary-badge-col">
-                                <a href="assign-deacons.html?householdId=${currentHouseholdId}">${deacons}</a>
-                                <span class="cell-badge">Deacons</span>
-                            </td>
-                            <td class="last-contact-col ${contactDateClass}">
-                                ${lastContactDate ? lastContactDate.toLocaleDateString() : '(needed)'}
-                                <span class="cell-badge">When</span>
-                            </td>
-                            <td class="last-contact-col">
-                                ${contactedBy}
-                                <span class="cell-badge">Who & How</span>
-                            </td>
-                            <td class="last-contact-col notes-col">
-                                ${item.summary}
-                                <span class="cell-badge">Summary</span>
-                            </td>
-                        </tr>
-                    </tbody>
+                    <tr class="summary-row ${rowClass}" data-household-id="${currentHouseholdId}">
+                        <td class="summary-badge-col">
+                            <a class="member-link" href="household.html?id=${currentHouseholdId}">${item.household.lastName}</a>
+                            <span class="cell-badge">Last</span>
+                        </td>
+                        <td class="summary-badge-col">
+                            <a class="member-link" href="household.html?id=${currentHouseholdId}">${householdName}</a>
+                            <span class="cell-badge">First</span>
+                        </td>
+                        <td class="summary-badge-col">
+                            <a href="record-contact.html?householdId=${currentHouseholdId}">${phoneNumbers}</a>
+                            <span class="cell-badge">Make Contact</span>
+                        </td>
+                        <td class="summary-badge-col">
+                            <a href="assign-deacons.html?householdId=${currentHouseholdId}">${deacons}</a>
+                            <span class="cell-badge">Deacons</span>
+                        </td>
+                        <td class="last-contact-col ${contactDateClass}">
+                            ${lastContactDate ? lastContactDate.toLocaleDateString() : '(needed)'}
+                            <span class="cell-badge">When</span>
+                        </td>
+                        <td class="last-contact-col">
+                            ${contactedBy}
+                            <span class="cell-badge">Who & How</span>
+                        </td>
+                        <td class="last-contact-col notes-col" data-household-id="${currentHouseholdId}">
+                            ${summaryContent}
+                            <div class="temp-location-info" style="margin-top: 8px;"></div>
+                            <span class="cell-badge">Summary</span>
+                        </td>
+                    </tr>
                 `;
             }).join('');
+
+            // Now fetch and display temporary locations if any exist
+            const tempLocationFetches = [];
+            data.summary.forEach(item => {
+                if (item.household.members && item.household.members.length > 0) {
+                    for (const member of item.household.members) {
+                        if (member.temporaryAddress && member.temporaryAddress.isActive && member.temporaryAddress.locationId) {
+                            tempLocationFetches.push({
+                                householdId: item.household._id,
+                                locationId: member.temporaryAddress.locationId,
+                                roomNumber: member.temporaryAddress.roomNumber,
+                                startDate: member.temporaryAddress.startDate,
+                                notes: member.temporaryAddress.notes
+                            });
+                            break;  // Only process first member with temp location per household
+                        }
+                    }
+                }
+            });
+
+            tempLocationFetches.forEach(fetchInfo => {
+                apiFetch('api/common-locations/' + fetchInfo.locationId)
+                    .then(res => res.json())
+                    .then(data => {
+                        const location = data.location;
+                        if (location && location.address) {
+                            const mapsUrl = formatAddressForMaps(location.address);
+                            const displayAddress = formatAddressForDisplay(location.address, false);
+                            const roomInfo = fetchInfo.roomNumber ? ' • Room/Unit: ' + fetchInfo.roomNumber : '';
+                            const selector = `td[data-household-id="${fetchInfo.householdId}"] .temp-location-info`;
+                            const locElement = document.querySelector(selector);
+                            if (locElement) {
+                                let html = '<div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px; margin-top: 10px;">' +
+                                    '<strong style="color: #856404;">Temporary Location:</strong>' +
+                                    '<div style="margin-top: 5px;">' +
+                                    '<span style="color: #333;">' + location.name + roomInfo + '</span>' +
+                                    '</div>' +
+                                    '<div style="margin-top: 3px; font-size: 0.9em;">' +
+                                    '<a href="' + mapsUrl + '" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">' + displayAddress + '</a>' +
+                                    '</div>';
+                                if (fetchInfo.startDate) {
+                                    html += '<div style="margin-top: 3px; font-size: 0.85em; color: #666;">Since: ' + new Date(fetchInfo.startDate).toLocaleDateString() + '</div>';
+                                }
+                                if (fetchInfo.notes) {
+                                    html += '<div style="margin-top: 5px; font-size: 0.9em; font-style: italic; color: #555;">' + fetchInfo.notes + '</div>';
+                                }
+                                html += '</div>';
+                                locElement.innerHTML = html;
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Error fetching location:', err));
+            });
         }
 
         

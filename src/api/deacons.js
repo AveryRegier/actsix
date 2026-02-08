@@ -108,7 +108,7 @@ export default function registerDeaconRoutes(app) {
         return {
           householdId: hId,
           displayName: displayName.trim(),
-          members: householdMembers.map(m => ({ _id: m._id, firstName: m.firstName, lastName: m.lastName, phone: m.phone, tags: m.tags })),
+          members: householdMembers.map(m => ({ _id: m._id, firstName: m.firstName, lastName: m.lastName, phone: m.phone, tags: m.tags, temporaryAddress: m.temporaryAddress })),
           primaryPhone: household.primaryPhone || '',
           address: household.address || {},
           lastContact: resolvedLastContact,

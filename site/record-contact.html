@@ -80,7 +80,7 @@
         </div>
     </div>
     <script type="module">
-        import { formatAddressForDisplay } from './address-utils.js';
+        import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.js';
         
         // Load reusable navigation bar and initialize page
         document.addEventListener('DOMContentLoaded', async function() {
@@ -183,10 +183,60 @@
                 }
                 if (household.address) {
                     const displayAddress = formatAddressForDisplay(household.address).replace(/<br>/g, ', ');
-                    infoHtml += '<div class="form-group"><label>Address</label><p>' + displayAddress + '</p></div>';
+                    const mapsUrl = formatAddressForMaps(household.address);
+                    infoHtml += '<div class="form-group"><label>Address</label><p><a href="' + mapsUrl + '" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">' + displayAddress + '</a></p></div>';
                 }
+                
+                // Add temporary location info placeholder if available
+                let tempMember = null;
+                for (var tm = 0; tm < members.length; tm++) {
+                    var m = members[tm];
+                    if (m.temporaryAddress && m.temporaryAddress.isActive && m.temporaryAddress.locationId) {
+                        tempMember = m;
+                        break;
+                    }
+                }
+                if (tempMember) {
+                    infoHtml += '<div class="temp-location-info-container"></div>';
+                }
+                
                 householdInfo.innerHTML = infoHtml;
                 contactTypeSection.insertAdjacentElement('afterend', householdInfo);
+                
+                // Fetch and display temporary location if available
+                if (tempMember) {
+                    const { apiFetch } = await import('./fetch-utils.js');
+                    apiFetch('api/common-locations/' + tempMember.temporaryAddress.locationId)
+                        .then(res => res.json())
+                        .then(data => {
+                            const location = data.location;
+                            if (location && location.address) {
+                                const mapsUrl = formatAddressForMaps(location.address);
+                                const displayAddress = formatAddressForDisplay(location.address, false);
+                                const roomInfo = tempMember.temporaryAddress.roomNumber ? ' • Room/Unit: ' + tempMember.temporaryAddress.roomNumber : '';
+                                const container = document.querySelector('.temp-location-info-container');
+                                if (container) {
+                                    let html = '<div class="form-group"><div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px;">' +
+                                        '<strong style="color: #856404;">Temporary Location:</strong>' +
+                                        '<div style="margin-top: 5px;">' +
+                                        '<span style="color: #333;">' + location.name + roomInfo + '</span>' +
+                                        '</div>' +
+                                        '<div style="margin-top: 3px; font-size: 0.9em;">' +
+                                        '<a href="' + mapsUrl + '" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">' + displayAddress + '</a>' +
+                                        '</div>';
+                                    if (tempMember.temporaryAddress.startDate) {
+                                        html += '<div style="margin-top: 3px; font-size: 0.85em; color: #666;">Since: ' + new Date(tempMember.temporaryAddress.startDate).toLocaleDateString() + '</div>';
+                                    }
+                                    if (tempMember.temporaryAddress.notes) {
+                                        html += '<div style="margin-top: 5px; font-size: 0.9em; font-style: italic; color: #555;">' + tempMember.temporaryAddress.notes + '</div>';
+                                    }
+                                    html += '</div></div>';
+                                    container.innerHTML = html;
+                                }
+                            }
+                        })
+                        .catch(err => console.error('Error fetching location:', err));
+                }
             } catch (error) {
                 console.error('Error loading page data:', error);
                 alert('Error loading page data. Please try again.');

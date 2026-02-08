@@ -28,7 +28,6 @@ export default function registerAssignmentRoutes(app) {
           return c.json({ error: 'Validation failed', message: `Missing required field: ${field}` }, 400);
         }
       }
-      
 
       const assignmentData = {
         ...body,

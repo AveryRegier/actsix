@@ -178,8 +178,14 @@ document.addEventListener('DOMContentLoaded', function() {
   } else {
     showBack = false;
   }
-  document.getElementById('siteNavBackLink').style.display = showBack ? '' : 'none';
-  document.getElementById('siteNavBackLinkMobile').style.display = showBack ? '' : 'none';
+  const backLink = document.getElementById('siteNavBackLink');
+  if (backLink) {
+    backLink.style.display = showBack ? '' : 'none';
+  }
+  const backLinkMobile = document.getElementById('siteNavBackLinkMobile');
+  if (backLinkMobile) {
+    backLinkMobile.style.display = showBack ? '' : 'none';
+  }
 
   // Hide nav link for current page
   hideCurrentPageNavLinks();

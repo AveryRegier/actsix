@@ -139,6 +139,7 @@ export default function registerCommonLocationRoutes(app) {
         return a.name.localeCompare(b.name);
       });
 
+      getLogger().debug('GET /api/common-locations - Returning locations:', locations.map(l => ({ name: l.name, _id: l._id, type: l.type })));
       return c.json({ locations, count: locations.length });
     } catch (error) {
       getLogger().error(error, 'Error fetching common locations');

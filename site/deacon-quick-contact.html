@@ -46,6 +46,7 @@
 
 	import { getContactedBy } from './contact-utils.js';
 	import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.js';
+	import { apiFetch } from './fetch-utils.js';
 
 	// Consolidated DOMContentLoaded listener
 	document.addEventListener('DOMContentLoaded', function() {
@@ -147,6 +148,7 @@
 				}
 
 				var rowsHtml = [];
+				var tempLocationFetches = [];  // Track location fetches
 				for (var idx = 0; idx < quickContacts.length; idx++) {
 					var item = quickContacts[idx];
 					var householdLink = 'household.html?id=' + item.householdId;
@@ -194,11 +196,22 @@
 					var contactedBy = getContactedBy(item.lastContact);
 					var summary = (item.lastContact && item.lastContact.summary) || item.summary || '';
 
+					// Store temporary location info for later fetching (after DOM is ready)
+					var tempMember = null;
+					if (item.members && item.members.length > 0) {
+						for (var mi = 0; mi < item.members.length; mi++) {
+							var mem = item.members[mi];
+							if (mem.temporaryAddress && mem.temporaryAddress.isActive && mem.temporaryAddress.locationId) {
+								tempMember = mem;
+								break;  // Only process first member with temp location
+							}
+						}
+					}
+
 					var rowClass = idx % 2 === 0 ? 'even' : 'odd';
 
 					rowsHtml.push(
-						'<tbody class="summary-group">' +
-						'<tr class="summary-row ' + rowClass + '">' +
+						'<tr class="summary-row ' + rowClass + '" data-household-id="' + item.householdId + '">' +
 						'<td class="summary-badge-col name-col">' +
 						'<a class="member-link" href="' + householdLink + '">' + displayLabel + '</a>' +
 						'</td>' +
@@ -209,14 +222,61 @@
 						'<a href="' + contactLink + '" class="btn record-btn" role="button" aria-label="Record contact for ' + displayLabel + '" title="Record contact for ' + displayLabel + '">Record</a>' +
 						'</td>' +
 						'</tr>' +
-						'<tr class="summary-row ' + rowClass + ' second-row">' +
+						'<tr class="summary-row ' + rowClass + ' second-row" data-household-id="' + item.householdId + '">' +
 						'<td class="last-contact-col howwhen-col">' + (contactedBy ? contactedBy + ' on ' + lastDate : lastDate) + '</td>' +
-						'<td class="notes-col" colspan="2">' + summary + '</td>' +
-						'</tr>' +
-						'</tbody>'
+						'<td class="notes-col" colspan="2">' + summary + '<div class="temp-location-info" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;"></div></td>' +
+						'</tr>'
 					);
+
+					// Queue location fetch if member has temp address
+					if (tempMember) {
+						tempLocationFetches.push({
+							householdId: item.householdId,
+							locationId: tempMember.temporaryAddress.locationId,
+							roomNumber: tempMember.temporaryAddress.roomNumber,
+							startDate: tempMember.temporaryAddress.startDate,
+							notes: tempMember.temporaryAddress.notes
+						});
+					}
 				}
 				tbody.innerHTML = rowsHtml.join('');
+
+				// Now fetch all location details after DOM is rendered
+				tempLocationFetches.forEach(function(fetchInfo) {
+					apiFetch('api/common-locations/' + fetchInfo.locationId)
+						.then(function(res) { 
+							return res.json(); 
+						})
+						.then(function(data) {
+							var location = data.location;
+							if (location && location.address) {
+								var mapsUrl = formatAddressForMaps(location.address);
+								var displayAddress = formatAddressForDisplay(location.address, false);
+								var roomInfo = fetchInfo.roomNumber ? ' • Room/Unit: ' + fetchInfo.roomNumber : '';
+								var selector = 'tr[data-household-id="' + fetchInfo.householdId + '"] .temp-location-info';
+								var locElement = document.querySelector(selector);
+								if (locElement) {
+									var html = '<div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px; margin-top: 10px;">' +
+										'<strong style="color: #856404;">Temporary Location:</strong>' +
+										'<div style="margin-top: 5px;">' +
+										'<span style="color: #333;">' + location.name + roomInfo + '</span>' +
+										'</div>' +
+										'<div style="margin-top: 3px; font-size: 0.9em;">' +
+										'<a href="' + mapsUrl + '" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">' + displayAddress + '</a>' +
+										'</div>';
+									if (fetchInfo.startDate) {
+										html += '<div style="margin-top: 3px; font-size: 0.85em; color: #666;">Since: ' + new Date(fetchInfo.startDate).toLocaleDateString() + '</div>';
+									}
+									if (fetchInfo.notes) {
+										html += '<div style="margin-top: 5px; font-size: 0.9em; font-style: italic; color: #555;">' + fetchInfo.notes + '</div>';
+									}
+									html += '</div>';
+									locElement.innerHTML = html;
+								}
+							}
+						})
+						.catch(function(err) { console.error('Error fetching location:', err); });
+				});
 			})
 			.catch(function(error) {
 				console.error('Error loading quick contacts:', error);

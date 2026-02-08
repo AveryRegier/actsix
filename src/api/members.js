@@ -303,6 +303,162 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  app.put('/api/members/:id/temporary-address', async (c) => {
+    try {
+      const memberId = c.req.param('id');
+      const body = await c.req.json();
+
+      // Get existing member
+      const members = await safeCollectionFind('members', { _id: memberId });
+      const member = members[0];
+      if (!member) {
+        return c.json({ error: 'Member not found', message: 'No member found with the given ID.' }, 404);
+      }
+
+      // Validate temporaryAddress
+      if (!body.temporaryAddress) {
+        return c.json({ error: 'Validation failed', message: 'temporaryAddress is required' }, 400);
+      }
+
+      const tempAddressError = validateTemporaryAddress(body.temporaryAddress);
+      if (tempAddressError) {
+        return c.json({ error: 'Validation failed', message: tempAddressError }, 400);
+      }
+
+      // Verify the location exists
+      const locations = await safeCollectionFind('common_locations', { _id: body.temporaryAddress.locationId });
+      if (locations.length === 0) {
+        return c.json({ error: 'Validation failed', message: 'Invalid locationId: location not found' }, 400);
+      }
+
+      // Archive previous temporary address if it exists and is active
+      if (member.temporaryAddress && member.temporaryAddress.isActive) {
+        member.temporaryAddress.isActive = false;
+      }
+
+      // Set new temporary address
+      const newTemporaryAddress = {
+        ...body.temporaryAddress,
+        isActive: body.temporaryAddress.isActive !== false
+      };
+
+      const result = await safeCollectionUpdate(
+        'members',
+        { _id: memberId },
+        { $set: { temporaryAddress: newTemporaryAddress, updatedAt: new Date().toISOString() } }
+      );
+
+      if (result.modifiedCount === 0) {
+        return c.json({ error: 'Update failed', message: 'Could not update member temporary address' }, 400);
+      }
+
+      return c.json({ 
+        message: 'Temporary address set successfully', 
+        member: { ...member, temporaryAddress: newTemporaryAddress, updatedAt: new Date().toISOString() }
+      });
+    } catch (error) {
+      getLogger().error(error, 'Error setting temporary address:');
+      return c.json({ error: 'Failed to set temporary address', message: error.message }, 500);
+    }
+  });
+
+  app.delete('/api/members/:id/temporary-address', async (c) => {
+    try {
+      const memberId = c.req.param('id');
+
+      // Get existing member
+      const members = await safeCollectionFind('members', { _id: memberId });
+      const member = members[0];
+      if (!member) {
+        return c.json({ error: 'Member not found', message: 'No member found with the given ID.' }, 404);
+      }
+
+      if (!member.temporaryAddress) {
+        return c.json({ error: 'No temporary address', message: 'This member has no temporary address.' }, 404);
+      }
+
+      // Remove temporary address
+      const result = await safeCollectionUpdate(
+        'members',
+        { _id: memberId },
+        { $unset: { temporaryAddress: '' }, $set: { updatedAt: new Date().toISOString() } }
+      );
+
+      if (result.modifiedCount === 0) {
+        return c.json({ error: 'Update failed', message: 'Could not remove member temporary address' }, 400);
+      }
+
+      return c.json({ 
+        message: 'Temporary address removed successfully',
+        member: { ...member, updatedAt: new Date().toISOString() }
+      });
+    } catch (error) {
+      getLogger().error(error, 'Error removing temporary address:');
+      return c.json({ error: 'Failed to remove temporary address', message: error.message }, 500);
+    }
+  });
+
+  app.get('/api/members/:id/temporary-address-history', async (c) => {
+    try {
+      const memberId = c.req.param('id');
+
+      // Get existing member
+      const members = await safeCollectionFind('members', { _id: memberId });
+      const member = members[0];
+      if (!member) {
+        return c.json({ error: 'Member not found', message: 'No member found with the given ID.' }, 404);
+      }
+
+      // Return current temporary address (can be extended to support full history in future)
+      const temporaryAddress = member.temporaryAddress || null;
+      
+      return c.json({ 
+        memberId,
+        currentTemporaryAddress: temporaryAddress,
+        history: temporaryAddress ? [temporaryAddress] : []
+      });
+    } catch (error) {
+      getLogger().error(error, 'Error fetching temporary address history:');
+      return c.json({ error: 'Failed to fetch temporary address history', message: error.message }, 500);
+    }
+  });
+
+  app.get('/api/temporary-locations/active', async (c) => {
+    try {
+      // Get all members with active temporary addresses
+      const members = await safeCollectionFind('members', { 'temporaryAddress.isActive': true });
+      
+      if (!members || members.length === 0) {
+        return c.json({ members: [], count: 0 });
+      }
+
+      // Enhance with location details
+      const enhancedMembers = [];
+      for (const member of members) {
+        if (member.temporaryAddress) {
+          const locations = await safeCollectionFind('common_locations', { _id: member.temporaryAddress.locationId });
+          const location = locations[0];
+          enhancedMembers.push({
+            _id: member._id,
+            firstName: member.firstName,
+            lastName: member.lastName,
+            householdId: member.householdId,
+            temporaryAddress: member.temporaryAddress,
+            location: location || null
+          });
+        }
+      }
+
+      return c.json({ 
+        members: enhancedMembers,
+        count: enhancedMembers.length
+      });
+    } catch (error) {
+      getLogger().error(error, 'Error fetching members at temporary locations:');
+      return c.json({ error: 'Failed to fetch members at temporary locations', message: error.message }, 500);
+    }
+  });
+
   app.get('/api/tags', async (c) => {
     return c.json({ tags: [
       { name: 'deacon', description: 'Deacon', type: 'role' },

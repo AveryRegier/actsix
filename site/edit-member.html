@@ -72,6 +72,39 @@
                     <label class="status-badge"><input type="checkbox" name="tags" value="deceased">Deceased</label>
                 </div>
             </div>
+
+            <!-- Temporary Address Section -->
+            <div style="border-top: 2px solid #ddd; margin-top: 30px; padding-top: 20px;">
+                <h3 style="margin-top: 0;">Temporary Location (Optional)</h3>
+                <p style="color: #666; font-size: 0.9em;">Track when this member is at a temporary location (hospital, nursing home, etc.)</p>
+                
+                <div class="form-group">
+                    <label for="tempLocationDropdown">Select Common Location</label>
+                    <select id="tempLocationDropdown">
+                        <option value="">-- Select from common locations --</option>
+                    </select>
+                </div>
+
+                <div id="tempLocationDisplay" style="display: none; background: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                    <p style="margin: 0 0 8px 0;"><strong id="tempLocationName"></strong></p>
+                    <p id="tempLocationAddress" style="margin: 0; color: #666; font-size: 0.9em;"></p>
+                </div>
+
+                <div class="form-group">
+                    <label for="tempRoomNumber">Room/Unit Number</label>
+                    <input type="text" id="tempRoomNumber" placeholder="e.g., Room 312 or Unit B-14">
+                </div>
+
+                <div class="form-group">
+                    <label for="tempNotes">Notes</label>
+                    <textarea id="tempNotes" rows="3" placeholder="e.g., Post-surgery recovery, expected discharge Feb 15"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <button type="button" id="clearTempBtn" class="btn btn-secondary" style="width: 100%;">Clear Temporary Location</button>
+                </div>
+            </div>
+
             <button class="btn section-button" type="submit" id="saveBtn">Save Member</button>
             <a href="#" class="btn btn-secondary" id="cancelBtn">Cancel</a>
         </form>
@@ -90,6 +123,12 @@
     var params = getParams();
     var memberId = params.memberId;
     var householdId = params.householdId;
+
+    // Store selected location data
+    var selectedLocation = null;
+    var selectedLocationId = null;
+    var existingTemporaryAddress = null;
+    var wasExistingLocationPreselected = false;
 
     // Consolidated DOMContentLoaded listener
     document.addEventListener('DOMContentLoaded', function() {
@@ -133,6 +172,15 @@
         }
         updateTagBadges();
 
+        // Load common locations for temporary location dropdown
+        loadCommonLocations();
+
+        // Clear temporary location button
+        document.getElementById('clearTempBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            clearTemporaryLocationFields();
+        });
+
         // If editing, load member data
         if (memberId) {
             document.getElementById('formTitle').textContent = 'Edit Member';
@@ -155,6 +203,10 @@
                         var cb = tagInputs[k];
                         cb.checked = tags.indexOf(cb.value) !== -1;
                     }
+                    // Load temporary address if exists
+                    if (member.temporaryAddress && member.temporaryAddress.locationId) {
+                        loadTemporaryLocation(member.temporaryAddress);
+                    }
                 })
                 .catch(function() {
                     document.getElementById('formError').textContent = 'Could not load member data.';
@@ -162,6 +214,109 @@
                 });
         }
     });
+
+    // Load common locations from static JSON file
+    async function loadCommonLocations() {
+        try {
+            // Fetch locations from API (which has the database IDs)
+            const response = await apiFetch('/api/common-locations');
+            const data = await response.json();
+            const locations = data.locations || [];
+            
+            console.log('Loaded locations from API:', locations);
+            
+            const dropdown = document.getElementById('tempLocationDropdown');
+            locations.forEach(function(location) {
+                const option = document.createElement('option');
+                option.value = location.name; // Use name as key for display
+                option.textContent = location.name + ' (' + location.type + ')';
+                option.dataset.locationId = location._id; // Store database ID
+                option.dataset.location = JSON.stringify(location);
+                console.log('Adding location option:', {
+                    name: location.name,
+                    _id: location._id,
+                    type: location.type
+                });
+                dropdown.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading common locations:', error);
+        }
+    }
+
+    // Handle location selection from dropdown
+    document.getElementById('tempLocationDropdown').addEventListener('change', function(e) {
+        if (this.value) {
+            const selectedOption = this.options[this.selectedIndex];
+            selectedLocation = JSON.parse(selectedOption.dataset.location);
+            selectedLocationId = selectedOption.dataset.locationId;
+            wasExistingLocationPreselected = false;  // User just selected a new location
+            
+            console.log('Location selected:', {
+                name: this.value,
+                locationId: selectedLocationId,
+                location: selectedLocation
+            });
+            
+            // Display location info
+            const display = document.getElementById('tempLocationDisplay');
+            const name = document.getElementById('tempLocationName');
+            const addr = document.getElementById('tempLocationAddress');
+            
+            name.textContent = selectedLocation.name;
+            const addrParts = [
+                selectedLocation.address?.street,
+                selectedLocation.address?.city + ', ' + selectedLocation.address?.state,
+                selectedLocation.address?.zipCode
+            ].filter(Boolean);
+            addr.textContent = addrParts.join(' • ');
+            display.style.display = 'block';
+            
+            // Auto-focus room number field
+            document.getElementById('tempRoomNumber').focus();
+        } else {
+            selectedLocation = null;
+            selectedLocationId = null;
+            wasExistingLocationPreselected = false;
+            document.getElementById('tempLocationDisplay').style.display = 'none';
+        }
+    });
+
+    // Load existing temporary location into form
+    function loadTemporaryLocation(tempAddr) {
+        existingTemporaryAddress = tempAddr;
+        document.getElementById('tempRoomNumber').value = tempAddr.roomNumber || '';
+        document.getElementById('tempNotes').value = tempAddr.notes || '';
+        
+        // Set selectedLocationId from the existing data but mark that it was pre-selected
+        selectedLocationId = tempAddr.locationId;
+        wasExistingLocationPreselected = true;
+        
+        // Try to find and select the location in dropdown
+        if (tempAddr.locationId) {
+            const dropdown = document.getElementById('tempLocationDropdown');
+            for (let i = 0; i < dropdown.options.length; i++) {
+                if (dropdown.options[i].dataset.locationId === tempAddr.locationId) {
+                    dropdown.selectedIndex = i;
+                    dropdown.dispatchEvent(new Event('change'));
+                    break;
+                }
+            }
+        }
+    }
+
+    // Clear temporary location fields
+    function clearTemporaryLocationFields() {
+        document.getElementById('tempLocationDropdown').value = '';
+        document.getElementById('tempLocationDisplay').style.display = 'none';
+        document.getElementById('tempRoomNumber').value = '';
+        document.getElementById('tempNotes').value = '';
+        selectedLocation = null;
+        selectedLocationId = null;
+        existingTemporaryAddress = null;
+        wasExistingLocationPreselected = false;
+    }
+
     // Save handler
     document.getElementById('memberForm').onsubmit = function(e) {
         e.preventDefault();
@@ -181,6 +336,45 @@
             relationship: form.relationship.value,
             tags: tagValues
         };
+
+        // Add temporary address based on what happened with location selection
+        if (selectedLocationId && !wasExistingLocationPreselected) {
+            // New location just selected by user
+            member.temporaryAddress = {
+                locationId: selectedLocationId,
+                roomNumber: document.getElementById('tempRoomNumber').value || undefined,
+                startDate: new Date().toISOString().split('T')[0],
+                notes: document.getElementById('tempNotes').value || undefined,
+                isActive: true
+            };
+            // Remove undefined properties
+            Object.keys(member.temporaryAddress).forEach(key => 
+                member.temporaryAddress[key] === undefined && delete member.temporaryAddress[key]
+            );
+            console.log('Sending temporaryAddress (new location):', member.temporaryAddress);
+        } else if (selectedLocationId && wasExistingLocationPreselected && existingTemporaryAddress) {
+            // Existing location loaded, user just editing notes/room
+            member.temporaryAddress = {
+                locationId: existingTemporaryAddress.locationId,
+                roomNumber: document.getElementById('tempRoomNumber').value || undefined,
+                startDate: existingTemporaryAddress.startDate,
+                notes: document.getElementById('tempNotes').value || undefined,
+                isActive: true
+            };
+            // Remove undefined properties
+            Object.keys(member.temporaryAddress).forEach(key => 
+                member.temporaryAddress[key] === undefined && delete member.temporaryAddress[key]
+            );
+            console.log('Sending temporaryAddress (existing updated):', member.temporaryAddress);
+        } else if (memberId && !selectedLocationId && document.getElementById('tempLocationDropdown').value === '') {
+            // Explicitly cleared existing temporary location
+            member.temporaryAddress = {
+                isActive: false,
+                endDate: new Date().toISOString().split('T')[0]
+            };
+            console.log('Sending temporaryAddress (cleared):', member.temporaryAddress);
+        }
+
         var url = '/api/members';
         var method = 'POST';
         if (memberId) {
@@ -191,6 +385,7 @@
             member.householdId = householdId;
         }
         
+        console.log('Saving member data:', member);
         apiFetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
@@ -208,6 +403,7 @@
                 });
             } else {
                 return res.json().then(function(data) {
+                    console.error('API error response:', data);
                     document.getElementById('formError').textContent = data.message || 'Error saving member.';
                     document.getElementById('formError').style.display = 'block';
                 });

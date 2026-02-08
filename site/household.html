@@ -505,8 +505,43 @@ function displayMembers(members) {
         `;
         return;
     }
-    membersList.innerHTML = members.map(member => `
-        <div class="member-card">
+    membersList.innerHTML = members.map(member => {
+        // Build temporary location info if available
+        let tempLocationHtml = '';
+        if (member.temporaryAddress && member.temporaryAddress.isActive && member.temporaryAddress.locationId) {
+            // Fetch location details from API
+            apiFetch(`api/common-locations/${member.temporaryAddress.locationId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const location = data.location;
+                    if (location && location.address) {
+                        const mapsUrl = formatAddressForMaps(location.address);
+                        const displayAddress = formatAddressForDisplay(location.address, false);
+                        const tempLocationElement = document.querySelector(`[data-member-id="${member._id}"] .temp-location-info`);
+                        if (tempLocationElement) {
+                            tempLocationElement.innerHTML = `
+                                <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px; margin-top: 10px;">
+                                    <strong style="color: #856404;">Temporary Location:</strong>
+                                    <div style="margin-top: 5px;">
+                                        <span style="color: #333;">${location.name}${member.temporaryAddress.roomNumber ? ' • Room/Unit: ' + member.temporaryAddress.roomNumber : ''}</span>
+                                    </div>
+                                    <div style="margin-top: 3px; font-size: 0.9em;">
+                                        <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">${displayAddress}</a>
+                                    </div>
+                                    ${member.temporaryAddress.startDate ? `<div style="margin-top: 3px; font-size: 0.85em; color: #666;">Since: ${new Date(member.temporaryAddress.startDate).toLocaleDateString()}</div>` : ''}
+                                    ${member.temporaryAddress.notes ? `<div style="margin-top: 5px; font-size: 0.9em; font-style: italic; color: #555;">${member.temporaryAddress.notes}</div>` : ''}
+                                </div>
+                            `;
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching location details:', err));
+            
+            tempLocationHtml = `<div class="temp-location-info"></div>`;
+        }
+        
+        return `
+        <div class="member-card" data-member-id="${member._id}">
             <div class="member-header" style="display:flex;align-items:center;justify-content:space-between;">
                 <div class="member-name">${member.firstName} ${member.lastName}</div>
                 <div style="display:flex;align-items:center;gap:6px;">
@@ -548,8 +583,10 @@ function displayMembers(members) {
                     <span class="info-value">${member.notes}</span>
                 </div>
             ` : ''}
+            ${tempLocationHtml}
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Member form submission
