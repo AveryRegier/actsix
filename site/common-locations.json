@@ -209,6 +209,19 @@
       "visitingHours": "8:00 AM - 8:00 PM daily (contact for specific hours)"
     },
     {
+      "name": "Valley View Village",
+      "type": "nursing_home",
+      "address": {
+        "street": "2571 Guthrie Ave",
+        "city": "Des Moines",
+        "state": "IA",
+        "zipCode": "50317"
+      },
+      "phone": "(515) 265-2571",
+      "website": "https://www.valleyviewvillage.org/",
+      "visitingHours": "Open 24 hours"
+    },
+    {
       "name": "Bickford of Urbandale",
       "type": "assisted_living",
       "address": {

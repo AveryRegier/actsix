@@ -172,47 +172,49 @@
         }
         updateTagBadges();
 
-        // Load common locations for temporary location dropdown
-        loadCommonLocations();
-
         // Clear temporary location button
         document.getElementById('clearTempBtn').addEventListener('click', function(e) {
             e.preventDefault();
             clearTemporaryLocationFields();
         });
 
-        // If editing, load member data
-        if (memberId) {
-            document.getElementById('formTitle').textContent = 'Edit Member';
-            apiFetch('api/members/' + memberId)
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                    var member = data.member || data;
-                    console.log('Loaded member:', member);
-                    document.getElementById('memberId').value = member._id || '';
-                    document.getElementById('firstName').value = member.firstName || '';
-                    document.getElementById('lastName').value = member.lastName || '';
-                    document.getElementById('phone').value = member.phone || '';
-                    document.getElementById('email').value = member.email || '';
-                    document.getElementById('gender').value = member.gender || '';
-                    document.getElementById('relationship').value = member.relationship || '';
-                    // Set tags
-                    var tags = member.tags || [];
-                    var tagInputs = Array.from(document.querySelectorAll('input[name="tags"]'));
-                    for (var k = 0; k < tagInputs.length; k++) {
-                        var cb = tagInputs[k];
-                        cb.checked = tags.indexOf(cb.value) !== -1;
-                    }
-                    // Load temporary address if exists
-                    if (member.temporaryAddress && member.temporaryAddress.locationId) {
-                        loadTemporaryLocation(member.temporaryAddress);
-                    }
-                })
-                .catch(function() {
-                    document.getElementById('formError').textContent = 'Could not load member data.';
-                    document.getElementById('formError').style.display = 'block';
-                });
-        }
+        // Load common locations first, then load member data if editing
+        loadCommonLocations().then(function() {
+            // If editing, load member data
+            if (memberId) {
+                document.getElementById('formTitle').textContent = 'Edit Member';
+                apiFetch('api/members/' + memberId)
+                    .then(function(response) { return response.json(); })
+                    .then(function(data) {
+                        var member = data.member || data;
+                        console.log('Loaded member:', member);
+                        document.getElementById('memberId').value = member._id || '';
+                        document.getElementById('firstName').value = member.firstName || '';
+                        document.getElementById('lastName').value = member.lastName || '';
+                        document.getElementById('phone').value = member.phone || '';
+                        document.getElementById('email').value = member.email || '';
+                        document.getElementById('gender').value = member.gender || '';
+                        document.getElementById('relationship').value = member.relationship || '';
+                        // Set tags
+                        var tags = member.tags || [];
+                        var tagInputs = Array.from(document.querySelectorAll('input[name="tags"]'));
+                        for (var k = 0; k < tagInputs.length; k++) {
+                            var cb = tagInputs[k];
+                            cb.checked = tags.indexOf(cb.value) !== -1;
+                        }
+                        // Load temporary address if exists
+                        if (member.temporaryAddress && member.temporaryAddress.locationId) {
+                            loadTemporaryLocation(member.temporaryAddress);
+                        }
+                    })
+                    .catch(function() {
+                        document.getElementById('formError').textContent = 'Could not load member data.';
+                        document.getElementById('formError').style.display = 'block';
+                    });
+            }
+        }).catch(function(error) {
+            console.error('Error loading common locations:', error);
+        });
     });
 
     // Load common locations from static JSON file
