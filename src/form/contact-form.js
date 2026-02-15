@@ -52,12 +52,16 @@ export default function registerContactFormRoutes(app) {
         throw new Error('Missing required fields');
       }
 
+      // Parse date as local time at noon to avoid timezone issues
+      // Appending 'T12:00:00' ensures the date stays correct regardless of timezone
+      const contactDate = new Date(formData.contactDate + 'T12:00:00').toISOString();
+      
       const contactData = {
         memberId: memberIds,
         deaconId: deaconIds,
         contactType: formData.contactType,
         summary: formData.summary,
-        contactDate: new Date(formData.contactDate).toISOString(),
+        contactDate: contactDate,
         followUpRequired: formData.followUpRequired === 'true' || formData.followUpRequired === true
       };
 
