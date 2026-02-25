@@ -13,9 +13,10 @@ function validateTemporaryAddress(temporaryAddress) {
   if (!temporaryAddress) return null;
 
   const errors = [];
+  const isClearRequest = temporaryAddress.isActive === false;
 
   // locationId is required
-  if (!temporaryAddress.locationId) {
+  if (!isClearRequest && !temporaryAddress.locationId) {
     errors.push('temporaryAddress.locationId is required');
   }
 
@@ -25,9 +26,9 @@ function validateTemporaryAddress(temporaryAddress) {
   }
 
   // startDate is required
-  if (!temporaryAddress.startDate) {
+  if (!isClearRequest && !temporaryAddress.startDate) {
     errors.push('temporaryAddress.startDate is required');
-  } else {
+  } else if (temporaryAddress.startDate) {
     // Validate date format
     const startDate = new Date(temporaryAddress.startDate);
     if (isNaN(startDate.getTime())) {
@@ -256,10 +257,13 @@ export default function registerMemberRoutes(app) {
         if (tempAddressError) {
           validationErrorResponse(c, tempAddressError);
         }
+        const isClearingTemporaryAddress = body.temporaryAddress.isActive === false && !body.temporaryAddress.locationId;
         // Verify the location exists
-        const locations = await safeCollectionFind('common_locations', { _id: body.temporaryAddress.locationId });
-        if (locations.length === 0) {
-          validationErrorResponse(c, 'Invalid locationId: location not found');
+        if (!isClearingTemporaryAddress) {
+          const locations = await safeCollectionFind('common_locations', { _id: body.temporaryAddress.locationId });
+          if (locations.length === 0) {
+            validationErrorResponse(c, 'Invalid locationId: location not found');
+          }
         }
       }
 
@@ -275,6 +279,10 @@ export default function registerMemberRoutes(app) {
         ...body,
         updatedAt: new Date().toISOString(),
       };
+      const isClearingTemporaryAddress = body.temporaryAddress && body.temporaryAddress.isActive === false && !body.temporaryAddress.locationId;
+      if (isClearingTemporaryAddress) {
+        updateData.temporaryAddress = null;
+      }
       // only other deacons can modify tags as they allow secure access to the site
       const role = c.req.role; // Assuming role is set in the request
       if(role === 'deacon' || role === 'staff') {
@@ -381,7 +389,7 @@ export default function registerMemberRoutes(app) {
       const result = await safeCollectionUpdate(
         'members',
         { _id: memberId },
-        { $unset: { temporaryAddress: '' }, $set: { updatedAt: new Date().toISOString() } }
+        { $set: { temporaryAddress: null, updatedAt: new Date().toISOString() } }
       );
 
       if (result.modifiedCount === 0) {
