@@ -22,14 +22,14 @@ export default function registerDeaconRoutes(app) {
   });
 
   app.get('/api/participants', async (c) => {
-    if (!verifyRole(c, ['deacon', 'staff'])) {
+    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
-      const members = await safeCollectionFind('members', { tags: { $in: ['deacon', 'elder', 'staff'] } })
+      const members = await safeCollectionFind('members', { tags: { $in: ['deacon', 'elder', 'staff', 'helper'] } })
       .then(members => members.map(member => ({
           ...member,
-          role: member.tags.includes('deacon') ? 'Deacon' : member.tags.includes('elder') ? 'Elder' : 'Staff'
+          role: member.tags.includes('deacon') ? 'Deacon' : member.tags.includes('elder') ? 'Elder' : member.tags.includes('helper') ? 'H.E.L.P.' : 'Staff'
         })));
       return c.json({ participants: members, count: members.length });
     } catch (error) {
@@ -40,7 +40,7 @@ export default function registerDeaconRoutes(app) {
 
   // Bulk quick contacts for a deacon: assignments + household + members + last contact
   app.get('/api/deacons/:deaconMemberId/quickContacts', async (c) => {
-    if (!verifyRole(c, ['deacon', 'staff'])) {
+    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {

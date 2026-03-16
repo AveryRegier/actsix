@@ -4,7 +4,7 @@ import { verifyRole } from '../auth/auth.js';
 
 export default function registerAssignmentRoutes(app) {
   app.get('/api/assignments', async (c) => {
-    if (!verifyRole(c, ['deacon', 'staff'])) {
+    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -17,7 +17,7 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.post('/api/assignments', async (c) => {
-    if (!verifyRole(c, ['deacon'])) {
+    if (!verifyRole(c, ['deacon', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -45,7 +45,7 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.get('/api/deacons/:deaconMemberId/assignments', async (c) => {
-    if (!verifyRole(c, ['deacon'])) {
+    if (!verifyRole(c, ['deacon', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -62,7 +62,7 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.get('/api/households/:householdId/assignments', async (c) => {
-    if (!verifyRole(c, ['deacon', 'staff'])) {
+    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -83,7 +83,7 @@ export default function registerAssignmentRoutes(app) {
   });
 
   app.post('/api/households/:householdId/assignments', async (c) => {
-    if (!verifyRole(c, ['deacon'])) {
+    if (!verifyRole(c, ['deacon', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {

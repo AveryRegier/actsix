@@ -131,7 +131,7 @@ export default function registerContactRoutes(app) {
   });
 
   app.get('/api/reports/summary', async (c) => {
-    if (!verifyRole(c, ['deacon', 'staff'])) {
+    if (!verifyRole(c, ['deacon', 'staff', 'elder', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {

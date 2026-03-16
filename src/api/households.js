@@ -20,7 +20,7 @@ function validateAddress(address) {
 
 export default function registerHouseholdRoutes(app) {
   app.get('/api/households', async (c) => {
-    if (!verifyRole(c, ['deacon', 'staff'])) {
+    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -34,7 +34,7 @@ export default function registerHouseholdRoutes(app) {
 
   app.get('/api/households/:householdId', async (c) => {
     let householdId = c.req.param('householdId');
-    if (!verifyRole(c, ['deacon', 'staff'])) {
+    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
       if(!members.map(m=>m.householdId).includes(householdId)) {
         return c.json({ error: 'Unauthorized access' }, 403);
@@ -86,7 +86,7 @@ export default function registerHouseholdRoutes(app) {
 
   app.patch('/api/households/:householdId', async (c) => {
     let householdId = c.req.param('householdId');
-    if (!verifyRole(c, ['deacon', 'staff'])) {
+    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
       if(!members.map(m=>m.householdId).includes(householdId)) {
         return c.json({ error: 'Unauthorized access' }, 403);

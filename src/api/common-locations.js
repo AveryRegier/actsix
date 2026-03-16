@@ -181,8 +181,8 @@ export default function registerCommonLocationRoutes(app) {
    * Auth: Staff only
    */
   app.post('/api/common-locations', async (c) => {
-    if (!verifyRole(c, ['staff'])) {
-      return c.json({ error: 'Unauthorized', message: 'Only staff can create locations' }, 403);
+    if (!verifyRole(c, ['staff', 'deacon', 'helper'])) {
+      return c.json({ error: 'Unauthorized', message: 'Only staff, deacons, or H.E.L.P. can create locations' }, 403);
     }
 
     try {
@@ -234,8 +234,8 @@ export default function registerCommonLocationRoutes(app) {
    * Auth: Staff only
    */
   app.put('/api/common-locations/:id', async (c) => {
-    if (!verifyRole(c, ['staff'])) {
-      return c.json({ error: 'Unauthorized', message: 'Only staff can update locations' }, 403);
+    if (!verifyRole(c, ['staff', 'deacon', 'helper'])) {
+      return c.json({ error: 'Unauthorized', message: 'Only staff, deacons, or H.E.L.P. can update locations' }, 403);
     }
 
     try {
@@ -296,8 +296,8 @@ export default function registerCommonLocationRoutes(app) {
    * Auth: Staff only
    */
   app.delete('/api/common-locations/:id', async (c) => {
-    if (!verifyRole(c, ['staff'])) {
-      return c.json({ error: 'Unauthorized', message: 'Only staff can delete locations' }, 403);
+    if (!verifyRole(c, ['staff', 'deacon', 'helper'])) {
+      return c.json({ error: 'Unauthorized', message: 'Only staff, deacons, or H.E.L.P. can delete locations' }, 403);
     }
 
     try {
