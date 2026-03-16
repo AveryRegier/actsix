@@ -58,18 +58,8 @@
             </div>
             <div class="form-group">
                 <label>Tags</label>
-                <div class="tag-checkboxes">
-                    <label class="status-badge"><input type="checkbox" name="tags" value="deacon">Deacon</label>
-                    <label class="status-badge"><input type="checkbox" name="tags" value="deaconess">Deaconess</label>
-                    <label class="status-badge"><input type="checkbox" name="tags" value="elder">Elder</label>
-                    <label class="status-badge"><input type="checkbox" name="tags" value="staff">Staff</label>
-                    <label class="status-badge"><input type="checkbox" name="tags" value="member">Member</label>
-                    <label class="status-badge"><input type="checkbox" name="tags" value="attender">Attender</label>
-                    <label class="status-badge"><input type="checkbox" name="tags" value="in-small-group">In Small Group</label>
-                    <label class="status-badge"><input type="checkbox" name="tags" value="shut-in">Shut-in</label>
-                    <label class="status-badge"><input type="checkbox" name="tags" value="cancer">Cancer</label>
-                    <label class="status-badge"><input type="checkbox" name="tags" value="long-term-needs">Long-term Needs</label>
-                    <label class="status-badge"><input type="checkbox" name="tags" value="deceased">Deceased</label>
+                <div class="tag-checkboxes" id="tagCheckboxes">
+                    <span style="color:#666; font-size:0.9em;">Loading tags...</span>
                 </div>
             </div>
 
@@ -130,6 +120,27 @@
     var existingTemporaryAddress = null;
     var wasExistingLocationPreselected = false;
 
+    function updateTagBadges() {
+        var labels = document.querySelectorAll('.tag-badge');
+        for (var i = 0; i < labels.length; i++) {
+            var label = labels[i];
+            var cb = label.querySelector('input[type="checkbox"]');
+            if (cb && cb.checked) {
+                label.classList.remove('tag-unchecked');
+            } else {
+                label.classList.add('tag-unchecked');
+            }
+        }
+    }
+
+    function attachTagBadgeHandlers() {
+        var tagCheckboxes = document.querySelectorAll('.tag-badge input[type="checkbox"]');
+        for (var i = 0; i < tagCheckboxes.length; i++) {
+            tagCheckboxes[i].addEventListener('change', updateTagBadges);
+        }
+        updateTagBadges();
+    }
+
     // Consolidated DOMContentLoaded listener
     document.addEventListener('DOMContentLoaded', function() {
         // Load reusable navigation bar
@@ -153,33 +164,14 @@
                 });
         }
 
-        // Tag badge checked/unchecked state toggle
-        function updateTagBadges() {
-            var labels = document.querySelectorAll('.tag-badge');
-            for (var i = 0; i < labels.length; i++) {
-                var label = labels[i];
-                var cb = label.querySelector('input[type="checkbox"]');
-                if (cb && cb.checked) {
-                    label.classList.remove('tag-unchecked');
-                } else {
-                    label.classList.add('tag-unchecked');
-                }
-            }
-        }
-        var tagCheckboxes = document.querySelectorAll('.tag-badge input[type="checkbox"]');
-        for (var j = 0; j < tagCheckboxes.length; j++) {
-            tagCheckboxes[j].addEventListener('change', updateTagBadges);
-        }
-        updateTagBadges();
-
         // Clear temporary location button
         document.getElementById('clearTempBtn').addEventListener('click', function(e) {
             e.preventDefault();
             clearTemporaryLocationFields();
         });
 
-        // Load common locations first, then load member data if editing
-        loadCommonLocations().then(function() {
+        // Load tags and common locations first, then load member data if editing
+        Promise.all([loadTags(), loadCommonLocations()]).then(function() {
             // If editing, load member data
             if (memberId) {
                 document.getElementById('formTitle').textContent = 'Edit Member';
@@ -202,6 +194,7 @@
                             var cb = tagInputs[k];
                             cb.checked = tags.indexOf(cb.value) !== -1;
                         }
+                        updateTagBadges();
                         // Load temporary address if exists
                         if (member.temporaryAddress && member.temporaryAddress.locationId) {
                             loadTemporaryLocation(member.temporaryAddress);
@@ -213,9 +206,76 @@
                     });
             }
         }).catch(function(error) {
-            console.error('Error loading common locations:', error);
+            console.error('Error loading page data:', error);
         });
     });
+
+    async function loadTags() {
+        try {
+            var response = await apiFetch('/api/tags');
+            var data = await response.json();
+            var tags = data.tags || [];
+            var tagsContainer = document.getElementById('tagCheckboxes');
+            tagsContainer.innerHTML = '';
+
+            if (!tags.length) {
+                tagsContainer.innerHTML = '<span style="color:#666; font-size:0.9em;">No tags found.</span>';
+                return;
+            }
+
+            var groupedTags = {};
+            for (var i = 0; i < tags.length; i++) {
+                var tag = tags[i];
+                var type = tag.type || 'other';
+                if (!groupedTags[type]) {
+                    groupedTags[type] = [];
+                }
+                groupedTags[type].push(tag);
+            }
+
+            var typeOrder = ['role', 'situation', 'status', 'other'];
+            for (var j = 0; j < typeOrder.length; j++) {
+                var currentType = typeOrder[j];
+                var currentTags = groupedTags[currentType];
+                if (!currentTags || !currentTags.length) {
+                    continue;
+                }
+
+                var groupWrapper = document.createElement('div');
+                groupWrapper.style.marginBottom = '12px';
+
+                var heading = document.createElement('div');
+                heading.style.fontSize = '0.85em';
+                heading.style.fontWeight = '600';
+                heading.style.color = '#666';
+                heading.style.marginBottom = '6px';
+                heading.textContent = currentType.charAt(0).toUpperCase() + currentType.slice(1);
+                groupWrapper.appendChild(heading);
+
+                for (var k = 0; k < currentTags.length; k++) {
+                    var groupTag = currentTags[k];
+                    var label = document.createElement('label');
+                    label.className = 'status-badge tag-badge';
+
+                    var input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.name = 'tags';
+                    input.value = groupTag.name;
+
+                    label.appendChild(input);
+                    label.appendChild(document.createTextNode(groupTag.description || groupTag.name));
+                    groupWrapper.appendChild(label);
+                }
+
+                tagsContainer.appendChild(groupWrapper);
+            }
+
+            attachTagBadgeHandlers();
+        } catch (error) {
+            console.error('Error loading tags:', error);
+            document.getElementById('tagCheckboxes').innerHTML = '<span style="color:#b30000; font-size:0.9em;">Could not load tags.</span>';
+        }
+    }
 
     // Load common locations from static JSON file
     async function loadCommonLocations() {
