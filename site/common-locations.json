@@ -222,6 +222,19 @@
       "visitingHours": "Open 24 hours"
     },
     {
+      "name": "Sunny View Care Center",
+      "type": "nursing_home",
+      "address": {
+        "street": "410 NW Ash Dr",
+        "city": "Ankeny",
+        "state": "IA",
+        "zipCode": "50023"
+      },
+      "phone": "(515) 964-1101",
+      "website": "https://sunnyviewcarecenter.com/visit/",
+      "visitingHours": "Open 24 hours"
+    },
+    {
       "name": "Bickford of Urbandale",
       "type": "assisted_living",
       "address": {

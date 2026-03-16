@@ -10,3 +10,4 @@ scripts/generate_data.js
 *.ipynb
 init-files/
 scripts/s3-profile-migrate.ps1
+.vscode/
