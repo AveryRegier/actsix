@@ -25,13 +25,20 @@ if (!from || !pw) {
     });
 }
 
-export async function sendEmail(to, subject, text) {
+export async function sendEmail(to, subject, text, options = {}) {
+    const expiresAt = options.expiresAt ? new Date(options.expiresAt) : null;
+    const expiresHeader = expiresAt && !Number.isNaN(expiresAt.getTime()) ? expiresAt.toUTCString() : undefined;
+
     const mailOptions = {
         from,
         to,
         subject,
         text: text.text || text,
         html: text.html || undefined,
+        headers: {
+            ...(expiresHeader ? { Expires: expiresHeader, 'Expiry-Date': expiresHeader } : {}),
+            ...(options.headers || {}),
+        },
     };
     try {
         await transporter.sendMail(mailOptions);

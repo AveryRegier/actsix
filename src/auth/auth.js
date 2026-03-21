@@ -4,11 +4,17 @@ import { safeCollectionFind, safeCollectionUpdate } from '../util/helpers.js';
 import { getLogger } from '../util/logger.js';
 import { sendEmail as _origSendEmail, sendEmail } from '../util/email.js';
 
+const VALIDATION_CODE_TTL_MINUTES = 15;
+const VALIDATION_CODE_TTL_MS = VALIDATION_CODE_TTL_MINUTES * 60 * 1000;
+const EMAIL_TTL_MINUTES = VALIDATION_CODE_TTL_MINUTES * 2;
+const EMAIL_TTL_MS = EMAIL_TTL_MINUTES * 60 * 1000;
+
 export function generateAndSendValidationCode(member) {
     // Generate a random 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    // Store the code with an expiration time (e.g., 15 minutes)
-    storeValidationCode(member, code, Date.now() + 15 * 60 * 1000);
+    // Store the code with an expiration time.
+    const codeExpiresAt = Date.now() + VALIDATION_CODE_TTL_MS;
+    storeValidationCode(member, code, codeExpiresAt);
     // Send the code via email in a way that will trigger phones to automatically add it to SMS verification code suggestions
     // Build an email subject and body that maximize the chance phones will offer the code for AutoFill.
     const appName = process.env.APP_NAME || 'ActSix';
@@ -16,23 +22,25 @@ export function generateAndSendValidationCode(member) {
 
     // Plain-text form puts the code at the start of a line and uses a clear phrase.
     // HTML form renders the code prominently and also contains the plain-code line to help parsers.
-    const textBody = `${code} is your ${appName} verification code.\n\nThis code will expire in 15 minutes.`;
+    const textBody = `${code} is your ${appName} verification code.\n\nThis code will expire in ${VALIDATION_CODE_TTL_MINUTES} minutes.`;
     const htmlBody = `
         <div>
             <p>Your ${appName} verification code is:</p>
             <p style="font-family:monospace; font-size:28px; font-weight:600; margin:8px 0;">${code}</p>
-            <p style="color:#666; font-size:12px; margin-top:8px;">This code will expire in 15 minutes.</p>
+            <p style="color:#666; font-size:12px; margin-top:8px;">This code will expire in ${VALIDATION_CODE_TTL_MINUTES} minutes.</p>
             <!-- Keep a plain-code line to improve automatic extraction by mail clients -->
             <div style="display:none">${code}</div>
         </div>
     `;
 
+    const emailOptions = { expiresAt: Date.now() + EMAIL_TTL_MS };
+
     try {
         // Prefer richer payload if the original supports it.
-        return sendEmail(member.email, subject, { text: textBody, html: htmlBody });
+        return sendEmail(member.email, subject, { text: textBody, html: htmlBody }, emailOptions);
     } catch (err) {
         // Fallback to plain-text
-        return sendEmail(member.email, subject, textBody);
+        return sendEmail(member.email, subject, textBody, emailOptions);
     }
 }
 
