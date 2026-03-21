@@ -50,9 +50,7 @@
     </div>
 
     <script>
-    // Load reusable navigation bar safely: extract only the <nav> element from the fetched file
-    // and ensure the site-nav.js script is loaded only once. This prevents accidentally
-    // inserting an entire HTML page into the nav container if the fetch returns full page markup.
+    // Load reusable navigation bar and include its styles so responsive rules apply correctly.
     document.addEventListener('DOMContentLoaded', async () => {
         const navContainer = document.getElementById('site-nav-container');
         if (!navContainer) return;
@@ -62,18 +60,7 @@
             if (!navResp.ok) return;
             const html = await navResp.text();
 
-            // Parse and extract the <nav> element if present
-            const tmp = document.createElement('div');
-            tmp.innerHTML = html;
-            const navEl = tmp.querySelector('nav') || tmp.firstElementChild;
-            if (navEl) {
-                // Clear any placeholder content and append the nav element itself
-                navContainer.innerHTML = '';
-                navContainer.appendChild(navEl);
-            } else {
-                // Fallback: insert the raw HTML (less safe), but keep as fallback
-                navContainer.innerHTML = html;
-            }
+            navContainer.innerHTML = html;
 
             // Load site-nav.js only if not already present on the page
             if (!document.querySelector('script[src="site-nav.js"]')) {

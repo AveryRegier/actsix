@@ -6,7 +6,7 @@ import { sendEmail as _origSendEmail, sendEmail } from '../util/email.js';
 
 const VALIDATION_CODE_TTL_MINUTES = 15;
 const VALIDATION_CODE_TTL_MS = VALIDATION_CODE_TTL_MINUTES * 60 * 1000;
-const EMAIL_TTL_MINUTES = VALIDATION_CODE_TTL_MINUTES * 2;
+const EMAIL_TTL_MINUTES = 30;
 const EMAIL_TTL_MS = EMAIL_TTL_MINUTES * 60 * 1000;
 
 export function generateAndSendValidationCode(member) {
@@ -75,6 +75,19 @@ export async function storeValidationCode(member, code, expiresAt) {
         'members',
         { _id: member._id },
         { $set: { validationCodes: member.validationCodes } },
+        { skipCacheInvalidation: true }
+    );
+}
+
+export async function clearValidationCodesForMemberId(memberId) {
+    if (!memberId || memberId === 'script-generator') {
+        return;
+    }
+
+    await safeCollectionUpdate(
+        'members',
+        { _id: memberId },
+        { $set: { validationCodes: [] } },
         { skipCacheInvalidation: true }
     );
 }

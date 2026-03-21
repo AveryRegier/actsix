@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Add auto-close for mobile menu
   const mobileMenu = document.getElementById('navMobileMenu');
   if (mobileMenu) {
-    mobileMenu.querySelectorAll('a.nav-link').forEach(link => {
+    mobileMenu.querySelectorAll('a.nav-link, a.signout-link').forEach(link => {
       link.addEventListener('click', function() {
         mobileMenu.classList.remove('open');
       });

@@ -1,5 +1,5 @@
-import { getCookie } from 'hono/cookie';
-import { authenticateUser, findMemberByEmail, generateToken, generateAndSendValidationCode, verifyToken } from './auth.js';
+import { deleteCookie, getCookie } from 'hono/cookie';
+import { authenticateUser, clearValidationCodesForMemberId, findMemberByEmail, generateToken, generateAndSendValidationCode, verifyToken } from './auth.js';
 import { addContext, follow, getLogger } from '../util/logger.js';
 
 export default function registerEmailLoginRoutes(app) {
@@ -56,7 +56,7 @@ export default function registerEmailLoginRoutes(app) {
             }
 
 
-            if(c.req.path.startsWith("/email") || c.req.path.startsWith("/form") || c.req.path.endsWith(".js") || c.req.path.endsWith(".css") || c.req.path.endsWith(".png") || c.req.path.endsWith(".jpg") || c.req.path.endsWith(".jpeg") || c.req.path.endsWith(".gif") || c.req.path.endsWith(".ico") ) {
+            if(c.req.path === '/signout' || c.req.path === '/site-nav.html' || c.req.path.startsWith("/email") || c.req.path.startsWith("/form") || c.req.path.endsWith(".js") || c.req.path.endsWith(".css") || c.req.path.endsWith(".png") || c.req.path.endsWith(".jpg") || c.req.path.endsWith(".jpeg") || c.req.path.endsWith(".gif") || c.req.path.endsWith(".ico") ) {
                 return await next();
             }
             if(c.req.path.endsWith(".html") || c.req.path === "/" ) {
@@ -116,4 +116,28 @@ export default function registerEmailLoginRoutes(app) {
       return c.text('Internal server error', 500);
     }
   });
+
+  const signOutHandler = async (c) => {
+    const logger = getLogger();
+
+    try {
+      if (c.req.memberId) {
+        await clearValidationCodesForMemberId(c.req.memberId);
+      }
+    } catch (error) {
+      logger.error(error, 'Error clearing validation codes during sign out');
+    }
+
+    // Clear common auth cookies used across flows.
+    deleteCookie(c, 'actsix', { path: '/', sameSite: 'Lax' });
+    deleteCookie(c, 'access_token', { path: '/', sameSite: 'Lax' });
+    deleteCookie(c, 'id_token', { path: '/', sameSite: 'Lax' });
+    deleteCookie(c, 'refresh_token', { path: '/', sameSite: 'Lax' });
+
+    // Redirect directly to login so sign-out has an immediate visible effect.
+    return c.redirect('/email-login.html');
+  };
+
+  app.get('/signout', signOutHandler);
+  app.post('/signout', signOutHandler);
 };
