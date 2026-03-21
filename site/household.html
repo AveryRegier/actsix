@@ -555,7 +555,7 @@ function displayMembers(members) {
                 <div class="member-name">${member.firstName} ${member.lastName}</div>
                 <div style="display:flex;align-items:center;gap:6px;">
                     ${member.tags && member.tags.length > 0 ? member.tags.map(tag => `<span class="status-badge status-active">${tag}</span>`).join(' ') : ''}
-                    ${currentUserIsDeacon && member.tags && member.tags.includes('deacon') ? `
+                    ${currentUserIsDeacon && member.tags && (member.tags.includes('deacon') || member.tags.includes('helper') || member.tags.includes('staff')) ? `
                         <a href="/deacon-quick-contact.html?deaconMemberId=${member._id}" class="icon-btn" title="Quick contact for ${member.firstName} ${member.lastName}" aria-label="Quick contact for ${member.firstName} ${member.lastName}">
                             <span style="font-size:1.1em;color:#22c55e;line-height:1;">📞</span>
                         </a>
