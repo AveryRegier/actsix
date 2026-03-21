@@ -26,12 +26,44 @@ export default function registerDeaconRoutes(app) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
-      const members = await safeCollectionFind('members', { tags: { $in: ['deacon', 'elder', 'staff', 'helper'] } })
-      .then(members => members.map(member => ({
+      const taggedMembers = await safeCollectionFind('members', { tags: { $in: ['deacon', 'elder', 'staff', 'helper'] } });
+
+      let familyMembers = [];
+      if (c.req.memberId) {
+        const [loggedInMember] = await safeCollectionFind('members', { _id: c.req.memberId });
+        if (loggedInMember?.householdId) {
+          familyMembers = await safeCollectionFind('members', { householdId: loggedInMember.householdId });
+        }
+      }
+
+      const participantsById = new Map();
+      [...taggedMembers, ...familyMembers].forEach(member => {
+        const key = member?._id || member?.email;
+        if (key && !participantsById.has(key)) {
+          participantsById.set(key, member);
+        }
+      });
+
+      const participants = Array.from(participantsById.values())
+        .map(member => ({
           ...member,
-          role: member.tags.includes('deacon') ? 'Deacon' : member.tags.includes('elder') ? 'Elder' : member.tags.includes('helper') ? 'H.E.L.P.' : 'Staff'
-        })));
-      return c.json({ participants: members, count: members.length });
+          role: member.tags?.includes('deacon')
+            ? 'Deacon'
+            : member.tags?.includes('elder')
+              ? 'Elder'
+              : member.tags?.includes('helper')
+                ? 'H.E.L.P.'
+                : member.tags?.includes('staff')
+                  ? 'Staff'
+                  : 'Family'
+        }))
+        .sort((a, b) => {
+          const lastCompare = (a.lastName || '').localeCompare(b.lastName || '', undefined, { sensitivity: 'base' });
+          if (lastCompare !== 0) return lastCompare;
+          return (a.firstName || '').localeCompare(b.firstName || '', undefined, { sensitivity: 'base' });
+        });
+
+      return c.json({ participants, count: participants.length });
     } catch (error) {
       getLogger().error(error, 'Error fetching participants:');
       return c.json({ error: 'Failed to fetch participants', message: error.message }, 500);
