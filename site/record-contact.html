@@ -103,6 +103,7 @@
             // get household id from request parameter
             const urlParams = new URLSearchParams(window.location.search);
             const currentHouseholdId = urlParams.get('householdId');
+            const currentMemberId = (() => { try { return localStorage.getItem('memberId'); } catch (e) { return null; } })();
             
             // Set hidden field value
             const householdIdInput = document.getElementById('householdId');
@@ -161,9 +162,10 @@
                 var deaconItems = [];
                 for (var j = 0; j < assignedDeacons.length; j++) {
                     var assignment = assignedDeacons[j];
+                    var isCurrentUser = currentMemberId && assignment.deacon && assignment.deacon._id === currentMemberId;
                     deaconItems.push(
                         '<div class="member-item">' +
-                        '<input type="checkbox" id="deacon-' + assignment.deacon._id + '" name="deaconId" value="' + assignment.deacon._id + '" checked>' +
+                        '<input type="checkbox" id="deacon-' + assignment.deacon._id + '" name="deaconId" value="' + assignment.deacon._id + '" ' + (isCurrentUser ? 'checked' : '') + '>' +
                         '<label for="deacon-' + assignment.deacon._id + '">' + assignment.deacon.firstName + ' ' + assignment.deacon.lastName + '</label>' +
                         '</div>'
                     );
@@ -323,6 +325,9 @@
             // Get all members and selected members
             var allMembers = Array.from(document.querySelectorAll('#membersSection input'));
             var selectedMembers = Array.from(document.querySelectorAll('#membersSection input:checked'));
+            var selectedAssignments = Array.from(document.querySelectorAll('#deaconsSection input:checked'));
+            var contactTypeElement = document.getElementById('contact-type');
+            var contactType = contactTypeElement ? String(contactTypeElement.value || '').toLowerCase() : '';
 
             // Automatically select the single member if only one exists
             if (selectedMembers.length === 0 && allMembers.length === 1) {
@@ -334,6 +339,13 @@
             if (selectedMembers.length === 0) {
                 event.preventDefault();
                 alert('Please select at least one member.');
+                return false;
+            }
+
+            // Require at least one checked assignment unless this is a note contact
+            if (contactType !== 'note' && selectedAssignments.length === 0) {
+                event.preventDefault();
+                alert('Please select at least one person in Contacted by.');
                 return false;
             }
             
