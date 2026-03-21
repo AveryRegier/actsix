@@ -104,6 +104,8 @@
             const urlParams = new URLSearchParams(window.location.search);
             const currentHouseholdId = urlParams.get('householdId');
             const currentMemberId = (() => { try { return localStorage.getItem('memberId'); } catch (e) { return null; } })();
+            const requestedDeaconMemberId = urlParams.get('deaconMemberId');
+            const preferredAssignedMemberId = requestedDeaconMemberId || currentMemberId;
             
             // Set hidden field value
             const householdIdInput = document.getElementById('householdId');
@@ -162,10 +164,10 @@
                 var deaconItems = [];
                 for (var j = 0; j < assignedDeacons.length; j++) {
                     var assignment = assignedDeacons[j];
-                    var isCurrentUser = currentMemberId && assignment.deacon && assignment.deacon._id === currentMemberId;
+                    var shouldPrecheck = preferredAssignedMemberId && assignment.deacon && assignment.deacon._id === preferredAssignedMemberId;
                     deaconItems.push(
                         '<div class="member-item">' +
-                        '<input type="checkbox" id="deacon-' + assignment.deacon._id + '" name="deaconId" value="' + assignment.deacon._id + '" ' + (isCurrentUser ? 'checked' : '') + '>' +
+                        '<input type="checkbox" id="deacon-' + assignment.deacon._id + '" name="deaconId" value="' + assignment.deacon._id + '" ' + (shouldPrecheck ? 'checked' : '') + '>' +
                         '<label for="deacon-' + assignment.deacon._id + '">' + assignment.deacon.firstName + ' ' + assignment.deacon.lastName + '</label>' +
                         '</div>'
                     );

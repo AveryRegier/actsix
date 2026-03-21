@@ -152,7 +152,7 @@
 				for (var idx = 0; idx < quickContacts.length; idx++) {
 					var item = quickContacts[idx];
 					var householdLink = 'household.html?id=' + item.householdId;
-					var contactLink = 'record-contact.html?householdId=' + item.householdId;
+					var contactLink = 'record-contact.html?householdId=' + item.householdId + '&deaconMemberId=' + encodeURIComponent(deaconMemberId || '');
 					var lastDate = item.lastContact && item.lastContact.contactDate ? new Date(item.lastContact.contactDate).toLocaleDateString() : '(needed)';
 
 					// compute clickable best contact locally (tel: links and maps)
