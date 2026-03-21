@@ -485,12 +485,16 @@ function displayAssignedDeacons(assignments) {
     }
     // Debugging: Log assignments to verify data structure
     console.log('Assignments:', assignments);
-    section.innerHTML = `<strong>Assigned Deacons:</strong> <ul>${assignments.map(a => {
+    section.innerHTML = `<strong>Assignments:</strong> <ul>${assignments.map(a => {
         if (a.deacon && a.deacon.firstName && a.deacon.lastName) {
-            return `<li>${a.deacon.firstName} ${a.deacon.lastName}</li>`;
+            const displayName = `${a.deacon.firstName} ${a.deacon.lastName}`;
+            if (a.deacon.householdId) {
+                return `<li><a href="household.html?id=${encodeURIComponent(a.deacon.householdId)}" style="color:#667eea;text-decoration:none;">${displayName}</a></li>`;
+            }
+            return `<li>${displayName}</li>`;
         } else {
             console.warn('Invalid assignment object:', a);
-            return '<li>Unknown Deacon</li>';
+            return '<li>Unknown Assignment</li>';
         }
     }).join('')}</ul>`;
 }
