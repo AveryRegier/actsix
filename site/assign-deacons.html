@@ -23,9 +23,14 @@
 
     // Fetch all deacons
     async function fetchDeacons() {
-        const res = await apiFetch('api/deacons?add=deaconess,staff');
+        const res = await apiFetch('api/deacons?add=deaconess,staff,helper');
         const data = await res.json();
-        return data.deacons;
+        const sorted = data.deacons.sort((a, b) => {
+            const nameA = `${a.lastName} ${a.firstName}`.toLowerCase();
+            const nameB = `${b.lastName} ${b.firstName}`.toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+        return sorted;
     }
 
     // Fetch current assignments

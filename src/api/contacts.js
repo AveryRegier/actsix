@@ -48,7 +48,7 @@ export default function registerContactRoutes(app) {
   });
 
   app.post('/api/contacts', async (c) => {
-    if (!verifyRole(c, ['deacon', 'staff'])) {
+    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -82,7 +82,7 @@ export default function registerContactRoutes(app) {
   });
 
   app.get('/api/households/:householdId/contacts', async (c) => {
-    if (!verifyRole(c, ['deacon', 'staff'])) {
+    if (!verifyRole(c, ['deacon', 'staff', 'elder', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
@@ -162,7 +162,7 @@ export default function registerContactRoutes(app) {
       const [households = [], members = [], deacons = []] = await Promise.all([
         safeCollectionFind('households', { _id: { $in: householdIds } }),
         safeCollectionFind('members', { householdId: { $in: householdIds } }),
-        safeCollectionFind('members', { tags: { $in: ['deacon', 'deaconess', 'staff'] } })
+        safeCollectionFind('members', { tags: { $in: ['deacon', 'deaconess', 'staff', 'helper'] } })
       ]);
 
       let contacts = await Promise.all(members.map(m => m._id).map(async memberId => {
