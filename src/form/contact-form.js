@@ -29,6 +29,7 @@ export default function registerContactFormRoutes(app) {
       
       // Extract householdId for redirect
       const householdId = formData.householdId;
+      const returnTo = formData.returnTo;
       
       if (!householdId) {
         throw new Error('Missing householdId');
@@ -88,7 +89,18 @@ export default function registerContactFormRoutes(app) {
       if (apiResponse.ok) {
         const result = await apiResponse.json();
         logger.info('Contact created successfully', { contactId: result.id });
-        return c.redirect(`/household.html?id=${householdId}`);
+
+        // Redirect back to originating page when available, otherwise household page.
+        let redirectTarget = `/household.html?id=${householdId}`;
+        if (typeof returnTo === 'string' && returnTo.trim()) {
+          const candidate = returnTo.trim();
+          // Only allow local relative targets to avoid open redirects.
+          if (candidate.startsWith('/') && !candidate.startsWith('//')) {
+            redirectTarget = candidate;
+          }
+        }
+
+        return c.redirect(redirectTarget);
       } else {
         const errorText = await apiResponse.text();
         logger.error('API error:', errorText);

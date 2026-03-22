@@ -27,6 +27,7 @@
         <div class="content">
             <form id="contact-form" action="/form/record-contact" method="POST">
                 <input type="hidden" id="householdId" name="householdId" value="">
+                <input type="hidden" id="returnTo" name="returnTo" value="">
                 <div class="form-group">
                     <label for="contact-date">Contact Date</label>
                     <!-- dynamically preset to today's date -->
@@ -106,6 +107,27 @@
             const currentMemberId = (() => { try { return localStorage.getItem('memberId'); } catch (e) { return null; } })();
             const requestedDeaconMemberId = urlParams.get('deaconMemberId');
             const preferredAssignedMemberId = requestedDeaconMemberId || currentMemberId;
+            const returnToInput = document.getElementById('returnTo');
+
+            // Preserve where user came from so server can redirect back after submit.
+            // Prefer explicit returnTo param, else use same-origin referrer that is not this page.
+            if (returnToInput) {
+                const explicitReturnTo = urlParams.get('returnTo');
+                let resolvedReturnTo = '';
+                if (explicitReturnTo) {
+                    resolvedReturnTo = explicitReturnTo;
+                } else if (document.referrer) {
+                    try {
+                        const refUrl = new URL(document.referrer);
+                        if (refUrl.origin === window.location.origin && !refUrl.pathname.endsWith('/record-contact.html')) {
+                            resolvedReturnTo = refUrl.pathname + refUrl.search + refUrl.hash;
+                        }
+                    } catch (e) {
+                        resolvedReturnTo = '';
+                    }
+                }
+                returnToInput.value = resolvedReturnTo;
+            }
             
             // Set hidden field value
             const householdIdInput = document.getElementById('householdId');
