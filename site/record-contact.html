@@ -19,7 +19,7 @@
         <!-- Reusable navigation bar -->
         <div id="site-nav-container"></div>
         <div class="header">
-            <h1 style="display:flex;align-items:center;justify-content:center;font-size:1.3em;font-weight:400;gap:0.5em;">
+            <h1 id="contact-page-title" style="display:flex;align-items:center;justify-content:center;font-size:1.3em;font-weight:400;gap:0.5em;">
                 <span style="font-size:1.1em;">📝</span>
                 Record Contact
             </h1>
@@ -27,6 +27,7 @@
         <div class="content">
             <form id="contact-form" action="/form/record-contact" method="POST">
                 <input type="hidden" id="householdId" name="householdId" value="">
+                <input type="hidden" id="contactId" name="contactId" value="">
                 <input type="hidden" id="returnTo" name="returnTo" value="">
                 <div class="form-group">
                     <label for="contact-date">Contact Date</label>
@@ -47,6 +48,12 @@
                 <div class="form-group">
                     <label for="summary">Summary</label>
                     <textarea id="summary" name="summary" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:8px;font-weight:500;">
+                        <input type="checkbox" id="follow-up-required" name="followUpRequired" value="true">
+                        Follow-up required
+                    </label>
                 </div>
                 <div class="form-group">
                     <label>Members Contacted</label>
@@ -76,7 +83,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn">Submit Contact</button>
+                <button type="submit" class="btn" id="submitContactBtn">Submit Contact</button>
             </form>
         </div>
     </div>
@@ -104,10 +111,76 @@
             // get household id from request parameter
             const urlParams = new URLSearchParams(window.location.search);
             const currentHouseholdId = urlParams.get('householdId');
+            const contactId = urlParams.get('contactId');
+            const isEditMode = Boolean(contactId);
             const currentMemberId = (() => { try { return localStorage.getItem('memberId'); } catch (e) { return null; } })();
             const requestedDeaconMemberId = urlParams.get('deaconMemberId');
             const preferredAssignedMemberId = requestedDeaconMemberId || currentMemberId;
             const returnToInput = document.getElementById('returnTo');
+            const pageTitle = document.getElementById('contact-page-title');
+            const contactForm = document.getElementById('contact-form');
+            const submitContactBtn = document.getElementById('submitContactBtn');
+
+            if (isEditMode) {
+                if (pageTitle) {
+                    pageTitle.innerHTML = '<span style="font-size:1.1em;">✏️</span>Edit Contact';
+                }
+                if (submitContactBtn) {
+                    submitContactBtn.textContent = 'Save Changes';
+                }
+                if (contactForm) {
+                    contactForm.action = '/form/edit-contact';
+                }
+                document.title = 'Edit Contact - Deacon Care System';
+            }
+
+            function formatDateForInput(value) {
+                if (!value) {
+                    return '';
+                }
+                const parsed = new Date(value);
+                if (Number.isNaN(parsed.getTime())) {
+                    return '';
+                }
+                const yyyy = parsed.getFullYear();
+                const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+                const dd = String(parsed.getDate()).padStart(2, '0');
+                return yyyy + '-' + mm + '-' + dd;
+            }
+
+            function applyContactToForm(contact) {
+                if (!contact) {
+                    return;
+                }
+                const contactDateInput = document.getElementById('contact-date');
+                const summaryInput = document.getElementById('summary');
+                const contactTypeSelect = document.getElementById('contact-type');
+                const followUpInput = document.getElementById('follow-up-required');
+
+                if (contactDateInput) {
+                    contactDateInput.value = formatDateForInput(contact.contactDate);
+                }
+                if (summaryInput) {
+                    summaryInput.value = contact.summary || '';
+                }
+                if (contactTypeSelect && contact.contactType) {
+                    contactTypeSelect.value = String(contact.contactType).toLowerCase();
+                }
+                if (followUpInput) {
+                    followUpInput.checked = Boolean(contact.followUpRequired);
+                }
+
+                const selectedMemberIds = new Set(Array.isArray(contact.memberId) ? contact.memberId : [contact.memberId]);
+                const selectedDeaconIds = new Set(Array.isArray(contact.deaconId) ? contact.deaconId : [contact.deaconId]);
+
+                Array.from(document.querySelectorAll('#membersSection input[name="memberId"]')).forEach((checkbox) => {
+                    checkbox.checked = selectedMemberIds.has(checkbox.value);
+                });
+
+                Array.from(document.querySelectorAll('#deaconsSection input[name="deaconId"]')).forEach((checkbox) => {
+                    checkbox.checked = selectedDeaconIds.has(checkbox.value);
+                });
+            }
 
             // Preserve where user came from so server can redirect back after submit.
             // Prefer explicit returnTo param, else use same-origin referrer that is not this page.
@@ -134,10 +207,14 @@
             if (householdIdInput && currentHouseholdId) {
                 householdIdInput.value = currentHouseholdId;
             }
+            const contactIdInput = document.getElementById('contactId');
+            if (contactIdInput && contactId) {
+                contactIdInput.value = contactId;
+            }
 
             // Dynamically preset contact date to today
             const contactDateInput = document.getElementById('contact-date');
-            if (contactDateInput) {
+            if (contactDateInput && !isEditMode) {
                 const today = new Date();
                 const yyyy = today.getFullYear();
                 const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -263,6 +340,15 @@
                         })
                         .catch(err => console.error('Error fetching location:', err));
                 }
+
+                if (isEditMode && contactId) {
+                    const contactResponse = await fetch('api/contacts/' + encodeURIComponent(contactId));
+                    if (!contactResponse.ok) {
+                        throw new Error('Unable to load contact for editing');
+                    }
+                    const contactPayload = await contactResponse.json();
+                    applyContactToForm(contactPayload.contact);
+                }
             } catch (error) {
                 console.error('Error loading page data:', error);
                 alert('Error loading page data. Please try again.');
@@ -373,7 +459,7 @@
                 return false;
             }
             
-            // Form will submit normally to /form/record-contact
+            // Form submits to create or edit form route based on current mode.
             return true;
         });
     </script>

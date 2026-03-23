@@ -1,6 +1,77 @@
 import { getLogger } from '../util/logger.js';
-import { safeCollectionFind, safeCollectionFindOne, safeCollectionInsert, getCache, setCache } from '../util/helpers.js';
+import { safeCollectionFind, safeCollectionFindOne, safeCollectionInsert, safeCollectionUpdate, getCache, setCache } from '../util/helpers.js';
 import { verifyRole } from '../auth/auth.js';
+
+const VALID_CONTACT_TYPES = ['phone', 'visit', 'church', 'text', 'voicemail', 'note'];
+
+function normalizeIdList(value) {
+  const values = Array.isArray(value) ? value : [value];
+  return [...new Set(values.filter(v => v !== null && v !== undefined && String(v).trim() !== '').map(v => String(v).trim()))];
+}
+
+function normalizeContactDate(rawValue) {
+  if (typeof rawValue !== 'string') {
+    return null;
+  }
+
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  // Keep plain date values timezone-safe by pinning noon local time.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const parsed = new Date(`${trimmed}T12:00:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function normalizeContactPayload(body) {
+  const missingFields = [];
+  const memberIds = normalizeIdList(body.memberId);
+  const deaconIds = normalizeIdList(body.deaconId);
+  const contactType = typeof body.contactType === 'string' ? body.contactType.trim().toLowerCase() : '';
+  const summary = typeof body.summary === 'string' ? body.summary.trim() : '';
+  const contactDate = normalizeContactDate(body.contactDate);
+
+  if (memberIds.length === 0) {
+    missingFields.push('memberId');
+  }
+  if (deaconIds.length === 0) {
+    missingFields.push('deaconId');
+  }
+  if (!contactType) {
+    missingFields.push('contactType');
+  }
+  if (!summary) {
+    missingFields.push('summary');
+  }
+  if (!contactDate) {
+    missingFields.push('contactDate');
+  }
+
+  if (missingFields.length > 0) {
+    return { error: `Missing required field(s): ${missingFields.join(', ')}` };
+  }
+
+  if (!VALID_CONTACT_TYPES.includes(contactType)) {
+    return { error: `Invalid contactType. Must be one of: ${VALID_CONTACT_TYPES.join(', ')}` };
+  }
+
+  return {
+    data: {
+      memberId: memberIds,
+      deaconId: deaconIds,
+      contactType,
+      summary,
+      contactDate,
+      followUpRequired: body.followUpRequired === true || body.followUpRequired === 'true'
+    }
+  };
+}
 
 export default function registerContactRoutes(app) {
   app.get('/api/contacts', async (c) => {
@@ -47,29 +118,38 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  app.get('/api/contacts/:contactId', async (c) => {
+    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
+
+    try {
+      const contactId = c.req.param('contactId');
+      const contact = await safeCollectionFindOne('contacts', { _id: contactId });
+      if (!contact) {
+        return c.json({ error: 'Contact not found' }, 404);
+      }
+
+      return c.json({ contact });
+    } catch (error) {
+      getLogger().error(error, 'Error fetching contact by id:');
+      return c.json({ error: 'Failed to fetch contact', message: error.message }, 500);
+    }
+  });
+
   app.post('/api/contacts', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
     }
     try {
       const body = await c.req.json();
-      const requiredFields = ['memberId', 'deaconId', 'contactType', 'summary', 'contactDate'];
-      for (const field of requiredFields) {
-        if (!body[field] || body[field] === null || body[field] === '' || body[field] === undefined) {
-          return c.json({ error: 'Validation failed', message: `Missing required field: ${field}` }, 400);
-        }
-      }
-
-      const validContactTypes = ['phone', 'visit', 'church', 'text', 'voicemail', 'note'];
-      if (!validContactTypes.includes(body.contactType)) {
-        return c.json({ error: 'Validation failed', message: `Invalid contactType. Must be one of: ${validContactTypes.join(', ')}` }, 400);
+      const normalized = normalizeContactPayload(body);
+      if (normalized.error) {
+        return c.json({ error: 'Validation failed', message: normalized.error }, 400);
       }
 
       const contactData = {
-        ...body,
-        memberId: Array.isArray(body.memberId) ? body.memberId : [body.memberId],
-        deaconId: Array.isArray(body.deaconId) ? body.deaconId : [body.deaconId],
-        followUpRequired: body.followUpRequired || false,
+        ...normalized.data,
         createdAt: new Date().toISOString(),
       };
 
@@ -78,6 +158,48 @@ export default function registerContactRoutes(app) {
     } catch (error) {
       getLogger().error(error, 'Error creating contact log:');
       return c.json({ error: 'Failed to create contact log', message: error.message }, 500);
+    }
+  });
+
+  app.patch('/api/contacts/:contactId', async (c) => {
+    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
+
+    try {
+      const contactId = c.req.param('contactId');
+      const body = await c.req.json();
+
+      if (body && body._id && body._id !== contactId) {
+        return c.json({ error: 'Validation failed', message: 'Contact id is immutable' }, 400);
+      }
+
+      const existing = await safeCollectionFindOne('contacts', { _id: contactId });
+      if (!existing) {
+        return c.json({ error: 'Contact not found' }, 404);
+      }
+
+      const normalized = normalizeContactPayload(body);
+      if (normalized.error) {
+        return c.json({ error: 'Validation failed', message: normalized.error }, 400);
+      }
+
+      const updateData = {
+        ...normalized.data,
+        updatedAt: new Date().toISOString(),
+        updatedBy: c.req.memberId || null,
+      };
+
+      const updateResult = await safeCollectionUpdate('contacts', { _id: contactId }, { $set: updateData });
+      if (!updateResult || updateResult.matchedCount === 0) {
+        return c.json({ error: 'Contact not found' }, 404);
+      }
+
+      const contact = await safeCollectionFindOne('contacts', { _id: contactId });
+      return c.json({ message: 'Contact updated successfully', id: contactId, contact });
+    } catch (error) {
+      getLogger().error(error, 'Error updating contact log:');
+      return c.json({ error: 'Failed to update contact log', message: error.message }, 500);
     }
   });
 

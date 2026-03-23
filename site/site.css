@@ -140,42 +140,19 @@
 		flex: 1 1 120px;
 		min-width: 0;
 	}
-	.contacts-table thead tr {
-		display: flex;
-		flex-wrap: wrap;
+	.contacts-table td.contact-notes-cell {
+		position: relative;
+		padding-right: 40px;
 	}
-	.contacts-table th,
-	.contacts-table td {
-		flex: 1 1 120px;
-		min-width: 0;
-	}
-	.contacts-table th.notes-col,
-	.contacts-table td.notes-col {
+	.contacts-table .contact-notes-text {
 		display: block;
-		width: 100%;
-		box-sizing: border-box;
-		margin-top: 8px;
-		border-top: 1px solid #eee;
-		padding-top: 8px;
-		flex: unset;
-		min-width: unset;
+		padding-right: 2px;
+		word-wrap: break-word;
 	}
-	/* Make Notes column in contacts table stack below date and contact deacon name */
-	.contacts-table td.notes-col {
-		display: block;
-		width: 100%;
-		box-sizing: border-box;
-		margin-top: 8px;
-		border-top: 1px solid #eee;
-		padding-top: 8px;
-	}
-	.contacts-table tr {
-		display: flex;
-		flex-wrap: wrap;
-	}
-	.contacts-table td {
-		flex: 1 1 120px;
-		min-width: 0;
+	.contacts-table .contact-edit-btn {
+		position: absolute;
+		top: 6px;
+		right: 6px;
 	}
 /* --- Navigation Bar Styles (from site-nav.html) --- */
 .site-nav {
@@ -721,5 +698,13 @@ th {
 		order: 2;
 		width: 100%;
 		flex: 1 1 100%;
+	}
+	.contacts-table td.contact-notes-cell {
+		padding-right: 44px;
+	}
+	.contacts-table .contact-edit-btn {
+		top: 4px;
+		right: 4px;
+		padding: 5px;
 	}
 }
