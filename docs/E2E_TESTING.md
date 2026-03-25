@@ -70,6 +70,38 @@ For each completed test phase, run:
 
 Then commit with validation and coverage results in the commit message.
 
+## CI quality gates
+
+CI workflow: `.github/workflows/e2e-simulator-ci.yml`
+
+Jobs:
+
+- `smoke-and-unit` on pull requests and main pushes
+   - clones sibling `sengo` and `clox` repos for local file dependencies
+   - runs `npm run test:coverage`
+   - runs `npm run coverage:check` (threshold gate)
+   - runs `npm run e2e:mcp:smoke`
+   - uploads `test-results`, Playwright report, and coverage artifacts
+
+- `full-e2e` on schedule, workflow_dispatch, and main branch
+   - runs full `npm run e2e:mcp`
+   - runs `npm run e2e:mcp:coverage`
+   - uploads traces/videos/screenshots and E2E coverage artifacts
+
+Default coverage thresholds for `coverage:check`:
+
+- statements >= 15%
+- branches >= 70%
+- functions >= 20%
+- lines >= 15%
+
+Thresholds can be overridden with env vars:
+
+- `COVERAGE_MIN_STATEMENTS`
+- `COVERAGE_MIN_BRANCHES`
+- `COVERAGE_MIN_FUNCTIONS`
+- `COVERAGE_MIN_LINES`
+
 ## Notes on E2E coverage
 
 Current `e2e:coverage` command is wired and reliable as an execution gate. In this environment, reported totals may appear as 0/0 depending on process-level instrumentation behavior under Playwright orchestration. The manifest still captures artifacts and report locations for failure analysis.
