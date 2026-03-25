@@ -96,6 +96,94 @@ export async function seedWorkflowScenario(request) {
   };
 }
 
+export async function seedMemberTagsScenario(request) {
+  const stamp = Date.now();
+
+  const deaconHouseholdRes = await apiPost(request, '/api/households', {
+    lastName: `TagDeaconHH-${stamp}`,
+  });
+  expect(deaconHouseholdRes.ok()).toBeTruthy();
+  const deaconHousehold = await deaconHouseholdRes.json();
+
+  const deaconEmail = `tag-deacon-${stamp}@example.test`;
+  const deaconMemberRes = await apiPost(request, '/api/members', {
+    householdId: deaconHousehold.id,
+    firstName: 'Tag',
+    lastName: `Deacon${stamp}`,
+    relationship: 'head',
+    gender: 'male',
+    email: deaconEmail,
+    phone: '515-555-0200',
+    tags: ['deacon'],
+  });
+  expect(deaconMemberRes.ok()).toBeTruthy();
+
+  const visibleHouseholdRes = await apiPost(request, '/api/households', {
+    lastName: `TagVisibleHH-${stamp}`,
+    primaryPhone: '515-555-0201',
+  });
+  expect(visibleHouseholdRes.ok()).toBeTruthy();
+  const visibleHousehold = await visibleHouseholdRes.json();
+
+  const editableMemberRes = await apiPost(request, '/api/members', {
+    householdId: visibleHousehold.id,
+    firstName: 'Visible',
+    lastName: `Editable${stamp}`,
+    relationship: 'head',
+    gender: 'female',
+    email: `visible-editable-${stamp}@example.test`,
+    phone: '515-555-0202',
+    tags: ['member', 'shut-in'],
+  });
+  expect(editableMemberRes.ok()).toBeTruthy();
+  const editableMember = await editableMemberRes.json();
+
+  const widowMemberRes = await apiPost(request, '/api/members', {
+    householdId: visibleHousehold.id,
+    firstName: 'Visible',
+    lastName: `Widow${stamp}`,
+    relationship: 'other',
+    gender: 'female',
+    email: `visible-widow-${stamp}@example.test`,
+    phone: '515-555-0203',
+    tags: ['member', 'widow'],
+  });
+  expect(widowMemberRes.ok()).toBeTruthy();
+  const widowMember = await widowMemberRes.json();
+
+  const deceasedHouseholdRes = await apiPost(request, '/api/households', {
+    lastName: `TagDeceasedHH-${stamp}`,
+    primaryPhone: '515-555-0204',
+  });
+  expect(deceasedHouseholdRes.ok()).toBeTruthy();
+  const deceasedHousehold = await deceasedHouseholdRes.json();
+
+  const deceasedMemberRes = await apiPost(request, '/api/members', {
+    householdId: deceasedHousehold.id,
+    firstName: 'Hidden',
+    lastName: `Deceased${stamp}`,
+    relationship: 'head',
+    gender: 'male',
+    email: `hidden-deceased-${stamp}@example.test`,
+    phone: '515-555-0205',
+    tags: ['member', 'deceased'],
+  });
+  expect(deceasedMemberRes.ok()).toBeTruthy();
+  const deceasedMember = await deceasedMemberRes.json();
+
+  return {
+    stamp,
+    deaconEmail,
+    editableMemberId: editableMember.id,
+    editableMemberLastName: `Editable${stamp}`,
+    widowMemberId: widowMember.id,
+    widowMemberLastName: `Widow${stamp}`,
+    deceasedMemberId: deceasedMember.id,
+    deceasedMemberLastName: `Deceased${stamp}`,
+    visibleHouseholdId: visibleHousehold.id,
+  };
+}
+
 export async function loginAsEmail(page, email) {
   resetMailbox();
 
