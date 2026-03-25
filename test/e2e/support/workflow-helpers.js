@@ -184,6 +184,104 @@ export async function seedMemberTagsScenario(request) {
   };
 }
 
+export async function seedTemporaryAddressScenario(request, options = {}) {
+  const stamp = Date.now();
+
+  const deaconHouseholdRes = await apiPost(request, '/api/households', {
+    lastName: `TempDeaconHH-${stamp}`,
+  });
+  expect(deaconHouseholdRes.ok()).toBeTruthy();
+  const deaconHousehold = await deaconHouseholdRes.json();
+
+  const deaconEmail = `temp-deacon-${stamp}@example.test`;
+  const deaconMemberRes = await apiPost(request, '/api/members', {
+    householdId: deaconHousehold.id,
+    firstName: 'Temp',
+    lastName: `Deacon${stamp}`,
+    relationship: 'head',
+    gender: 'male',
+    email: deaconEmail,
+    phone: '515-555-0300',
+    tags: ['deacon'],
+  });
+  expect(deaconMemberRes.ok()).toBeTruthy();
+  const deaconMember = await deaconMemberRes.json();
+
+  const householdRes = await apiPost(request, '/api/households', {
+    lastName: `TempHH-${stamp}`,
+    primaryPhone: '515-555-0301',
+    address: {
+      street: '456 Elm St',
+      city: 'Des Moines',
+      state: 'IA',
+      zipCode: '50309',
+    },
+  });
+  expect(householdRes.ok()).toBeTruthy();
+  const household = await householdRes.json();
+
+  const locationName = `Mercy Temp ${stamp}`;
+  const locationRes = await apiPost(request, '/api/common-locations', {
+    name: locationName,
+    type: 'hospital',
+    address: {
+      street: '111 Care Way',
+      city: 'Des Moines',
+      state: 'IA',
+      zipCode: '50309',
+    },
+    phone: '515-555-0302',
+    visitingHours: '9am-5pm',
+  });
+  expect(locationRes.ok()).toBeTruthy();
+  const locationPayload = await locationRes.json();
+  const locationId = locationPayload.locationId || locationPayload.location?._id;
+
+  const memberPayload = {
+    householdId: household.id,
+    firstName: 'Patient',
+    lastName: `Member${stamp}`,
+    relationship: 'head',
+    gender: 'female',
+    email: `temp-member-${stamp}@example.test`,
+    phone: '515-555-0303',
+    tags: ['member'],
+  };
+
+  if (options.withTemporaryAddress) {
+    memberPayload.temporaryAddress = {
+      locationId,
+      roomNumber: options.roomNumber || `Room ${String(stamp).slice(-3)}`,
+      startDate: options.startDate || '2026-03-01',
+      notes: options.notes || `Recovery ${stamp}`,
+      isActive: true,
+    };
+  }
+
+  const memberRes = await apiPost(request, '/api/members', memberPayload);
+  expect(memberRes.ok()).toBeTruthy();
+  const member = await memberRes.json();
+
+  const assignRes = await apiPost(request, `/api/households/${household.id}/assignments`, {
+    deaconIds: [deaconMember.id],
+  });
+  expect(assignRes.ok()).toBeTruthy();
+
+  return {
+    stamp,
+    deaconEmail,
+    deaconMemberId: deaconMember.id,
+    householdId: household.id,
+    memberId: member.id,
+    memberLastName: `Member${stamp}`,
+    locationId,
+    locationName,
+    roomNumber: memberPayload.temporaryAddress?.roomNumber || null,
+    notes: memberPayload.temporaryAddress?.notes || null,
+    startDate: memberPayload.temporaryAddress?.startDate || null,
+  };
+}
+
 export async function loginAsEmail(page, email) {
   resetMailbox();
 
