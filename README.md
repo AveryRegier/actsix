@@ -37,6 +37,20 @@ npm install
 npm run start
 ```
 
+## E2E and MCP test runs
+
+For AI/MCP-friendly browser test runs, use:
+
+```powershell
+npm run e2e:mcp:smoke
+npm run e2e:mcp
+npm run e2e:mcp:coverage
+```
+
+Each command updates an artifact index at `test-results/e2e-artifacts.json` so traces and reports can be discovered automatically.
+
+Detailed workflow: `docs/E2E_TESTING.md`
+
 Once started, open http://localhost:3000 (or the port shown in the server logs).
 
 ```
