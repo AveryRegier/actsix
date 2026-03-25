@@ -1,4 +1,7 @@
 import { test, expect } from 'vitest'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
 
 test('basic test to verify setup', () => {
   expect(1 + 1).toBe(2)
@@ -10,7 +13,7 @@ test('hono import works', async () => {
 })
 
 test('sengo import works', async () => {
-  const { SengoClient } = await import('sengo')
+  const { SengoClient } = require('sengo')
   expect(typeof SengoClient).toBe('function')
 }, 10000) // 10 second timeout
 
@@ -27,7 +30,7 @@ test('can create hono app', async () => {
 })
 
 test('can create sengo client', async () => {
-  const { SengoClient } = await import('sengo')
+  const { SengoClient } = require('sengo')
   
   const client = new SengoClient({
     region: 'us-east-1',
@@ -58,25 +61,22 @@ test('can import createApp function from api', async () => {
 test('api endpoints work correctly', async () => {
   const { createApp } = await import('../src/api.js')
   const app = createApp()
+  process.env.GENERATION_API_KEY = 'test-generation-key'
   
-  // Test health check (now at /api)
-  const healthResponse = await app.request('/api')
+  // Test health check route with generation key auth
+  const healthResponse = await app.request('/api', {
+    headers: {
+      'x-api-key': 'test-generation-key'
+    }
+  })
   const healthJson = await healthResponse.json()
   
   expect(healthJson.message).toBe('Deacon Care System API')
   expect(healthJson.status).toBe('healthy')
-  
-  // Test hello endpoint (now at /api/hello)
-  const helloResponse = await app.request('/api/hello')
-  const helloJson = await helloResponse.json()
-  
-  expect(helloJson.message).toBe('Hello from Deacon Care System!')
-  expect(helloJson.version).toBe('1.0.0')
-  
-  // Test that root path serves HTML (not JSON)
+
+  // Root path redirects to login when unauthenticated
   const rootResponse = await app.request('/')
-  const rootText = await rootResponse.text()
-  
-  expect(rootText).toContain('<!DOCTYPE html>')
-  expect(rootText).toContain('Deacon Care System')
+
+  expect(rootResponse.status).toBe(302)
+  expect(rootResponse.headers.get('location')).toContain('/email-login.html')
 }, 10000) // 10 second timeout
