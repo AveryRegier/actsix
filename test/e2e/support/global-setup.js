@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { resetMailbox } from '../../harness/fake-mailbox.js';
 
 function loadEnvFileIfPresent() {
   const envPath = path.join(process.cwd(), '.env.e2e');
@@ -31,4 +32,5 @@ export default async function globalSetup() {
 
   fs.mkdirSync(path.join(process.cwd(), '.coverage', 'e2e-v8'), { recursive: true });
   fs.mkdirSync(path.join(process.cwd(), 'test-results'), { recursive: true });
+  resetMailbox();
 }
