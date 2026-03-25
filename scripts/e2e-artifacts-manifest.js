@@ -56,6 +56,20 @@ function readCoverageSummary() {
   }
 }
 
+function readE2ECoverageSummary() {
+  const summaryPath = path.join(root, 'coverage', 'e2e', 'coverage-summary.json');
+  if (!exists(summaryPath)) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
+    return parsed.total || null;
+  } catch {
+    return null;
+  }
+}
+
 const traces = readDirRecursive(path.join(root, 'test-results'), (p) => p.endsWith('trace.zip'));
 const videos = readDirRecursive(path.join(root, 'test-results'), (p) => p.endsWith('.webm'));
 const screenshots = readDirRecursive(path.join(root, 'test-results'), (p) => p.endsWith('.png'));
@@ -77,6 +91,7 @@ const manifest = {
   },
   coverage: {
     unitSummary: readCoverageSummary(),
+    e2eSummary: readE2ECoverageSummary(),
   },
   mailbox: exists(path.join(root, 'test-results', 'fake-mailbox.json'))
     ? 'test-results/fake-mailbox.json'

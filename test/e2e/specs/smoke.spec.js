@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../support/browser-coverage.js';
 
 test('loads login page @smoke', async ({ page }) => {
   await page.goto('/email-login.html');

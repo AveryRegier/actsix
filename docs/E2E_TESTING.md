@@ -104,4 +104,10 @@ Thresholds can be overridden with env vars:
 
 ## Notes on E2E coverage
 
-Current `e2e:coverage` command is wired and reliable as an execution gate. In this environment, reported totals may appear as 0/0 depending on process-level instrumentation behavior under Playwright orchestration. The manifest still captures artifacts and report locations for failure analysis.
+`npm run e2e:coverage` now collects Chromium browser coverage for the client scripts served from `site/*.js` and converts that raw V8 data into Istanbul HTML and summary reports.
+
+Practical implications:
+
+- the E2E coverage report reflects browser-executed client code, not Node server execution
+- request-only tests do not contribute unless they also drive a page
+- the report is generated from raw artifacts in `.coverage/e2e-browser/raw`

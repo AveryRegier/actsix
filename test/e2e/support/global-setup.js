@@ -30,7 +30,7 @@ function loadEnvFileIfPresent() {
 export default async function globalSetup() {
   loadEnvFileIfPresent();
 
-  fs.mkdirSync(path.join(process.cwd(), '.coverage', 'e2e-v8'), { recursive: true });
+  fs.mkdirSync(path.join(process.cwd(), '.coverage', 'e2e-browser', 'raw'), { recursive: true });
   fs.mkdirSync(path.join(process.cwd(), 'test-results'), { recursive: true });
   resetMailbox();
 }

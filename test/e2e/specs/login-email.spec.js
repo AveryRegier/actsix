@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../support/browser-coverage.js';
 import { findLatestCodeForEmail, resetMailbox } from '../../harness/fake-mailbox.js';
 
 async function waitForCode(email, timeoutMs = 10_000) {

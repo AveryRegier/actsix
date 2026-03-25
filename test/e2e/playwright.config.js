@@ -38,7 +38,6 @@ export default defineConfig({
       USE_S3_SIMULATOR: process.env.USE_S3_SIMULATOR || '1',
       USE_FAKE_MAILER: process.env.USE_FAKE_MAILER || '1',
       FAKE_MAILBOX_FILE: process.env.FAKE_MAILBOX_FILE || path.join(process.cwd(), 'test-results', 'fake-mailbox.json'),
-      NODE_V8_COVERAGE: path.join(process.cwd(), '.coverage', 'e2e-v8'),
       JWT_SECRET: process.env.JWT_SECRET || 'actsix-e2e-secret',
       APP_NAME: process.env.APP_NAME || 'ActSix E2E',
       GENERATION_API_KEY: process.env.GENERATION_API_KEY || 'test-generation-key',

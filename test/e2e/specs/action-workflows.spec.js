@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../support/browser-coverage.js';
 import { apiGet, loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
 
 test.describe('phase4 action workflows', () => {
