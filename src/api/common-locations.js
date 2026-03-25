@@ -273,7 +273,7 @@ export default function registerCommonLocationRoutes(app) {
       if (body.website !== undefined) updates.website = body.website.trim();
       if (body.visitingHours !== undefined) updates.visitingHours = body.visitingHours.trim();
 
-      await safeCollectionUpdate('common_locations', { _id: locationId }, updates);
+      await safeCollectionUpdate('common_locations', { _id: locationId }, { $set: updates });
 
       getLogger().info({ locationId, updates }, 'Updated common location');
 
@@ -313,10 +313,12 @@ export default function registerCommonLocationRoutes(app) {
         return c.json({ error: 'Location already deleted' }, 400);
       }
 
-      // Check if any members are currently at this location
-      const membersAtLocation = await safeCollectionFind('members', {
-        'temporaryAddress.locationId': locationId,
-        'temporaryAddress.isActive': true
+      // Check if any members are currently at this location.
+      // Avoid relying on nested-query semantics in the storage layer.
+      const allMembers = await safeCollectionFind('members');
+      const membersAtLocation = allMembers.filter((member) => {
+        const temp = member?.temporaryAddress;
+        return temp && temp.isActive === true && String(temp.locationId) === String(locationId);
       });
 
       if (membersAtLocation && membersAtLocation.length > 0) {
@@ -328,8 +330,10 @@ export default function registerCommonLocationRoutes(app) {
 
       // Soft delete: set isActive = false
       await safeCollectionUpdate('common_locations', { _id: locationId }, {
-        isActive: false,
-        updatedAt: new Date().toISOString()
+        $set: {
+          isActive: false,
+          updatedAt: new Date().toISOString()
+        }
       });
 
       getLogger().info({ locationId }, 'Soft deleted common location');

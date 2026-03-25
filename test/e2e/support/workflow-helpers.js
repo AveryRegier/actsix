@@ -282,6 +282,70 @@ export async function seedTemporaryAddressScenario(request, options = {}) {
   };
 }
 
+export async function seedCommonLocationCrudScenario(request) {
+  const stamp = Date.now();
+
+  const staffHouseholdRes = await apiPost(request, '/api/households', {
+    lastName: `LocStaffHH-${stamp}`,
+  });
+  expect(staffHouseholdRes.ok()).toBeTruthy();
+  const staffHousehold = await staffHouseholdRes.json();
+
+  const staffEmail = `loc-staff-${stamp}@example.test`;
+  const staffMemberRes = await apiPost(request, '/api/members', {
+    householdId: staffHousehold.id,
+    firstName: 'Location',
+    lastName: `Staff${stamp}`,
+    relationship: 'head',
+    gender: 'female',
+    email: staffEmail,
+    phone: '515-555-0400',
+    tags: ['staff'],
+  });
+  expect(staffMemberRes.ok()).toBeTruthy();
+  const staffMember = await staffMemberRes.json();
+
+  const householdRes = await apiPost(request, '/api/households', {
+    lastName: `LocTargetHH-${stamp}`,
+    primaryPhone: '515-555-0401',
+    address: {
+      street: '789 Oak St',
+      city: 'Des Moines',
+      state: 'IA',
+      zipCode: '50309',
+    },
+  });
+  expect(householdRes.ok()).toBeTruthy();
+  const household = await householdRes.json();
+
+  const memberRes = await apiPost(request, '/api/members', {
+    householdId: household.id,
+    firstName: 'Location',
+    lastName: `Member${stamp}`,
+    relationship: 'head',
+    gender: 'male',
+    email: `loc-member-${stamp}@example.test`,
+    phone: '515-555-0402',
+    tags: ['member'],
+  });
+  expect(memberRes.ok()).toBeTruthy();
+  const member = await memberRes.json();
+
+  const assignRes = await apiPost(request, `/api/households/${household.id}/assignments`, {
+    deaconIds: [staffMember.id],
+  });
+  expect(assignRes.ok()).toBeTruthy();
+
+  return {
+    stamp,
+    staffEmail,
+    staffMemberId: staffMember.id,
+    householdId: household.id,
+    memberId: member.id,
+    memberLastName: `Member${stamp}`,
+  };
+}
+
 export async function loginAsEmail(page, email) {
   resetMailbox();
 
