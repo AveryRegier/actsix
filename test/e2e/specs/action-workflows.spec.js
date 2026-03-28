@@ -1,5 +1,5 @@
 import { test, expect } from '../support/browser-coverage.js';
-import { apiGet, loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
+import { apiGet, loginAsEmail, seedTemporaryAddressScenario, seedWorkflowScenario } from '../support/workflow-helpers.js';
 
 test.describe('phase4 action workflows', () => {
   test('unauthenticated users are redirected from protected pages', async ({ page }) => {
@@ -163,5 +163,32 @@ test.describe('phase4 action workflows', () => {
     const recordLink = page.locator('a.record-btn').first();
     await expect(recordLink).toBeVisible();
     await expect(recordLink).toHaveAttribute('href', new RegExp(`householdId=${scenario.targetHouseholdId}`));
+  });
+
+  test('deacon quick contact builds clickable tel links', async ({ page, request }) => {
+    const scenario = await seedWorkflowScenario(request);
+    await loginAsEmail(page, scenario.deaconEmail);
+
+    await page.goto(`/deacon-quick-contact.html?deaconMemberId=${scenario.deaconMemberId}`);
+    await expect(page.getByRole('heading', { name: /deacon quick contact/i })).toBeVisible();
+
+    const telLinks = page.locator('#quickContactsTable a[href^="tel:"]');
+    await expect(telLinks.first()).toBeVisible();
+    await expect(page.locator('#quickContactsTable .contact-cell').first()).toContainText(/(^|\s)(P:|T:)/);
+  });
+
+  test('deacon quick contact renders temporary location details', async ({ page, request }) => {
+    const scenario = await seedTemporaryAddressScenario(request, {
+      withTemporaryAddress: true,
+      notes: 'Temporary location note',
+    });
+    await loginAsEmail(page, scenario.deaconEmail);
+
+    await page.goto(`/deacon-quick-contact.html?deaconMemberId=${scenario.deaconMemberId}`);
+    const tempInfo = page.locator('.temp-location-info').first();
+
+    await expect(tempInfo).toContainText('Temporary Location:');
+    await expect(tempInfo).toContainText(scenario.locationName);
+    await expect(tempInfo).toContainText('Temporary location note');
   });
 });
