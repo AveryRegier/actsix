@@ -2,6 +2,28 @@ import { test, expect } from '../support/browser-coverage.js';
 import { apiGet, loginAsEmail, seedMemberTagsScenario } from '../support/workflow-helpers.js';
 
 test.describe('feature1 member tags and deceased filtering', () => {
+  test('members table sorts by first name when clicking the header', async ({ page, request }) => {
+    const scenario = await seedMemberTagsScenario(request);
+    await loginAsEmail(page, scenario.deaconEmail);
+
+    await page.goto('/members.html');
+
+    const initialRowCount = await page.locator('#memberTableBody tr').count();
+    expect(initialRowCount).toBeGreaterThan(1);
+
+    const firstNameHeader = page.locator('#memberTable thead th').nth(1);
+
+    await firstNameHeader.click();
+    const firstNamesAsc = await page.locator('#memberTableBody tr td:nth-child(2) a').allTextContents();
+    const sortedAsc = [...firstNamesAsc].sort((a, b) => a.localeCompare(b));
+    expect(firstNamesAsc).toEqual(sortedAsc);
+
+    await firstNameHeader.click();
+    const firstNamesDesc = await page.locator('#memberTableBody tr td:nth-child(2) a').allTextContents();
+    const sortedDesc = [...firstNamesDesc].sort((a, b) => b.localeCompare(a));
+    expect(firstNamesDesc).toEqual(sortedDesc);
+  });
+
   test('members page filters living members by tag and excludes deceased members', async ({ page, request }) => {
     const scenario = await seedMemberTagsScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
