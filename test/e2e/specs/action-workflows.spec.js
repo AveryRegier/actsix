@@ -102,6 +102,17 @@ test.describe('phase4 action workflows', () => {
     expect(data.assignments.length).toBeGreaterThan(0);
   });
 
+  test('assign-deacons cancel button returns to household page', async ({ page, request }) => {
+    const scenario = await seedWorkflowScenario(request);
+    await loginAsEmail(page, scenario.deaconEmail);
+
+    await page.goto(`/assign-deacons.html?householdId=${scenario.targetHouseholdId}`);
+    await expect(page.getByRole('button', { name: /^cancel$/i })).toBeVisible();
+
+    await page.getByRole('button', { name: /^cancel$/i }).click();
+    await expect(page).toHaveURL(new RegExp(`household\\.html[?]id=${scenario.targetHouseholdId}`));
+  });
+
   test('record-contact workflow submits a contact', async ({ page, request }) => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
