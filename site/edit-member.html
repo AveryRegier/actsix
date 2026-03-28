@@ -310,9 +310,14 @@
     document.getElementById('tempLocationDropdown').addEventListener('change', function(e) {
         if (this.value) {
             const selectedOption = this.options[this.selectedIndex];
+            const isExistingLocationSelection = Boolean(
+                existingTemporaryAddress &&
+                selectedOption.dataset.locationId === existingTemporaryAddress.locationId &&
+                wasExistingLocationPreselected
+            );
             selectedLocation = JSON.parse(selectedOption.dataset.location);
             selectedLocationId = selectedOption.dataset.locationId;
-            wasExistingLocationPreselected = false;  // User just selected a new location
+            wasExistingLocationPreselected = isExistingLocationSelection;
             
             console.log('Location selected:', {
                 name: this.value,
