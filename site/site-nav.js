@@ -101,6 +101,22 @@ document.addEventListener('submit', function(e) {
     sessionStorage.setItem('lastNavWasPost', 'true');
   }
 }, true);
+
+document.addEventListener('click', function(e) {
+  const menuButton = e.target.closest('.nav-menu-btn');
+  if (menuButton) {
+    e.preventDefault();
+    toggleMenu();
+    return;
+  }
+
+  const backLink = e.target.closest('#siteNavBackLink, #siteNavBackLinkMobile');
+  if (backLink) {
+    e.preventDefault();
+    goBack();
+  }
+});
+
 // JS API for page-specific links in navigation
 // addNavLink API for direct script usage
 window.addNavLink = function(html) {
