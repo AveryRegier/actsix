@@ -38,12 +38,14 @@ async function waitForCode(email, timeoutMs = 10_000) {
 // caller's own listener can handle any subsequent dialogs independently.
 async function reachValidationForm(page, email) {
   const dialogs = [];
+  let requestBody = null;
   page.once('dialog', async (dialog) => {
     dialogs.push(dialog.message());
     await dialog.accept();
   });
 
   await page.route('**/email-request-code', async (route) => {
+    requestBody = route.request().postDataJSON();
     await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
   });
 
@@ -54,13 +56,38 @@ async function reachValidationForm(page, email) {
   // Wait for the validation form to become visible (the alert fires first)
   await expect(page.locator('#validationForm')).toBeVisible({ timeout: 5000 });
 
-  return dialogs;
+  return { dialogs, requestBody };
 }
 
 test.describe('email-login inline behavior', () => {
   test('email-login page loads the site-nav bar', async ({ page }) => {
     await page.goto('/email-login.html');
     await expect(page.locator('#site-nav-container .site-nav')).toBeVisible();
+
+    const scriptsBefore = await page.locator('script[src="site-nav.js"]').count();
+    expect(scriptsBefore).toBe(1);
+
+    await page.evaluate(() => {
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+    });
+    await page.waitForTimeout(100);
+
+    const scriptsAfter = await page.locator('script[src="site-nav.js"]').count();
+    expect(scriptsAfter).toBe(1);
+  });
+
+  test('deduplicates duplicate email login forms on load', async ({ page }) => {
+    await page.addInitScript(() => {
+      document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('emailLoginForm');
+        if (!form) return;
+        const duplicate = form.cloneNode(true);
+        form.parentElement.appendChild(duplicate);
+      });
+    });
+
+    await page.goto('/email-login.html');
+    await expect(page.locator('#emailLoginForm')).toHaveCount(1);
   });
 
   test('submitting blank email shows alert', async ({ page }) => {
@@ -79,15 +106,18 @@ test.describe('email-login inline behavior', () => {
   });
 
   test('successful email submit hides email form and shows validation form', async ({ page }) => {
-    const dialogs = await reachValidationForm(page, 'inline-test@example.test');
+    const { dialogs, requestBody } = await reachValidationForm(page, ' inline-test@example.test ');
     // The success alert fires before the form transitions
     expect(dialogs.some((m) => /login link sent/i.test(m))).toBeTruthy();
+    expect(requestBody).toEqual({ email: 'inline-test@example.test' });
 
     await expect(page.locator('#emailLoginForm')).toBeHidden();
     await expect(page.locator('#validationForm')).toBeVisible();
     // Validation email hidden input should carry the email
     const hiddenEmail = await page.locator('#validationEmail').inputValue();
     expect(hiddenEmail).toBe('inline-test@example.test');
+    await expect(page.locator('#code')).toBeFocused();
+    await expect(page.locator('#code')).toHaveValue('');
   });
 
   test('change email button restores email form with email pre-filled', async ({ page }) => {
@@ -100,6 +130,7 @@ test.describe('email-login inline behavior', () => {
     await expect(page.locator('#validationForm')).toBeHidden();
     const emailFieldValue = await page.locator('#emailLoginForm [name="email"]').inputValue();
     expect(emailFieldValue).toBe(email);
+    await expect(page.locator('#email')).toBeFocused();
   });
 
   test('submitting blank code shows alert', async ({ page }) => {
@@ -114,6 +145,7 @@ test.describe('email-login inline behavior', () => {
     await page.getByRole('button', { name: /validate code/i }).click();
     await page.waitForTimeout(300);
     expect(codeAlertMessage).toMatch(/please enter the validation code/i);
+    await expect(page).toHaveURL(/\/email-login\.html$/);
   });
 
   test('API error on email-request-code shows error alert', async ({ page }) => {
@@ -155,6 +187,9 @@ test.describe('email-login inline behavior', () => {
 
     await page.waitForTimeout(500);
     expect(alertMessage).toMatch(/invalid code/i);
+    await expect(page).toHaveURL(/\/email-login\.html$/);
+    const token = await page.evaluate(() => localStorage.getItem('authToken'));
+    expect(token).toBeNull();
   });
 
   test('full login flow via fake mailbox sets localStorage token', async ({ page, request }) => {
@@ -179,5 +214,9 @@ test.describe('email-login inline behavior', () => {
     await expect(page).toHaveURL(/\/$/);
     const token = await page.evaluate(() => localStorage.getItem('authToken'));
     expect(token).toBeTruthy();
+    const memberId = await page.evaluate(() => localStorage.getItem('memberId'));
+    expect(memberId).toBeTruthy();
+    const cookie = await page.evaluate(() => document.cookie);
+    expect(cookie).toContain('actsix=');
   });
 });
