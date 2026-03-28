@@ -32,6 +32,8 @@ async function seedRoleFilterScenario(request) {
   const deacon = await createMemberWithTag('deacon', 'Deacon');
   const helper = await createMemberWithTag('helper', 'Helper');
   const staff = await createMemberWithTag('staff', 'Staff');
+  const deaconess = await createMemberWithTag('deaconess', 'Deaconess');
+  const elder = await createMemberWithTag('elder', 'Elder');
 
   const createAssignedHousehold = async (householdPrefix, assigneeId, memberLabel) => {
     const expectedLastName = `${householdPrefix}-${stamp}`;
@@ -85,6 +87,8 @@ async function seedRoleFilterScenario(request) {
     deacon,
     helper,
     staff,
+    deaconess,
+    elder,
     deaconHouseholdLastName,
     helperHouseholdLastName,
   };
@@ -122,6 +126,24 @@ test.describe('role-based contact summary defaults', () => {
     const scenario = await seedRoleFilterScenario(request);
 
     await openSummaryAs(page, scenario.staff.email, scenario.staff.memberId);
+    await expect(page.locator('#assignmentFilter')).toHaveValue('all');
+    await expect(page.getByText(scenario.deaconHouseholdLastName)).toBeVisible();
+    await expect(page.getByText(scenario.helperHouseholdLastName)).toBeVisible();
+  });
+
+  test('deaconess defaults filter to helper and shows helper-assigned households', async ({ page, request }) => {
+    const scenario = await seedRoleFilterScenario(request);
+
+    await openSummaryAs(page, scenario.deaconess.email, scenario.deaconess.memberId);
+    await expect(page.locator('#assignmentFilter')).toHaveValue('helper');
+    await expect(page.getByText(scenario.helperHouseholdLastName)).toBeVisible();
+    await expect(page.getByText(scenario.deaconHouseholdLastName)).toHaveCount(0);
+  });
+
+  test('elder defaults filter to all and includes both helper and deacon households', async ({ page, request }) => {
+    const scenario = await seedRoleFilterScenario(request);
+
+    await openSummaryAs(page, scenario.elder.email, scenario.elder.memberId);
     await expect(page.locator('#assignmentFilter')).toHaveValue('all');
     await expect(page.getByText(scenario.deaconHouseholdLastName)).toBeVisible();
     await expect(page.getByText(scenario.helperHouseholdLastName)).toBeVisible();
