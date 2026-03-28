@@ -1,5 +1,5 @@
 import { test, expect } from '../support/browser-coverage.js';
-import { apiGet, loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
+import { apiGet, loginAsEmail, seedTemporaryAddressScenario, seedWorkflowScenario } from '../support/workflow-helpers.js';
 
 async function ensureContactParticipantsSelected(page) {
   const memberCheckbox = page.locator('#membersSection input[type="checkbox"]').first();
@@ -60,5 +60,23 @@ test.describe('feature4 contact workflow depth', () => {
     const summaryRow = page.locator(`tr[data-household-id="${scenario.targetHouseholdId}"]`).first();
     await expect(summaryRow).toContainText(summary);
     await expect(summaryRow).toContainText(/Spoke at church/i);
+  });
+
+  test('contact-summary renders temporary location details in summary rows', async ({ page, request }) => {
+    const scenario = await seedTemporaryAddressScenario(request, {
+      withTemporaryAddress: true,
+      roomNumber: 'Room 207',
+      notes: 'Recovering well',
+      startDate: '2026-03-01',
+    });
+    await loginAsEmail(page, scenario.deaconEmail);
+
+    await page.goto('/contact-summary.html');
+
+    const tempInfo = page.locator(`td[data-household-id="${scenario.householdId}"] .temp-location-info`).first();
+    await expect(tempInfo).toContainText('Temporary Location:');
+    await expect(tempInfo).toContainText(scenario.locationName);
+    await expect(tempInfo).toContainText('Room/Unit: Room 207');
+    await expect(tempInfo).toContainText('Recovering well');
   });
 });
