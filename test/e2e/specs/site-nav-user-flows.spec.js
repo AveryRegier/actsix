@@ -2,6 +2,23 @@ import { test, expect } from '../support/browser-coverage.js';
 import { loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
 
 test.describe('site nav user flows', () => {
+  test('menu button toggles the mobile nav menu', async ({ page, request }) => {
+    const scenario = await seedWorkflowScenario(request);
+    await loginAsEmail(page, scenario.deaconEmail);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    await page.goto('/members.html');
+
+    const mobileMenu = page.locator('#navMobileMenu');
+    const menuButton = page.locator('.nav-menu-btn');
+
+    await expect(mobileMenu).not.toHaveClass(/open/);
+    await menuButton.click();
+    await expect(mobileMenu).toHaveClass(/open/);
+    await menuButton.click();
+    await expect(mobileMenu).not.toHaveClass(/open/);
+  });
+
   test('goBack falls back to index page when no referrer exists', async ({ page, request }) => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
