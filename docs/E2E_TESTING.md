@@ -43,8 +43,39 @@ Primary output files and folders:
 - Test results and traces: `test-results/`
 - Fake mailbox capture: `test-results/fake-mailbox.json`
 - E2E artifact manifest: `test-results/e2e-artifacts.json`
-- E2E coverage report (when produced): `coverage/e2e/index.html`
+- E2E browser coverage report: `coverage/e2e/index.html`
+- E2E server coverage report: `coverage/e2e-server/index.html`
 - Unit coverage report: `coverage/index.html`
+
+## E2E Coverage Tracking
+
+E2E tests produce **two separate coverage reports** for observability into what code paths are exercised:
+
+### Browser Coverage (`coverage/e2e/`)
+
+Tracks JavaScript code executing in the browser (`site/*.js`):
+- Collected via Playwright Chrome DevTools Protocol (CDP) V8 profiler
+- Shows which client-side scripts and logic run during test workflows
+- Useful for identifying unused client features or incomplete UI interactions
+
+### Server Coverage (`coverage/e2e-server/`)
+
+Tracks Node.js API and backend code executing during e2e tests (`src/api/**`, `src/auth/**`, `src/form/**`, `src/util/**`):
+- Collected via V8 coverage instrumentation when `NODE_V8_COVERAGE` env var is set
+- Shows which API endpoints, auth flows, and business logic are exercised
+- Useful for identifying server-side code paths that lack e2e test coverage
+
+**How to read the reports:**
+
+- Both reports are in Istanbul format (JSON + HTML) with statement, branch, function, and line coverage metrics
+- No coverage targets are enforced; reports are for **observability only**
+- If a file shows 0% coverage, that code is not exercised by e2e tests (may be dead code, or tested via unit tests instead)
+- If a file shows partial coverage, that code has paths untested by e2e workflows
+
+**Tool context:**
+- Browser coverage uses `v8-to-istanbul` to convert Chrome DevTools data to Istanbul format
+- Server coverage uses `nyc` to collect and report on Node.js V8 coverage data
+- Both run during `npm run e2e:coverage`
 
 ## What the artifact manifest contains
 

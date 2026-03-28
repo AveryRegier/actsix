@@ -35,7 +35,12 @@ function readCoverageFiles(dir) {
 function isCoveredSiteScript(url) {
   try {
     const parsed = new URL(url);
-    return parsed.pathname.endsWith('.js') && !parsed.pathname.startsWith('/node_modules/');
+    const pathname = parsed.pathname.toLowerCase();
+    // Must be a .js file served by the app server
+    // Exclude node_modules, src/, and html files
+    return pathname.endsWith('.js') && 
+           !pathname.includes('/node_modules/') &&
+           !pathname.includes('/src/');
   } catch {
     return false;
   }
@@ -43,8 +48,15 @@ function isCoveredSiteScript(url) {
 
 function resolveSitePath(url) {
   const parsed = new URL(url);
-  const relativePath = parsed.pathname.replace(/^\//, '');
-  return path.join(rootDir, 'site', relativePath);
+  // Extract filename/path from the URL pathname
+  // e.g., /fetch-utils.js or /some-file.js
+  let pathname = parsed.pathname;
+  // Remove leading slash
+  if (pathname.startsWith('/')) {
+    pathname = pathname.slice(1);
+  }
+  // Resolve from site directory
+  return path.join(rootDir, 'site', pathname);
 }
 
 async function buildCoverageMap() {

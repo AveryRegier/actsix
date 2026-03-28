@@ -11,7 +11,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.js'],
-      exclude: ['node_modules/', 'test/']
+      exclude: ['node_modules/', 'test/', 'site/']
     }
   },
   resolve: {

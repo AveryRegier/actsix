@@ -1,0 +1,27 @@
+{
+  "all": true,
+  "include": [
+    "src/api/**/*.js",
+    "src/auth/**/*.js",
+    "src/form/**/*.js",
+    "src/util/**/*.js",
+    "src/server.js",
+    "src/lambda.js"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "test/**",
+    "coverage/**",
+    "dist/**",
+    ".nyc_output/**",
+    "site/**"
+  ],
+  "reporter": [
+    "json",
+    "html",
+    "text-summary"
+  ],
+  "report-dir": "./coverage/e2e-server",
+  "temp-dir": "./.nyc_output",
+  "produce-source-map": false
+}
