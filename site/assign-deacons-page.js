@@ -1,0 +1,71 @@
+import { apiFetch } from './fetch-utils.js';
+
+// Get householdId from query params
+const urlParams = new URLSearchParams(window.location.search);
+const householdId = urlParams.get('householdId');
+if (!householdId) {
+    document.body.innerHTML = '<p>Error: No householdId provided.</p>';
+    throw new Error('No householdId');
+}
+
+// Fetch all deacons
+async function fetchDeacons() {
+    const res = await apiFetch('api/deacons?add=deaconess,staff,helper');
+    const data = await res.json();
+    const sorted = data.deacons.sort((a, b) => {
+        const nameA = `${a.lastName} ${a.firstName}`.toLowerCase();
+        const nameB = `${b.lastName} ${b.firstName}`.toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+    return sorted;
+}
+
+// Fetch current assignments
+async function fetchAssignments() {
+    const res = await apiFetch(`api/households/${householdId}/assignments`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.assignments || [];
+}
+
+// Render deacon list with checkboxes
+async function renderDeaconList() {
+    const deacons = await fetchDeacons();
+    const assignments = await fetchAssignments();
+    const assignedIds = assignments.map(a => a.deaconMemberId);
+    const container = document.getElementById('deaconList');
+    container.innerHTML = '';
+    deacons.forEach(deacon => {
+        const div = document.createElement('div');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = deacon._id;
+        checkbox.checked = assignedIds.includes(deacon._id);
+        div.appendChild(checkbox);
+        div.appendChild(document.createTextNode(`${deacon.firstName} ${deacon.lastName}`));
+        container.appendChild(div);
+    });
+}
+
+renderDeaconList();
+
+// Assign selected deacons
+document.getElementById('assignBtn').onclick = async function() {
+    const checked = Array.from(document.querySelectorAll('#deaconList input:checked')).map(cb => cb.value);
+    // Send assignments to API
+    const res = await apiFetch(`api/households/${householdId}/assignments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deaconIds: checked })
+    });
+    if (res.ok) {
+        const where = document.referrer ?? `household.html?id=${householdId}`;
+        window.location.href = where;
+    } else {
+        alert('Failed to assign deacons');
+    }
+};
+
+document.getElementById('cancelBtn').onclick = function() {
+    window.location.href = `household.html?id=${householdId}`;
+};
