@@ -353,7 +353,7 @@ test.describe('household page functions', () => {
     expect(href).toContain('household.html?id=');
   });
 
-  test('edit member modal form submits update and supports overlay close action', async ({ page, request }) => {
+  test('user flow: edit member details via UI navigation', async ({ page, request }) => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
@@ -372,42 +372,42 @@ test.describe('household page functions', () => {
       });
     });
 
+    // Navigate to household page
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+    await expect(page.locator('.member-card')).toContainText('Target');
 
-    await page.evaluate((memberId) => {
-      const modal = document.getElementById('editMemberModal');
-      const modalContent = modal.querySelector('.modal-content');
-      modal.style.display = 'block';
-      modalContent.style.display = 'block';
+    // Click the edit button on the member card
+    const memberEditBtn = page.locator('.member-card').locator('a[href*="edit-member.html"]');
+    await memberEditBtn.click();
 
-      document.getElementById('editMemberId').value = memberId;
-      document.getElementById('editFirstName').value = 'Edited';
-      document.getElementById('editLastName').value = 'Member';
-      document.getElementById('editRelationship').value = 'head';
-      document.getElementById('editGender').value = 'male';
-      document.getElementById('editBirthDate').value = '1988-02-03';
-      document.getElementById('editAge').value = '';
+    // Verify navigation to edit-member page with correct parameters
+    await page.waitForURL(new RegExp(`edit-member\\.html\\?householdId=${scenario.targetHouseholdId}&memberId=${scenario.targetMemberId}`));
 
-      document.getElementById('editMemberForm')
-        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    }, scenario.targetMemberId);
+    // Fill in new values
+    await page.locator('#firstName').fill('Updated');
+    await page.locator('#lastName').fill('Member');
+    await page.locator('#phone').fill('515-555-9999');
+    await page.locator('#gender').selectOption('male');
+    await page.locator('#relationship').selectOption('spouse');
 
+    // Submit the form
+    await page.locator('#saveBtn').click();
+
+    // Verify API request was made with correct data
     await expect.poll(() => capturedBody !== null).toBeTruthy();
-    expect(capturedBody.birthDate).toBe('1988-02-03');
-    expect(capturedBody.age).toBeUndefined();
-    await expect(page.locator('#editMemberSuccess')).toContainText('Member updated successfully!');
+    expect(capturedBody.firstName).toBe('Updated');
+    expect(capturedBody.lastName).toBe('Member');
+    expect(capturedBody.phone).toBe('515-555-9999');
+    expect(capturedBody.gender).toBe('male');
+    expect(capturedBody.relationship).toBe('spouse');
 
-    await page.evaluate(() => {
-      const modal = document.getElementById('editMemberModal');
-      modal.style.display = 'block';
-      modal.querySelector('.modal-content').style.display = 'block';
-      modal.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    await expect(page.locator('#editMemberModal')).toHaveCSS('display', 'none');
+    // Verify redirect back to household page
+    await page.waitForURL(new RegExp(`household\\.html\\?id=${scenario.targetHouseholdId}`));
+    // Verify we're back on the household page
+    await expect(page.locator('#householdTitle')).toBeVisible();
   });
 
-  test('edit member modal form shows error on failed update request', async ({ page, request }) => {
+  test('user flow: edit member form shows error on failed update', async ({ page, request }) => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
@@ -424,27 +424,31 @@ test.describe('household page functions', () => {
       });
     });
 
+    // Navigate to household page
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
 
-    await page.evaluate((memberId) => {
-      const modal = document.getElementById('editMemberModal');
-      const modalContent = modal.querySelector('.modal-content');
-      modal.style.display = 'block';
-      modalContent.style.display = 'block';
+    // Click the edit button on the member card
+    const memberEditBtn = page.locator('.member-card').locator('a[href*="edit-member.html"]');
+    await memberEditBtn.click();
 
-      document.getElementById('editMemberId').value = memberId;
-      document.getElementById('editFirstName').value = 'Broken';
-      document.getElementById('editLastName').value = 'Update';
-      document.getElementById('editRelationship').value = 'head';
-      document.getElementById('editGender').value = 'female';
-      document.getElementById('editBirthDate').value = '';
-      document.getElementById('editAge').value = '39';
+    // Verify navigation to edit-member page
+    await page.waitForURL(new RegExp(`edit-member\\.html\\?householdId=${scenario.targetHouseholdId}&memberId=${scenario.targetMemberId}`));
 
-      document.getElementById('editMemberForm')
-        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    }, scenario.targetMemberId);
+    // Fill in form with new data
+    await page.locator('#firstName').fill('Broken');
+    await page.locator('#lastName').fill('Update');
+    await page.locator('#relationship').selectOption('head');
+    await page.locator('#gender').selectOption('female');
+    await page.locator('#phone').fill('555-1234');
 
-    await expect(page.locator('#editMemberError')).toContainText('Update failed in test');
+    // Submit the form
+    await page.locator('#saveBtn').click();
+
+    // Verify error is displayed on the form
+    await expect(page.locator('#formError')).toContainText('Update failed in test');
+    
+    // Verify we remain on the edit-member page
+    await expect(page).toHaveURL(new RegExp(`edit-member\\.html`));
   });
 
   test('household page remains functional when Array.from polyfill path is activated', async ({ page, request }) => {
@@ -637,31 +641,28 @@ test.describe('household page functions', () => {
     await expect(page).toHaveURL(/returnTo=/);
   });
 
-  test('edit member modal closes via close icon and cancel button', async ({ page, request }) => {
+  test('user flow: cancel button returns from edit-member page', async ({ page, request }) => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
+    // Navigate to household page first
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+    await expect(page.locator('#householdTitle')).toBeVisible();
 
-    await page.evaluate(() => {
-      const modal = document.getElementById('editMemberModal');
-      const modalContent = modal.querySelector('.modal-content');
-      modal.style.display = 'block';
-      modalContent.style.display = 'block';
-    });
+    // Click the edit button on the member card
+    const memberEditBtn = page.locator('.member-card').locator('a[href*="edit-member.html"]');
+    await memberEditBtn.click();
 
-    await page.locator('#editMemberModal .close').click();
-    await expect(page.locator('#editMemberModal')).toHaveCSS('display', 'none');
+    // Verify we're on the edit-member page
+    await page.waitForURL(new RegExp(`edit-member\\.html\\?householdId=${scenario.targetHouseholdId}`));
+    await expect(page.locator('#formTitle')).toContainText('Edit Member');
 
-    await page.evaluate(() => {
-      const modal = document.getElementById('editMemberModal');
-      const modalContent = modal.querySelector('.modal-content');
-      modal.style.display = 'block';
-      modalContent.style.display = 'block';
-    });
+    // Click the cancel button
+    await page.locator('#cancelBtn').click();
 
-    await page.locator('#editMemberModal button[type="button"]').click();
-    await expect(page.locator('#editMemberModal')).toHaveCSS('display', 'none');
+    // Verify we return to the household page
+    await page.waitForURL(new RegExp(`household\\.html\\?id=${scenario.targetHouseholdId}`));
+    await expect(page.locator('#householdTitle')).toBeVisible();
   });
 
 });
