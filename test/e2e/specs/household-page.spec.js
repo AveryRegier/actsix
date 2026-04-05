@@ -202,89 +202,73 @@ test.describe('household page functions', () => {
     expect(emailHref).toContain('mailto:');
   });
 
-  test('hidden add member form submit posts age payload and shows success state', async ({ page, request }) => {
+  test('user flow: add first member to an empty household', async ({ page, request }) => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
-    let capturedBody = null;
-    await page.route('**/api/members', async route => {
-      if (route.request().method() !== 'POST') {
-        await route.continue();
-        return;
-      }
-
-      capturedBody = route.request().postDataJSON();
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: `Added-${scenario.stamp}` }),
-      });
+    const emptyHouseholdRes = await apiPost(request, '/api/households', {
+      lastName: `FirstMemberHH-${scenario.stamp}`,
+      primaryPhone: '515-555-0701',
     });
+    expect(emptyHouseholdRes.ok()).toBeTruthy();
+    const emptyHousehold = await emptyHouseholdRes.json();
 
-    await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+    await page.goto(`/household.html?id=${emptyHousehold.id}`);
+    await expect(page.locator('#membersList')).toContainText('No members added yet');
 
-    await page.evaluate(() => {
-      const form = document.getElementById('memberForm');
-      const success = document.createElement('div');
-      success.id = 'memberSuccess';
-      success.style.display = 'none';
-      form.appendChild(success);
+    await page.locator('#addMemberBtn').click();
+    await page.waitForURL(`**/edit-member.html?householdId=${emptyHousehold.id}`);
 
-      document.getElementById('firstName').value = 'Action';
-      document.getElementById('lastName').value = 'Add';
-      document.getElementById('relationship').value = 'head';
-      document.getElementById('gender').value = 'male';
-      document.getElementById('age').value = '42';
-      document.getElementById('birthDate').value = '';
+    await page.locator('#firstName').fill('First');
+    await page.locator('#lastName').fill(`Member${scenario.stamp}`);
+    await page.locator('#phone').fill('515-555-0711');
+    await page.locator('#email').fill(`first-member-${scenario.stamp}@example.test`);
+    await page.locator('#gender').selectOption('female');
+    await page.locator('#relationship').selectOption('head');
+    await page.getByRole('button', { name: /save member/i }).click();
 
-      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    });
+    await page.waitForURL(`**/household.html?id=${emptyHousehold.id}`);
+    await expect(page.locator('#membersList')).toContainText(`First Member${scenario.stamp}`);
+    await expect(page.locator('#membersList')).not.toContainText('No members added yet');
 
-    await expect.poll(() => capturedBody !== null).toBeTruthy();
-    expect(capturedBody.householdId).toBe(scenario.targetHouseholdId);
-    expect(capturedBody.age).toBe(42);
-    expect(capturedBody.birthDate).toBeUndefined();
-
-    await expect(page.locator('#memberSuccess')).toContainText('Member added successfully!');
+    const membersRes = await apiGet(request, `/api/households/${emptyHousehold.id}/members`);
+    expect(membersRes.ok()).toBeTruthy();
+    const membersPayload = await membersRes.json();
+    expect(membersPayload.count).toBe(1);
+    expect(membersPayload.members[0].firstName).toBe('First');
   });
 
-  test('hidden add member form submit shows error message when api rejects', async ({ page, request }) => {
+  test('user flow: add a member to an existing household', async ({ page, request }) => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
-    await page.route('**/api/members', async route => {
-      if (route.request().method() !== 'POST') {
-        await route.continue();
-        return;
-      }
-
-      await route.fulfill({
-        status: 400,
-        contentType: 'application/json',
-        body: JSON.stringify({ message: 'Bad member payload' }),
-      });
-    });
+    const membersBeforeRes = await apiGet(request, `/api/households/${scenario.targetHouseholdId}/members`);
+    expect(membersBeforeRes.ok()).toBeTruthy();
+    const membersBeforePayload = await membersBeforeRes.json();
+    const beforeCount = membersBeforePayload.count;
 
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+    const cardsBefore = await page.locator('.member-card').count();
+    expect(cardsBefore).toBeGreaterThan(0);
 
-    await page.evaluate(() => {
-      const form = document.getElementById('memberForm');
-      const error = document.createElement('div');
-      error.id = 'memberError';
-      error.style.display = 'none';
-      form.appendChild(error);
+    await page.locator('#addMemberBtn').click();
+    await page.waitForURL(`**/edit-member.html?householdId=${scenario.targetHouseholdId}`);
 
-      document.getElementById('firstName').value = 'Action';
-      document.getElementById('lastName').value = 'Error';
-      document.getElementById('relationship').value = 'head';
-      document.getElementById('gender').value = 'female';
-      document.getElementById('birthDate').value = '1990-01-01';
-      document.getElementById('age').value = '';
+    await page.locator('#firstName').fill('Added');
+    await page.locator('#lastName').fill(`Existing${scenario.stamp}`);
+    await page.locator('#phone').fill('515-555-0722');
+    await page.locator('#email').fill(`added-existing-${scenario.stamp}@example.test`);
+    await page.locator('#gender').selectOption('male');
+    await page.locator('#relationship').selectOption('other');
+    await page.getByRole('button', { name: /save member/i }).click();
 
-      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    });
+    await page.waitForURL(`**/household.html?id=${scenario.targetHouseholdId}`);
+    await expect(page.locator('#membersList')).toContainText(`Added Existing${scenario.stamp}`);
 
-    await expect(page.locator('#memberError')).toContainText('Bad member payload');
+    const membersAfterRes = await apiGet(request, `/api/households/${scenario.targetHouseholdId}/members`);
+    expect(membersAfterRes.ok()).toBeTruthy();
+    const membersAfterPayload = await membersAfterRes.json();
+    expect(membersAfterPayload.count).toBe(beforeCount + 1);
   });
 
 
@@ -547,6 +531,17 @@ test.describe('household page functions', () => {
     expect(href).toContain(`householdId=${scenario.targetHouseholdId}`);
   });
 
+  test('clicking add member button navigates to edit-member page', async ({ page, request }) => {
+    const scenario = await seedWorkflowScenario(request);
+    await loginAsEmail(page, scenario.deaconEmail);
+
+    await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+
+    await page.locator('#addMemberBtn').click();
+    await page.waitForURL(`**/edit-member.html?householdId=${scenario.targetHouseholdId}`);
+    expect(page.url()).toContain(`edit-member.html?householdId=${scenario.targetHouseholdId}`);
+  });
+
   test('assign deacon button links to assign-deacons.html with correct householdId', async ({ page, request }) => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
@@ -559,6 +554,23 @@ test.describe('household page functions', () => {
     const href = await assignDeaconBtn.getAttribute('href');
     expect(href).toContain('assign-deacons.html');
     expect(href).toContain(`householdId=${scenario.targetHouseholdId}`);
+  });
+
+  test('clicking edit household and assign deacons buttons navigates to their pages', async ({ page, request }) => {
+    const scenario = await seedWorkflowScenario(request);
+    await loginAsEmail(page, scenario.deaconEmail);
+
+    await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+
+    await page.locator('#editHouseholdBtn').click();
+    await page.waitForURL(`**/edit-household.html?householdId=${scenario.targetHouseholdId}`);
+    expect(page.url()).toContain(`edit-household.html?householdId=${scenario.targetHouseholdId}`);
+
+    await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+
+    await page.locator('#assignDeaconBtn').click();
+    await page.waitForURL(`**/assign-deacons.html?householdId=${scenario.targetHouseholdId}`);
+    expect(page.url()).toContain(`assign-deacons.html?householdId=${scenario.targetHouseholdId}`);
   });
 
   test('edit household button links to edit-household.html with correct householdId', async ({ page, request }) => {
@@ -598,6 +610,58 @@ test.describe('household page functions', () => {
     const href = await recordContactLink.getAttribute('href');
     expect(href).toContain('record-contact.html');
     expect(href).toContain(`householdId=${scenario.targetHouseholdId}`);
+  });
+
+  test('clicking contact edit action navigates to record-contact edit page', async ({ page, request }) => {
+    const scenario = await seedWorkflowScenario(request);
+    await loginAsEmail(page, scenario.deaconEmail);
+
+    const contactData = {
+      householdId: scenario.targetHouseholdId,
+      summary: `Click edit contact ${scenario.stamp}`,
+      whom: [scenario.targetMemberId],
+      how: 'phone',
+      when: new Date().toISOString(),
+    };
+    await apiPost(request, `/api/contacts`, contactData);
+
+    await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+
+    const editContactBtn = page.locator('.contact-edit-btn').first();
+    await editContactBtn.click();
+
+    await page.waitForURL(/record-contact\.html\?/);
+    await expect(page).toHaveURL(/record-contact\.html\?/);
+    await expect(page).toHaveURL(new RegExp(`householdId=${scenario.targetHouseholdId}`));
+    await expect(page).toHaveURL(/contactId=/);
+    await expect(page).toHaveURL(/returnTo=/);
+  });
+
+  test('edit member modal closes via close icon and cancel button', async ({ page, request }) => {
+    const scenario = await seedWorkflowScenario(request);
+    await loginAsEmail(page, scenario.deaconEmail);
+
+    await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+
+    await page.evaluate(() => {
+      const modal = document.getElementById('editMemberModal');
+      const modalContent = modal.querySelector('.modal-content');
+      modal.style.display = 'block';
+      modalContent.style.display = 'block';
+    });
+
+    await page.locator('#editMemberModal .close').click();
+    await expect(page.locator('#editMemberModal')).toHaveCSS('display', 'none');
+
+    await page.evaluate(() => {
+      const modal = document.getElementById('editMemberModal');
+      const modalContent = modal.querySelector('.modal-content');
+      modal.style.display = 'block';
+      modalContent.style.display = 'block';
+    });
+
+    await page.locator('#editMemberModal button[type="button"]').click();
+    await expect(page.locator('#editMemberModal')).toHaveCSS('display', 'none');
   });
 
 });

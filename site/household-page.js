@@ -453,6 +453,8 @@ function closeEditModal() {
     }
 }
 
+window.closeEditModal = closeEditModal;
+
 // Close modal when clicking outside
 window.onclick = function(event) {
     const modal = document.getElementById('editMemberModal');
