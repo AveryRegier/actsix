@@ -7,7 +7,9 @@ test.describe('feature1 member tags and deceased filtering', () => {
     await loginAsEmail(page, scenario.deaconEmail);
 
     await page.goto('/members.html');
+    await expect(page.locator('#memberTableBody')).toBeVisible();
 
+    await expect.poll(async () => page.locator('#memberTableBody tr').count()).toBeGreaterThan(1);
     const initialRowCount = await page.locator('#memberTableBody tr').count();
     expect(initialRowCount).toBeGreaterThan(1);
 

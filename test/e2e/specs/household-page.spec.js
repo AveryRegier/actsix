@@ -242,14 +242,20 @@ test.describe('household page functions', () => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
+    await expect.poll(async () => {
+      const membersBeforeRes = await apiGet(request, `/api/households/${scenario.targetHouseholdId}/members`);
+      if (!membersBeforeRes.ok()) return 0;
+      const membersBeforePayload = await membersBeforeRes.json();
+      return membersBeforePayload.count;
+    }).toBeGreaterThan(0);
     const membersBeforeRes = await apiGet(request, `/api/households/${scenario.targetHouseholdId}/members`);
     expect(membersBeforeRes.ok()).toBeTruthy();
     const membersBeforePayload = await membersBeforeRes.json();
     const beforeCount = membersBeforePayload.count;
 
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
-    const cardsBefore = await page.locator('.member-card').count();
-    expect(cardsBefore).toBeGreaterThan(0);
+    await expect(page.locator('#householdContent')).toBeVisible();
+    await expect.poll(async () => page.locator('.member-card').count()).toBeGreaterThan(0);
 
     await page.locator('#addMemberBtn').click();
     await page.waitForURL(`**/edit-member.html?householdId=${scenario.targetHouseholdId}`);
@@ -374,16 +380,18 @@ test.describe('household page functions', () => {
 
     // Navigate to household page
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
-    await expect(page.locator('.member-card')).toContainText('Target');
+    const targetMemberCard = page.locator(`[data-member-id="${scenario.targetMemberId}"]`);
+    await expect(targetMemberCard).toBeVisible();
 
-    // Click the edit button on the member card
-    const memberEditBtn = page.locator('.member-card').locator('a[href*="edit-member.html"]');
+    // Click the edit button on the exact target member card
+    const memberEditBtn = targetMemberCard.locator(`a[href*="memberId=${scenario.targetMemberId}"]`);
     await memberEditBtn.click();
 
     // Verify navigation to edit-member page with correct parameters
     await page.waitForURL(new RegExp(`edit-member\\.html\\?householdId=${scenario.targetHouseholdId}&memberId=${scenario.targetMemberId}`));
 
     // Fill in new values
+    await expect(page.locator('#firstName')).toHaveValue(new RegExp(`Target`));
     await page.locator('#firstName').fill('Updated');
     await page.locator('#lastName').fill('Member');
     await page.locator('#phone').fill('515-555-9999');
@@ -426,9 +434,11 @@ test.describe('household page functions', () => {
 
     // Navigate to household page
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+    const targetMemberCard = page.locator(`[data-member-id="${scenario.targetMemberId}"]`);
+    await expect(targetMemberCard).toBeVisible();
 
-    // Click the edit button on the member card
-    const memberEditBtn = page.locator('.member-card').locator('a[href*="edit-member.html"]');
+    // Click the edit button on the exact target member card
+    const memberEditBtn = targetMemberCard.locator(`a[href*="memberId=${scenario.targetMemberId}"]`);
     await memberEditBtn.click();
 
     // Verify navigation to edit-member page
@@ -648,9 +658,11 @@ test.describe('household page functions', () => {
     // Navigate to household page first
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
     await expect(page.locator('#householdTitle')).toBeVisible();
+    const targetMemberCard = page.locator(`[data-member-id="${scenario.targetMemberId}"]`);
+    await expect(targetMemberCard).toBeVisible();
 
-    // Click the edit button on the member card
-    const memberEditBtn = page.locator('.member-card').locator('a[href*="edit-member.html"]');
+    // Click the edit button on the exact target member card
+    const memberEditBtn = targetMemberCard.locator(`a[href*="memberId=${scenario.targetMemberId}"]`);
     await memberEditBtn.click();
 
     // Verify we're on the edit-member page
