@@ -1,11 +1,19 @@
 import { serve } from '@hono/node-server'
+import { takeCoverage } from 'node:v8'
 import { createApp } from './api.js'
 import { getLogger } from './util/logger.js';
 
 const app = createApp()
 
+
 const port = process.env.PORT || 3001
 getLogger().info(`Server is running on port ${port}`)
+
+// Periodically flush V8 coverage so it is written to disk even when Playwright
+// force-kills the server process on Windows (TerminateProcess bypasses exit hooks).
+if (process.env.NODE_V8_COVERAGE) {
+  setInterval(takeCoverage, 5_000).unref();
+}
 
 // Create server instance
 const server = serve({
