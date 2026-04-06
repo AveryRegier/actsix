@@ -120,7 +120,7 @@ Resources:
         S3Bucket: !Ref S3BucketName
         S3Key: site-lambda.zip
         S3ObjectVersion: !Ref S3ObjectVersion
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
       Timeout: 30
       MemorySize: 512
       Environment:
@@ -225,7 +225,7 @@ Resources:
   #     Code:
   #       S3Bucket: !Ref S3BucketName
   #       S3Key: site-lambda.zip
-  #     Runtime: nodejs22.x
+  #     Runtime: nodejs24.x
   #     Timeout: 30
 
   # CognitoPostConfirmationTrigger:
@@ -237,7 +237,7 @@ Resources:
   #     Code:
   #       S3Bucket: !Ref S3BucketName
   #       S3Key: site-lambda.zip
-  #     Runtime: nodejs22.x
+  #     Runtime: nodejs24.x
   #     Timeout: 30
 
   # CognitoUserInitializationLambda:
@@ -249,7 +249,7 @@ Resources:
   #     Code:
   #       S3Bucket: !Ref S3BucketName
   #       S3Key: site-lambda.zip
-  #     Runtime: nodejs22.x
+  #     Runtime: nodejs24.x
   #     Timeout: 30
   #     Environment:
   #       Variables:

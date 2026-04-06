@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 const moment = require('moment');
 const chrono = require('chrono-node');
 
@@ -17,12 +17,6 @@ if (inputArg) {
 
 // Load the Excel file (exit if not readable)
 let workbook;
-try {
-    workbook = xlsx.readFile(filePath);
-} catch (err) {
-    console.error(`Failed to read Excel file at ${filePath}:`, err.message);
-    process.exit(1);
-}
 
 // File creation/modification time to use as fallback for dates when row lacks Last Contact
 let fileCreatedMoment = null;
@@ -34,9 +28,50 @@ try {
     fileCreatedMoment = moment();
 }
 
-// Extract relevant sheets
-const householdsMembersSheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-const deaconsSheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[1]]);
+// Extract relevant sheets (initialized in main)
+let householdsMembersSheet = [];
+let deaconsSheet = [];
+
+function worksheetToJson(worksheet) {
+    if (!worksheet) return [];
+    const rows = [];
+    worksheet.eachRow({ includeEmpty: false }, (row) => {
+        rows.push(row.values.slice(1));
+    });
+    if (rows.length === 0) return [];
+
+    const headers = rows[0].map((header, index) => {
+        const value = header === undefined || header === null ? '' : String(header);
+        return value || (index === 0 ? '__EMPTY' : `__EMPTY_${index}`);
+    });
+
+    return rows.slice(1).map((row) => {
+        const obj = {};
+        headers.forEach((header, index) => {
+            const cellValue = row[index];
+            if (cellValue !== undefined && cellValue !== null && cellValue !== '') {
+                obj[header] = cellValue;
+            }
+        });
+        return obj;
+    });
+}
+
+async function loadWorkbookData() {
+    const wb = new ExcelJS.Workbook();
+    try {
+        await wb.xlsx.readFile(filePath);
+    } catch (err) {
+        console.error(`Failed to read Excel file at ${filePath}:`, err.message);
+        process.exit(1);
+    }
+
+    workbook = wb;
+    const firstSheet = workbook.worksheets[0];
+    const secondSheet = workbook.worksheets[1];
+    householdsMembersSheet = worksheetToJson(firstSheet);
+    deaconsSheet = worksheetToJson(secondSheet);
+}
 
 // API base URL
 const apiBaseUrl = 'http://localhost:3001/api';
@@ -757,6 +792,7 @@ async function processNotesForContacts(row, householdId, memberId, deaconRespons
 
 async function main() {
     try {
+        await loadWorkbookData();
         // await createDeacons();
         await createHouseholdsAndMembers();
         console.log('Data generation completed successfully.');

@@ -25,7 +25,7 @@ This keeps the system small, simple, and cheap to operate.
 
 Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 24+ and npm
 - (Optional) AWS CLI / PowerShell for deployment steps
 
 Install and run locally
