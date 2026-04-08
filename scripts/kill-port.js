@@ -2,8 +2,27 @@
 
 import { execSync } from 'child_process'
 
+function portFromBaseUrl(value) {
+  if (!value) {
+    return null
+  }
+
+  try {
+    const parsed = new URL(value)
+    return parsed.port || null
+  } catch {
+    return null
+  }
+}
+
 const appPort = process.env.PORT || 3001
-const ports = [...new Set([String(appPort), '3101'])]
+const e2ePort = process.env.E2E_PORT || 3101
+const e2eBaseUrlPort = portFromBaseUrl(process.env.E2E_BASE_URL)
+const ports = [...new Set([
+  String(appPort),
+  String(e2ePort),
+  e2eBaseUrlPort,
+].filter(Boolean))]
 
 ports.forEach(port => {
   try {
