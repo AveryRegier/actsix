@@ -47,3 +47,26 @@ Read from Muninn before proceeding when uncertainty, risk, or ambiguity is prese
 ## Scope Guidance
 
 Capture anything that is likely to help future agents, including defects, open issues, deferred work, and constraints that shape implementation choices.
+
+---
+
+## Help Documentation System
+
+The app has a user-facing help system at `/help.html?page=<key>`. It is driven by composable
+behavior markdown files in `site/help/behaviors/` and a role-access config at `site/help/help-config.json`.
+
+**To maintain help content** — use the `help-docs` skill (`.github/skills/help-docs/SKILL.md`):
+- Adding/updating behavior `.md` files
+- Updating `help-config.json` role mappings
+- Verifying accuracy against `site/*-page.js` and `src/api/` source
+
+**To regenerate screenshots** — use the `help-image-capture` skill (`.github/skills/help-image-capture/SKILL.md`):
+- Run `npm run help:screenshots` to capture/re-capture all images
+- All images use demo personas (no real member data)
+- Screenshot specs live in `test/e2e/screenshots/`
+
+**Key rules:**
+- Never show a behavior to a role that cannot perform it — `help-config.json` roles arrays are authoritative
+- Verify role constraints in `src/api/` `verifyRole()` calls before writing or editing behavior files
+- Staff cannot assign deacons (`assign-deacons-form.md` is `deacon` + `helper` only)
+- Helper cannot view contact history (`view-contact-history.md` is `deacon` + `staff` only)
