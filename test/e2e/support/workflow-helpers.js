@@ -346,6 +346,68 @@ export async function seedCommonLocationCrudScenario(request) {
   };
 }
 
+export async function seedStaffScenario(request) {
+  const stamp = Date.now();
+
+  const householdRes = await apiPost(request, '/api/households', {
+    lastName: `HelpStaffHH-${stamp}`,
+  });
+  expect(householdRes.ok()).toBeTruthy();
+  const household = await householdRes.json();
+
+  const staffEmail = `help-staff-${stamp}@example.test`;
+  const memberRes = await apiPost(request, '/api/members', {
+    householdId: household.id,
+    firstName: 'Help',
+    lastName: `Staff${stamp}`,
+    relationship: 'head',
+    gender: 'female',
+    email: staffEmail,
+    phone: '515-555-0500',
+    tags: ['staff'],
+  });
+  expect(memberRes.ok()).toBeTruthy();
+  const member = await memberRes.json();
+
+  return {
+    stamp,
+    staffEmail,
+    staffMemberId: member.id,
+    householdId: household.id,
+  };
+}
+
+export async function seedHelperScenario(request) {
+  const stamp = Date.now();
+
+  const householdRes = await apiPost(request, '/api/households', {
+    lastName: `HelpHelperHH-${stamp}`,
+  });
+  expect(householdRes.ok()).toBeTruthy();
+  const household = await householdRes.json();
+
+  const helperEmail = `help-helper-${stamp}@example.test`;
+  const memberRes = await apiPost(request, '/api/members', {
+    householdId: household.id,
+    firstName: 'Help',
+    lastName: `Helper${stamp}`,
+    relationship: 'head',
+    gender: 'female',
+    email: helperEmail,
+    phone: '515-555-0501',
+    tags: ['helper'],
+  });
+  expect(memberRes.ok()).toBeTruthy();
+  const member = await memberRes.json();
+
+  return {
+    stamp,
+    helperEmail,
+    helperMemberId: member.id,
+    householdId: household.id,
+  };
+}
+
 export async function loginAsEmail(page, email) {
   resetMailbox();
 

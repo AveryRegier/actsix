@@ -23,8 +23,9 @@ async function getCurrentRole() {
     });
     if (!resp.ok) return null;
 
-    const member = await resp.json();
-    const tags = Array.isArray(member.tags) ? member.tags : [];
+    const payload = await resp.json();
+    const member = payload && payload.member ? payload.member : payload;
+    const tags = Array.isArray(member && member.tags) ? member.tags : [];
     if (tags.includes('deacon')) return 'deacon';
     if (tags.includes('staff')) return 'staff';
     if (tags.includes('helper')) return 'helper';

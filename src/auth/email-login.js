@@ -56,7 +56,7 @@ export default function registerEmailLoginRoutes(app) {
             }
 
 
-            if(c.req.path === '/signout' || c.req.path === '/site-nav.html' || c.req.path.startsWith("/email") || c.req.path.startsWith("/form") || c.req.path.endsWith(".js") || c.req.path.endsWith(".css") || c.req.path.endsWith(".png") || c.req.path.endsWith(".jpg") || c.req.path.endsWith(".jpeg") || c.req.path.endsWith(".gif") || c.req.path.endsWith(".ico") ) {
+            if(c.req.path === '/signout' || c.req.path === '/site-nav.html' || c.req.path.startsWith('/help') || c.req.path.startsWith("/email") || c.req.path.startsWith("/form") || c.req.path.endsWith(".js") || c.req.path.endsWith(".css") || c.req.path.endsWith(".png") || c.req.path.endsWith(".jpg") || c.req.path.endsWith(".jpeg") || c.req.path.endsWith(".gif") || c.req.path.endsWith(".ico") || c.req.path.endsWith('.md') ) {
                 return await next();
             }
             if(c.req.path.endsWith(".html") || c.req.path === "/" ) {
