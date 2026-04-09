@@ -1,0 +1,43 @@
+{
+  "login": [
+    { "file": "login.md", "roles": ["*"] }
+  ],
+  "index": [
+    { "file": "navigate-site.md", "roles": ["*"] }
+  ],
+  "members": [
+    { "file": "view-members-list.md",    "roles": ["deacon", "staff", "helper"] },
+    { "file": "filter-members-by-tag.md","roles": ["deacon", "staff", "helper"] },
+    { "file": "add-member.md",           "roles": ["deacon", "staff", "helper"] }
+  ],
+  "household": [
+    { "file": "view-household.md",       "roles": ["*"] },
+    { "file": "edit-household-form.md",  "roles": ["deacon", "staff", "helper"] },
+    { "file": "add-household-member.md", "roles": ["deacon", "staff", "helper"] },
+    { "file": "assign-deacons-form.md",  "roles": ["deacon", "helper"] },
+    { "file": "view-contact-history.md", "roles": ["deacon", "staff"] },
+    { "file": "record-contact-form.md",  "roles": ["deacon", "staff", "helper"] }
+  ],
+  "record-contact": [
+    { "file": "record-contact-form.md",  "roles": ["deacon", "staff", "helper"] }
+  ],
+  "edit-member": [
+    { "file": "edit-member-info.md",       "roles": ["*"] },
+    { "file": "set-member-tags.md",        "roles": ["deacon", "staff", "helper"] },
+    { "file": "set-temporary-address.md",  "roles": ["*"] }
+  ],
+  "edit-household": [
+    { "file": "edit-household-form.md",  "roles": ["deacon", "staff", "helper"] }
+  ],
+  "assign-deacons": [
+    { "file": "assign-deacons-form.md",  "roles": ["deacon", "helper"] }
+  ],
+  "contact-summary": [
+    { "file": "view-contact-summary.md", "roles": ["deacon", "staff", "helper"] },
+    { "file": "print-contact-summary.md","roles": ["deacon", "staff", "helper"] }
+  ],
+  "deacon-quick-contact": [
+    { "file": "quick-contact-overview.md","roles": ["deacon", "staff", "helper"] },
+    { "file": "record-contact-form.md",   "roles": ["deacon", "staff", "helper"] }
+  ]
+}

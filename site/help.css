@@ -1,0 +1,184 @@
+/* =====================================================
+   Help Viewer Styles — help.css
+   Responsive, mobile-first, print-safe
+   ===================================================== */
+
+/* Layout */
+.help-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+.help-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.help-back-link {
+  color: #667eea;
+  text-decoration: none;
+  font-size: 0.95em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.help-back-link:hover {
+  text-decoration: underline;
+}
+
+.help-title {
+  font-size: 1.4em;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+/* Content area */
+.help-content {
+  line-height: 1.7;
+  color: #2d3748;
+  font-size: 1.0em;
+}
+
+/* Section headings — each behavior file starts with h2 */
+.help-content h2 {
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #667eea;
+  margin: 2em 0 0.6em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.help-content h2:first-child {
+  margin-top: 0;
+}
+
+.help-content h3 {
+  font-size: 1.05em;
+  font-weight: 600;
+  margin: 1.2em 0 0.4em;
+  color: #4a5568;
+}
+
+/* Paragraphs and lists */
+.help-content p {
+  margin: 0.6em 0;
+}
+
+.help-content ol,
+.help-content ul {
+  padding-left: 1.5em;
+  margin: 0.6em 0;
+}
+
+.help-content li {
+  margin: 0.3em 0;
+}
+
+/* Callout/note boxes */
+.help-content blockquote {
+  background: #ebf4ff;
+  border-left: 4px solid #667eea;
+  padding: 10px 14px;
+  margin: 1em 0;
+  border-radius: 0 6px 6px 0;
+  color: #2c5282;
+  font-size: 0.95em;
+}
+
+.help-content blockquote p {
+  margin: 0;
+}
+
+/* Screenshots */
+.help-screenshot {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin: 12px 0 4px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Hide broken/placeholder 1px images gracefully */
+.help-screenshot[width="1"],
+.help-screenshot[width="1px"] {
+  display: none;
+}
+
+/* Strong / bold inline labels */
+.help-content strong {
+  color: #2d3748;
+}
+
+/* Code inline (button labels, field names) */
+.help-content code {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: monospace;
+}
+
+/* State messages */
+.help-loading,
+.help-empty,
+.help-error {
+  text-align: center;
+  padding: 32px 0;
+  color: #718096;
+  font-size: 1em;
+}
+
+.help-error {
+  color: #c53030;
+}
+
+/* =====================================================
+   Responsive
+   ===================================================== */
+@media (max-width: 600px) {
+  .help-container {
+    padding: 16px 14px 40px;
+  }
+
+  .help-title {
+    font-size: 1.2em;
+  }
+
+  .help-content h2 {
+    font-size: 1.1em;
+  }
+}
+
+/* =====================================================
+   Print styles
+   ===================================================== */
+@media print {
+  .help-back-link,
+  .site-nav {
+    display: none !important;
+  }
+
+  .help-container {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .help-content h2 {
+    page-break-after: avoid;
+  }
+
+  .help-screenshot {
+    max-width: 80%;
+    box-shadow: none;
+  }
+}

@@ -131,6 +131,22 @@ window.addNavLink = function(html) {
     mobileExtra.insertAdjacentHTML('beforeend', html);
   }
 }
-// Example usage:
-// import { addNavLink } from './site-nav.js';
-// addNavLink('<a href="custom.html" class="nav-link">Custom</a>');
+
+// Set all help links to point to the correct page-specific help URL
+function setHelpLink() {
+  let pathname = window.location.pathname;
+  let pageName = pathname.split('/').pop();
+  if (!pageName || pageName === '') {
+    pageName = 'index';
+  } else {
+    pageName = pageName.replace(/\.html$/, '');
+    if (!pageName) pageName = 'index';
+  }
+  const helpUrl = `/help.html?page=${encodeURIComponent(pageName)}`;
+  document.querySelectorAll('.help-link').forEach(function(el) {
+    el.href = helpUrl;
+  });
+}
+
+// Run immediately — nav HTML is already in the DOM when this script is loaded
+setHelpLink();

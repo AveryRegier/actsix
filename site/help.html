@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help — Deacon Care System</title>
+  <link rel="stylesheet" href="site.css">
+  <link rel="stylesheet" href="help.css">
+</head>
+<body>
+  <!-- Reusable navigation bar -->
+  <div id="site-nav-container"></div>
+
+  <div class="help-container">
+    <div class="help-header">
+      <a href="javascript:void(0);" id="helpBackLink" class="help-back-link" onclick="history.back()">← Back</a>
+      <h1 class="help-title">Help</h1>
+    </div>
+
+    <div id="help-content" class="help-content">
+      <p class="help-loading">Loading help content…</p>
+    </div>
+  </div>
+
+  <script src="/marked.min.js"></script>
+  <script type="module" src="help-page.js"></script>
+</body>
+</html>

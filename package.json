@@ -20,6 +20,7 @@
     "e2e:mcp:coverage": "npm run e2e:coverage && npm run e2e:artifacts",
     "e2e:artifacts": "node scripts/e2e-artifacts-manifest.js",
     "e2e:install": "playwright install chromium",
+    "help:screenshots": "playwright test -c test/e2e/playwright.screenshots.config.js",
     "e2e:coverage:clean": "rimraf .coverage/e2e-browser .nyc_output coverage/e2e coverage/e2e-server",
     "e2e:coverage:run": "npm run e2e:coverage:clean && cross-env E2E_PORT=3101 E2E_BASE_URL= NODE_V8_COVERAGE=./.nyc_output playwright test -c test/e2e/playwright.config.js",
     "e2e:coverage:report": "node scripts/e2e-coverage-report.js && node scripts/e2e-server-coverage-report.js",
@@ -88,6 +89,7 @@
     "openid-client": "6.8.1",
     "passport": "0.7.0",
     "qs": "6.15.0",
-    "sengo": "file:../sengo/client/dist"
+    "sengo": "file:../sengo/client/dist",
+    "marked": "^14.0.0"
   }
 }

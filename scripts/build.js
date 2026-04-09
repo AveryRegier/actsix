@@ -53,7 +53,15 @@ async function build() {
     
     console.log('✅ Build complete!')
     console.log(`📁 Build output: ${BUILD_DIR}/`)
-    
+
+    // Copy marked.min.js browser bundle into site/ so help pages can use it
+    console.log('📦 Copying marked.min.js to site/...')
+    await fs.copyFile(
+      join('node_modules', 'marked', 'marked.min.js'),
+      join('site', 'marked.min.js')
+    )
+    console.log('  ✅ Copied marked.min.js')
+
   } catch (error) {
     console.error('❌ Build failed:', error.message)
     process.exit(1)

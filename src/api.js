@@ -36,7 +36,8 @@ const mimeTypes = {
   '.jpeg': 'image/jpeg',
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.md': 'text/markdown; charset=utf-8'
 }
 
 // Static file serving middleware
@@ -99,6 +100,18 @@ export function createApp() {
   registerDeaconRoutes(app)
   registerContactRoutes(app)
   registerCommonLocationRoutes(app)
+
+  // Help subdirectory — serves site/help/** for the help viewer
+  app.get('/help/*', async (c) => {
+    addContext('routeType', 'static');
+    const filePath = c.req.path.slice(1) // strip leading /
+    const allowedExtensions = ['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.json', '.md']
+    const ext = extname(filePath).toLowerCase()
+    if (allowedExtensions.includes(ext)) {
+      return await serveStatic(c, filePath)
+    }
+    return c.text('404 Not Found', 404)
+  })
 
   app.options('/:filename', (c) => {
     addContext('routeType', 'static');
