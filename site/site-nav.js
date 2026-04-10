@@ -11,6 +11,13 @@ function toggleMenu() {
   menu.classList.toggle('open');
 }
 
+function closeMenu() {
+  const menu = document.getElementById('navMobileMenu');
+  if (menu) {
+    menu.classList.remove('open');
+  }
+}
+
 // Hide nav link for current page
 function hideCurrentPageNavLinks() {
   let page = window.location.pathname.split('/').pop();
@@ -113,8 +120,14 @@ document.addEventListener('click', function(e) {
   const backLink = e.target.closest('#siteNavBackLink, #siteNavBackLinkMobile');
   if (backLink) {
     e.preventDefault();
+    closeMenu();
     goBack();
   }
+});
+
+// If the browser restores a page from bfcache/history, ensure mobile menu is closed.
+window.addEventListener('pageshow', function() {
+  closeMenu();
 });
 
 // JS API for page-specific links in navigation
@@ -141,6 +154,9 @@ function setHelpLink() {
   } else {
     pageName = pageName.replace(/\.html$/, '');
     if (!pageName) pageName = 'index';
+  }
+  if (pageName === 'help') {
+    pageName = 'help-index';
   }
   const helpUrl = `/help.html?page=${encodeURIComponent(pageName)}`;
   document.querySelectorAll('.help-link').forEach(function(el) {

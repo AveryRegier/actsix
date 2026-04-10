@@ -10,6 +10,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.body.appendChild(script);
     }
   }
+
+  const backLink = document.getElementById('helpBackLink');
+  if (backLink) {
+    backLink.addEventListener('click', (event) => {
+      event.preventDefault();
+      const menu = document.getElementById('navMobileMenu');
+      if (menu) {
+        menu.classList.remove('open');
+      }
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = '/';
+      }
+    });
+  }
 });
 
 // Determine the user's role token ('deacon', 'staff', 'helper', or null)

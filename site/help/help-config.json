@@ -2,6 +2,9 @@
   "login": [
     { "file": "login.md", "roles": ["*"] }
   ],
+  "help-index": [
+    { "file": "help-index.md", "roles": ["*"] }
+  ],
   "index": [
     { "file": "navigate-site.md", "roles": ["*"] }
   ],

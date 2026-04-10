@@ -42,4 +42,19 @@ test.describe('help links', () => {
     await expect(helpLink).toBeVisible();
     await expect(helpLink).toHaveAttribute('href', /\/help\.html\?page=contact-summary$/);
   });
+
+  test('help page nav help link points to help index', async ({ page, request }) => {
+    const scenario = await seedWorkflowScenario(request);
+    await loginAsEmail(page, scenario.deaconEmail);
+
+    await page.goto('/help.html?page=members');
+
+    const helpLink = page.locator('#siteNavHelpLink');
+    await expect(helpLink).toBeVisible();
+    await expect(helpLink).toHaveAttribute('href', /\/help\.html\?page=help-index$/);
+
+    await helpLink.click();
+    await expect(page).toHaveURL(/\/help\.html\?page=help-index$/);
+    await expect(page.locator('#help-content')).toContainText(/help index/i);
+  });
 });

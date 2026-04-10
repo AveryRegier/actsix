@@ -5,22 +5,27 @@
 
 /* Layout */
 .help-container {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 24px 20px 48px;
+  max-width: 980px;
+  margin: 8px auto 24px;
+  background: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  padding: 12px 20px 28px;
 }
 
 .help-header {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #e2e8f0;
+  margin: -12px -20px 20px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
 }
 
 .help-back-link {
-  color: #667eea;
+  color: #ffffff;
   text-decoration: none;
   font-size: 0.95em;
   white-space: nowrap;
@@ -34,7 +39,7 @@
 .help-title {
   font-size: 1.4em;
   font-weight: 600;
-  color: #2d3748;
+  color: #ffffff;
   margin: 0;
 }
 
@@ -128,6 +133,16 @@
   font-family: monospace;
 }
 
+.help-content a {
+  color: #4c62d8;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.help-content a:hover {
+  text-decoration: underline;
+}
+
 /* State messages */
 .help-loading,
 .help-empty,
@@ -147,7 +162,15 @@
    ===================================================== */
 @media (max-width: 600px) {
   .help-container {
-    padding: 16px 14px 40px;
+    margin: 0;
+    border-radius: 0;
+    padding: 10px 14px 30px;
+    box-shadow: none;
+  }
+
+  .help-header {
+    margin: -10px -14px 14px;
+    padding: 12px 14px;
   }
 
   .help-title {
