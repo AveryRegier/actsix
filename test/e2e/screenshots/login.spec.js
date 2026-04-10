@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   seedDemoData, loginAsEmail, highlightElement, takeHelpScreenshot, DEMO
 } from './capture-helpers.js';
@@ -8,8 +8,12 @@ test.describe('login screenshots', () => {
     await seedDemoData(request);
     await page.goto('/email-login.html');
 
-    await highlightElement(page, page.getByLabel(/email address/i), 'blue');
-    await highlightElement(page, page.getByRole('button', { name: /send validation code/i }), 'orange');
+    const emailField = page.getByLabel(/email address/i);
+    const sendCodeButton = page.getByRole('button', { name: /send validation code/i });
+    await expect(emailField).toBeVisible();
+    await expect(sendCodeButton).toBeVisible();
+    await highlightElement(page, emailField, 'blue');
+    await highlightElement(page, sendCodeButton, 'orange');
     await takeHelpScreenshot(page, 'login-email-form.png');
   });
 
@@ -46,8 +50,12 @@ test.describe('login screenshots', () => {
     await page.getByRole('button', { name: /send validation code/i }).click();
     await page.waitForSelector('#validationForm', { state: 'visible', timeout: 5000 }).catch(() => {});
 
-    await highlightElement(page, page.getByLabel(/validation code/i), 'blue');
-    await highlightElement(page, page.getByRole('button', { name: /validate code/i }), 'orange');
+    const validationCodeField = page.getByLabel(/validation code/i);
+    const validateButton = page.getByRole('button', { name: /validate code/i });
+    await expect(validationCodeField).toBeVisible();
+    await expect(validateButton).toBeVisible();
+    await highlightElement(page, validationCodeField, 'blue');
+    await highlightElement(page, validateButton, 'orange');
     await takeHelpScreenshot(page, 'login-code-form.png');
   });
 });

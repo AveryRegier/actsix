@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   seedDemoData, loginAsEmail, highlightElement, takeHelpScreenshot, DEMO
 } from './capture-helpers.js';
@@ -10,8 +10,12 @@ test.describe('record-contact screenshots', () => {
     await page.goto(`/record-contact.html?householdId=${ids.memberHHId}`);
     await page.waitForLoadState('networkidle');
 
-    await highlightElement(page, page.locator('#contact-type'), 'blue');
-    await highlightElement(page, page.locator('#summary'), 'blue');
+    const contactType = page.locator('#contact-type');
+    const summary = page.locator('#summary');
+    await expect(contactType).toBeVisible();
+    await expect(summary).toBeVisible();
+    await highlightElement(page, contactType, 'blue');
+    await highlightElement(page, summary, 'blue');
     await takeHelpScreenshot(page, 'record-contact-form.png');
   });
 
@@ -22,9 +26,8 @@ test.describe('record-contact screenshots', () => {
     await page.waitForLoadState('networkidle');
 
     const deaconsSection = page.locator('#deaconsSection');
-    if (await deaconsSection.count() > 0) {
-      await highlightElement(page, deaconsSection, 'green');
-    }
+    await expect(deaconsSection).toBeVisible();
+    await highlightElement(page, deaconsSection, 'green');
     await takeHelpScreenshot(page, 'record-contact-contacted-by.png');
   });
 });

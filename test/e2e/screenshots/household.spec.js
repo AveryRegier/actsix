@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   seedDemoData, loginAsEmail, highlightElement, takeHelpScreenshot, DEMO
 } from './capture-helpers.js';
@@ -18,10 +18,9 @@ test.describe('household screenshots', () => {
     await page.goto(`/household.html?id=${ids.memberHHId}`);
     await page.waitForLoadState('networkidle');
 
-    const editBtn = page.locator('#editHouseholdBtn').or(page.getByRole('link', { name: /edit/i }).first());
-    if (await editBtn.count() > 0) {
-      await highlightElement(page, editBtn.first(), 'orange');
-    }
+    const editBtn = page.locator('#editHouseholdBtn').or(page.getByRole('link', { name: /edit household|edit/i }).first());
+    await expect(editBtn.first()).toBeVisible();
+    await highlightElement(page, editBtn.first(), 'orange');
     await takeHelpScreenshot(page, 'household-edit-button.png');
   });
 
@@ -40,9 +39,8 @@ test.describe('household screenshots', () => {
     await page.waitForLoadState('networkidle');
 
     const addBtn = page.locator('#addMemberBtn').or(page.getByRole('link', { name: /add member/i }).first());
-    if (await addBtn.count() > 0) {
-      await highlightElement(page, addBtn.first(), 'orange');
-    }
+    await expect(addBtn.first()).toBeVisible();
+    await highlightElement(page, addBtn.first(), 'orange');
     await takeHelpScreenshot(page, 'household-add-member-button.png');
   });
 
@@ -52,10 +50,9 @@ test.describe('household screenshots', () => {
     await page.goto(`/household.html?id=${ids.memberHHId}`);
     await page.waitForLoadState('networkidle');
 
-    const assignBtn = page.locator('#assignDeaconBtn').or(page.getByRole('link', { name: /assign/i }).first());
-    if (await assignBtn.count() > 0) {
-      await highlightElement(page, assignBtn.first(), 'orange');
-    }
+    const assignBtn = page.locator('#assignDeaconBtn').or(page.getByRole('link', { name: /assign deacon|assign/i }).first());
+    await expect(assignBtn.first()).toBeVisible();
+    await highlightElement(page, assignBtn.first(), 'orange');
     await takeHelpScreenshot(page, 'household-assign-button.png');
   });
 
@@ -75,9 +72,8 @@ test.describe('household screenshots', () => {
 
     const recordBtn = page.getByRole('link', { name: /record contact/i })
       .or(page.getByRole('button', { name: /record contact/i })).first();
-    if (await recordBtn.count() > 0) {
-      await highlightElement(page, recordBtn, 'orange');
-    }
+    await expect(recordBtn).toBeVisible();
+    await highlightElement(page, recordBtn, 'orange');
     await takeHelpScreenshot(page, 'record-contact-button.png');
   });
 });

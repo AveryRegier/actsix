@@ -43,6 +43,30 @@ Never log in as a timestamp-suffixed test user. Never screenshot data seeded by 
 
 ---
 
+## Example Quality Rule (Required)
+
+All help screenshots must model high-quality, realistic examples.
+
+- Do not use repeated placeholder phrasing (for example, avoid repeated summaries like "Visited, doing well.").
+- Use concise, specific, pastoral context in sample notes (what happened, any follow-up, and who is involved).
+- Keep list/table examples readable: prefer 3-6 rows unless the behavior requires more.
+- Ensure displayed names and summaries are unique within the screenshot when uniqueness is expected by the UI.
+- Keep examples role-appropriate and consistent with what the target role can actually do.
+
+If seeded backend data can accumulate across runs and create duplicates, stub the relevant API in the screenshot spec with a deterministic fixture dataset.
+
+```javascript
+await page.route('**/api/reports/summary', async route => {
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ summary: uniqueRows }),
+  });
+});
+```
+
+---
+
 ## Running Screenshot Capture
 
 ```bash
@@ -55,6 +79,53 @@ This:
 3. Navigates to the target page in the desired state
 4. Calls `highlightElement()` on key UI elements
 5. Calls `takeHelpScreenshot()` which saves to `site/help/images/<filename>.png`
+
+---
+
+## Complete-List Workflow (Required)
+
+When asked to "generate/capture images" or "work through the complete list", run this workflow in order.
+
+### 1) Preflight Inventory
+
+Treat `site/help/CAPTURE_GUIDE.md` as the canonical expected list.
+
+```bash
+node -e "const fs=require('fs');const guide=fs.readFileSync('site/help/CAPTURE_GUIDE.md','utf8');const expected=[...new Set([...guide.matchAll(/\|\s*([a-z0-9-]+\.png)\s*\|/g)].map(m=>m[1]))].sort();const assets=fs.readdirSync('site/help/images').filter(f=>f.endsWith('.png')).sort();const missing=expected.filter(x=>!assets.includes(x));const orphan=assets.filter(x=>!expected.includes(x));console.log({expected:expected.length,assets:assets.length,missing,orphan});"
+```
+
+Also verify behavior markdown references:
+
+```bash
+node -e "const fs=require('fs');const path=require('path');const dir='site/help/behaviors';const refs=new Set();for(const f of fs.readdirSync(dir).filter(f=>f.endsWith('.md'))){const text=fs.readFileSync(path.join(dir,f),'utf8');for(const m of text.matchAll(/\.\.\/images\/([a-z0-9-]+\.png)/g)){refs.add(m[1]);}}const guide=fs.readFileSync('site/help/CAPTURE_GUIDE.md','utf8');const expected=[...new Set([...guide.matchAll(/\|\s*([a-z0-9-]+\.png)\s*\|/g)].map(m=>m[1]))];const missingInBeh=expected.filter(x=>!refs.has(x));const extraInBeh=[...refs].filter(x=>!expected.includes(x));console.log({expected:expected.length,refs:refs.size,missingInBeh,extraInBeh});"
+```
+
+### 2) Execute Full Capture
+
+Run the full suite, not single specs, for release-quality help documentation:
+
+```bash
+npm run help:screenshots
+```
+
+### 3) Postflight Validation
+
+Re-run both inventory checks. Do not consider capture complete until:
+- No `missing` images
+- No `orphan` images
+- No `missingInBeh` references
+- No `extraInBeh` references
+
+---
+
+## Mismatch Taxonomy
+
+- `missing`: listed in `CAPTURE_GUIDE.md` but not present in `site/help/images`
+- `orphan`: present in `site/help/images` but not listed in `CAPTURE_GUIDE.md`
+- `missingInBeh`: expected image not referenced by any `site/help/behaviors/*.md`
+- `extraInBeh`: behavior doc references image not in canonical guide
+
+Resolve all four mismatch classes before finishing.
 
 ---
 
@@ -87,6 +158,7 @@ Examples:
    ```
 
 3. Run `npm run help:screenshots`.
+4. Re-run preflight/postflight checks and keep guide/spec/behavior references in sync.
 
 ---
 
@@ -111,7 +183,25 @@ navigation. For static screenshots it persists until the screenshot is taken.
 2. Find the screenshot filename from `![...](../images/<filename>.png)` in the `.md` file.
 3. Check `site/help/CAPTURE_GUIDE.md` for the spec file and element to highlight.
 4. Update the spec if selectors or page flow changed.
+  - Also update fixture/example data if the current screenshot contains repetitive or low-quality examples.
 5. Run `npm run help:screenshots`.
+6. Re-run inventory checks and resolve any guide/behavior/image mismatches.
+
+---
+
+## Selector Robustness Rule (Required)
+
+Any element that is highlighted in a screenshot must be asserted visible first.
+
+```javascript
+const target = page.locator('#someTarget');
+await expect(target).toBeVisible();
+await highlightElement(page, target, 'orange');
+```
+
+Why: silent fallbacks can produce screenshots without the intended highlighted affordance.
+
+If selectors become flaky, fix selectors in the spec to match current page ids/roles and keep the assertion.
 
 ---
 
@@ -143,8 +233,25 @@ await takeHelpScreenshot(page, filename);
 - Verify `GENERATION_API_KEY=test-generation-key` is set (it is in the screenshots config).
 
 **Highlight not visible:**
-- The locator may not match. Use `page.locator(...).count()` to verify it resolves.
+- The locator may not match the current UI. Prefer `await expect(locator).toBeVisible()` before highlighting.
+- If assertion fails, update the selector to the current stable id/role and re-run `npm run help:screenshots`.
+
+**Screenshot shows duplicate rows or repetitive summaries:**
+- Do not accept the screenshot as-is.
+- Replace live/accumulated data with deterministic API stubs in the screenshot spec.
+- Add assertions for row count and uniqueness before `takeHelpScreenshot()`.
 
 **CI: screenshots not committed:**
 - Screenshots are committed as part of the help system (they are static assets).
 - After changing any behavior `.md` file visually, re-run `npm run help:screenshots` and commit the new `.png` files.
+
+---
+
+## Done Criteria
+
+Capture work is complete only when all conditions are met:
+1. `npm run help:screenshots` passes.
+2. `CAPTURE_GUIDE.md` expected list equals `site/help/images/*.png` exactly.
+3. Behavior references are synchronized with the expected list.
+4. Any changed screenshot files are intentionally regenerated and reviewed.
+5. Example quality checks pass: realistic wording, no obvious repetition, and deduplicated rows where appropriate.

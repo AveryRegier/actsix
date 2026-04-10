@@ -108,6 +108,23 @@ async function loadHelpContent() {
 
   contentEl.innerHTML = html;
 
+  // Normalize screenshot paths so behavior markdown can use relative image links.
+  contentEl.querySelectorAll('img').forEach(img => {
+    const raw = (img.getAttribute('src') || '').trim();
+    if (!raw || /^(https?:|data:|\/help\/images\/)/i.test(raw)) return;
+    if (raw.startsWith('../images/')) {
+      img.setAttribute('src', `/help/images/${raw.slice('../images/'.length)}`);
+      return;
+    }
+    if (raw.startsWith('images/')) {
+      img.setAttribute('src', `/help/images/${raw.slice('images/'.length)}`);
+      return;
+    }
+    if (raw.startsWith('/images/')) {
+      img.setAttribute('src', `/help/images/${raw.slice('/images/'.length)}`);
+    }
+  });
+
   // Make images responsive
   contentEl.querySelectorAll('img').forEach(img => {
     img.classList.add('help-screenshot');

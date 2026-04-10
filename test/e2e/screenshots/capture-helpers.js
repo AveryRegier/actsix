@@ -155,14 +155,35 @@ export async function seedDemoData(request) {
     deaconIds: [deacon.id],
   });
 
-  // Record a seeded contact
-  await apiCall(request, 'POST', '/api/contacts', {
-    memberId: [member.id],
-    deaconId: [deacon.id],
-    contactType: 'visit',
-    summary: 'Visited, doing well.',
-    contactDate: new Date().toISOString(),
-  });
+  // Seed realistic, varied examples so help screenshots model useful note quality.
+  const now = new Date();
+  const seededContacts = [
+    {
+      contactType: 'visit',
+      summary: 'In-person visit at Mercy General Hospital, Room 214. Beth shared that physical therapy is helping; prayed together and planned a Friday follow-up call.',
+      contactDate: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      contactType: 'phone',
+      summary: 'Phone check-in with Beth and family. Confirmed transportation for Tuesday oncology appointment and coordinated meal support for this week.',
+      contactDate: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      contactType: 'text',
+      summary: 'Text follow-up: medications were refilled and family requested prayer for restful sleep before next treatment.',
+      contactDate: now.toISOString(),
+    },
+  ];
+
+  for (const contact of seededContacts) {
+    await apiCall(request, 'POST', '/api/contacts', {
+      memberId: [member.id],
+      deaconId: [deacon.id],
+      contactType: contact.contactType,
+      summary: contact.summary,
+      contactDate: contact.contactDate,
+    });
+  }
 
   return {
     deaconId: deacon.id,

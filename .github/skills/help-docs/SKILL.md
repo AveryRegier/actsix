@@ -130,6 +130,14 @@ Roles are determined by `member.tags` in the database. Auth sets `req.role` from
 - **Privacy**: never include real names, real email addresses, or real member data
 - **Role discipline**: never describe an action in a file when that file's `roles` array wouldn't include the reader's role — the config prevents loading, but be consistent in the content too
 
+### Example Quality Standards (Required)
+
+- Use realistic, specific examples that model good ministry documentation habits.
+- Avoid repetitive filler phrases and low-information notes.
+- Keep examples concise but concrete: include context and next step when relevant.
+- If screenshots or examples show repeated rows/names due to test-data accumulation, coordinate with the screenshot skill to use deterministic deduplicated fixture data.
+- Ensure all examples are role-appropriate and do not imply permissions a role does not have.
+
 ---
 
 ## Role Verification Workflow
@@ -154,3 +162,5 @@ The roles array passed to `verifyRole()` is the authoritative list.
 - [ ] Screenshot file referenced in `.md` exists in `site/help/images/`
 - [ ] CAPTURE_GUIDE.md row added if new screenshot
 - [ ] `npm run e2e -- --grep help` passes (or `npm run e2e`)
+- [ ] Examples are realistic and non-repetitive (no placeholder copy repeated across rows/steps)
+- [ ] Screenshots used by docs show deduplicated, readable sample data for the demonstrated behavior

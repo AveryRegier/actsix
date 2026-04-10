@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   seedDemoData, loginAsEmail, highlightElement, takeHelpScreenshot, DEMO
 } from './capture-helpers.js';
@@ -17,7 +17,9 @@ test.describe('index screenshots', () => {
     await loginAsEmail(page, DEMO.deaconEmail);
     await page.goto('/index.html');
     await page.waitForLoadState('networkidle');
-    await highlightElement(page, page.locator('.site-nav'), 'blue');
+    const navBar = page.locator('.site-nav');
+    await expect(navBar).toBeVisible();
+    await highlightElement(page, navBar, 'blue');
     await takeHelpScreenshot(page, 'index-nav-bar.png');
   });
 });

@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   seedDemoData, loginAsEmail, highlightElement, takeHelpScreenshot, DEMO
 } from './capture-helpers.js';
@@ -19,9 +19,8 @@ test.describe('edit-member screenshots', () => {
     await page.waitForLoadState('networkidle');
 
     const tags = page.locator('.tag-badge').first();
-    if (await tags.count() > 0) {
-      await highlightElement(page, tags, 'green');
-    }
+    await expect(tags).toBeVisible();
+    await highlightElement(page, tags, 'green');
     await takeHelpScreenshot(page, 'edit-member-tags.png');
   });
 
@@ -31,10 +30,9 @@ test.describe('edit-member screenshots', () => {
     await page.goto(`/edit-member.html?memberId=${ids.memberId}&householdId=${ids.memberHHId}`);
     await page.waitForLoadState('networkidle');
 
-    const tempLocation = page.locator('#temporaryLocation, #location, input[name*="location"]').first();
-    if (await tempLocation.count() > 0) {
-      await highlightElement(page, tempLocation, 'blue');
-    }
+    const tempLocation = page.locator('#tempLocationDropdown');
+    await expect(tempLocation).toBeVisible();
+    await highlightElement(page, tempLocation, 'blue');
     await takeHelpScreenshot(page, 'edit-member-temp-address.png');
   });
 });
