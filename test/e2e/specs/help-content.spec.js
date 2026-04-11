@@ -13,7 +13,7 @@ test.describe('help content role filtering', () => {
     await expect(page.locator('#help-content h2')).toHaveCount(1);
     await expect(page.locator('#help-content h2').first()).toContainText(/logging in/i);
     await expect(page.locator('#help-content')).toContainText(/validation code/i);
-    await expect(page.locator('#help-content img')).toHaveCount(3);
+    await expect(page.locator('#help-content img')).toHaveCount(2);
   });
 
   test('deacon sees assign-deacons and contact-history behaviors for household help', async ({ page, request }) => {
