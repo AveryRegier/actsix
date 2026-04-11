@@ -5,27 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Members - Deacon Care System</title>
     <link rel="stylesheet" href="site.css">
-    <style>
-        .tag-filter-container {
-            display: inline-block;
-            margin-left: 10px;
-        }
-        .tag-filter {
-            padding: 4px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.9em;
-            cursor: pointer;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
         <!-- Reusable navigation bar -->
         <div id="site-nav-container"></div>
         <div class="header">
-            <h1 style="display:flex;align-items:center;justify-content:center;font-size:1.3em;font-weight:400;gap:0.5em;">
-                <span style="font-size:1.1em;">👥</span>
+            <h1 class="page-title-with-icon">
+                <span class="page-title-icon">👥</span>
                 Members
             </h1>
             <p class="subtitle">View and manage church members. Click a name for details and family management.</p>
@@ -47,7 +34,7 @@
             </thead>
             <tbody id="memberTableBody"></tbody>
         </table>
-        <a href="edit-member.html" class="btn" style="display:inline-block;margin-top:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-size:1em;">Add New Member</a>
+        <a href="edit-member.html" class="btn add-member-btn">Add New Member</a>
     </div>
     <script src="redirect-handler.js"></script>
     <script type="module" src="members-page.js"></script>

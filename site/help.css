@@ -3,11 +3,23 @@
    Responsive, mobile-first, print-safe
    ===================================================== */
 
+:root {
+  --gh-text: #1f4f5a;
+  --gh-text-muted: #426671;
+  --gh-surface: #ffffff;
+  --gh-surface-soft: #eef5f7;
+  --gh-border: #c9d8de;
+  --gh-dark: hsl(192.6, 89.29%, 21.96%);
+  --gh-dark-soft: hsl(180, 43.7%, 26.47%);
+  --gh-accent: hsl(181.88, 13.56%, 53.73%);
+  --gh-link: hsl(192.6, 89.29%, 21.96%);
+}
+
 /* Layout */
 .help-container {
   max-width: 980px;
   margin: 8px auto 24px;
-  background: #ffffff;
+  background: var(--gh-surface);
   border-radius: 15px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -20,7 +32,7 @@
   gap: 16px;
   margin: -12px -20px 20px;
   padding: 14px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--gh-dark) 0%, var(--gh-dark-soft) 100%);
   color: #fff;
 }
 
@@ -46,7 +58,7 @@
 /* Content area */
 .help-content {
   line-height: 1.7;
-  color: #2d3748;
+  color: var(--gh-text);
   font-size: 1.0em;
 }
 
@@ -54,10 +66,10 @@
 .help-content h2 {
   font-size: 1.2em;
   font-weight: 600;
-  color: #667eea;
+  color: var(--gh-dark);
   margin: 2em 0 0.6em;
   padding-bottom: 6px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--gh-border);
 }
 
 .help-content h2:first-child {
@@ -68,7 +80,7 @@
   font-size: 1.05em;
   font-weight: 600;
   margin: 1.2em 0 0.4em;
-  color: #4a5568;
+  color: var(--gh-text-muted);
 }
 
 /* Paragraphs and lists */
@@ -88,12 +100,12 @@
 
 /* Callout/note boxes */
 .help-content blockquote {
-  background: #ebf4ff;
-  border-left: 4px solid #667eea;
+  background: #fdf0ee;
+  border-left: 4px solid var(--gh-accent);
   padding: 10px 14px;
   margin: 1em 0;
   border-radius: 0 6px 6px 0;
-  color: #2c5282;
+  color: var(--gh-text);
   font-size: 0.95em;
 }
 
@@ -106,7 +118,7 @@
   display: block;
   max-width: 100%;
   height: auto;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--gh-border);
   border-radius: 6px;
   margin: 12px 0 4px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
@@ -120,13 +132,13 @@
 
 /* Strong / bold inline labels */
 .help-content strong {
-  color: #2d3748;
+  color: var(--gh-text);
 }
 
 /* Code inline (button labels, field names) */
 .help-content code {
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--gh-surface-soft);
+  border: 1px solid var(--gh-border);
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 0.9em;
@@ -134,7 +146,7 @@
 }
 
 .help-content a {
-  color: #4c62d8;
+  color: var(--gh-link);
   text-decoration: none;
   font-weight: 600;
 }
@@ -149,12 +161,12 @@
 .help-error {
   text-align: center;
   padding: 32px 0;
-  color: #718096;
+  color: var(--gh-text-muted);
   font-size: 1em;
 }
 
 .help-error {
-  color: #c53030;
+  color: var(--gh-accent);
 }
 
 /* =====================================================

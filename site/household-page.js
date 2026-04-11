@@ -126,10 +126,10 @@ async function loadContactHistory() {
         const contactsSection = document.createElement('div');
         contactsSection.className = 'section';
         contactsSection.innerHTML = `
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-                <h2 style="margin-bottom:0;">Contact History</h2>
+            <div class="household-section-header">
+                <h2>Contact History</h2>
                 <a href="record-contact.html?householdId=${currentHouseholdId}" class="section-button" title="Record Contact">
-                    <span style="font-weight:600;font-size:1em;">Record Contact</span>
+                    <span>Record Contact</span>
                 </a>
             </div>
         `;
@@ -142,11 +142,11 @@ async function loadContactHistory() {
             contactsTable.innerHTML = `
                 <thead>
                     <tr>
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">When</th>
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">Who & How</th>
+                        <th>When</th>
+                        <th>Who & How</th>
                     </tr>
                     <tr>
-                        <th colspan="2" style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #667eea; color: white;">Notes</th>
+                        <th colspan="2">Notes</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -157,15 +157,15 @@ async function loadContactHistory() {
                         const editHref = `record-contact.html?householdId=${encodeURIComponent(currentHouseholdId)}&contactId=${encodeURIComponent(contact._id)}&returnTo=${returnTo}`;
                         return `
                             <tr>
-                                <td style="border: 1px solid #ddd; padding: 8px;">${contactDate}</td>
-                                <td style="border: 1px solid #ddd; padding: 8px;">${contactedBy}</td>
+                                <td>${contactDate}</td>
+                                <td>${contactedBy}</td>
                             </tr>
                             <tr>
-                                <td class="contact-notes-cell" colspan="2" style="border: 1px solid #ddd; padding: 8px;">
+                                <td class="contact-notes-cell" colspan="2">
                                     <span class="contact-notes-text">${contact.summary || 'No notes available'}</span>
                                     ${contact && contact._id ? `
                                         <a href="${editHref}" class="icon-btn contact-edit-btn" title="Edit Contact" aria-label="Edit Contact ${contactDate}">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                                            <svg class="section-icon-link" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
                                         </a>
                                     ` : ''}
                                 </td>
@@ -198,7 +198,7 @@ function displayHouseholdInfo(household) {
         const displayAddress = formatAddressForDisplay(household.address);
         addressHtml = `
             <span class="info-label">Address</span>
-            <span class="info-value"><a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" style="color:#667eea;text-decoration:none;">${displayAddress}</a></span>
+            <span class="info-value household-links"><a href="${mapsUrl}" target="_blank" rel="noopener noreferrer">${displayAddress}</a></span>
         `;
     }
     
@@ -208,11 +208,11 @@ function displayHouseholdInfo(household) {
             ${addressHtml}
             ${household.primaryPhone ? `
                 <span class="info-label">Primary Phone</span>
-                <span class="info-value"><a href="tel:${encodeURIComponent(household.primaryPhone)}" style="color:#667eea;text-decoration:none;">${household.primaryPhone}</a></span>
+                <span class="info-value household-links"><a href="tel:${encodeURIComponent(household.primaryPhone)}">${household.primaryPhone}</a></span>
             ` : ''}
             ${household.email ? `
                 <span class="info-label">Email</span>
-                <span class="info-value"><a href="mailto:${household.email}" style="color:#667eea;text-decoration:none;">${household.email}</a></span>
+                <span class="info-value household-links"><a href="mailto:${household.email}">${household.email}</a></span>
             ` : ''}
         </div>
         ${household.notes ? `
@@ -243,7 +243,7 @@ function displayAssignedDeacons(assignments) {
                 .map(tag => `<span class="status-badge">${tag}</span>`)
                 .join(' ');
             if (a.deacon.householdId) {
-                return `<li><a href="household.html?id=${encodeURIComponent(a.deacon.householdId)}" style="color:#667eea;text-decoration:none;">${displayName}</a> ${tagHtml}</li>`;
+                return `<li class="household-links"><a href="household.html?id=${encodeURIComponent(a.deacon.householdId)}">${displayName}</a> ${tagHtml}</li>`;
             }
             return `<li>${displayName} ${tagHtml}</li>`;
         } else {
@@ -278,16 +278,16 @@ function displayMembers(members) {
                         const tempLocationElement = document.querySelector(`[data-member-id="${member._id}"] .temp-location-info`);
                         if (tempLocationElement) {
                             tempLocationElement.innerHTML = `
-                                <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px; margin-top: 10px;">
-                                    <strong style="color: #856404;">Temporary Location:</strong>
-                                    <div style="margin-top: 5px;">
-                                        <span style="color: #333;">${location.name}${member.temporaryAddress.roomNumber ? ' • Room/Unit: ' + member.temporaryAddress.roomNumber : ''}</span>
+                                <div class="temp-location-card">
+                                    <strong class="temp-location-label">Temporary Location:</strong>
+                                    <div class="temp-location-row">
+                                        <span class="temp-location-name">${location.name}${member.temporaryAddress.roomNumber ? ' • Room/Unit: ' + member.temporaryAddress.roomNumber : ''}</span>
                                     </div>
-                                    <div style="margin-top: 3px; font-size: 0.9em;">
-                                        <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">${displayAddress}</a>
+                                    <div class="temp-location-address household-links">
+                                        <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer">${displayAddress}</a>
                                     </div>
-                                    ${member.temporaryAddress.startDate ? `<div style="margin-top: 3px; font-size: 0.85em; color: #666;">Since: ${new Date(member.temporaryAddress.startDate).toLocaleDateString()}</div>` : ''}
-                                    ${member.temporaryAddress.notes ? `<div style="margin-top: 5px; font-size: 0.9em; font-style: italic; color: #555;">${member.temporaryAddress.notes}</div>` : ''}
+                                    ${member.temporaryAddress.startDate ? `<div class="temp-location-since">Since: ${new Date(member.temporaryAddress.startDate).toLocaleDateString()}</div>` : ''}
+                                    ${member.temporaryAddress.notes ? `<div class="temp-location-notes">${member.temporaryAddress.notes}</div>` : ''}
                                 </div>
                             `;
                         }
@@ -300,17 +300,17 @@ function displayMembers(members) {
         
         return `
         <div class="member-card" data-member-id="${member._id}">
-            <div class="member-header" style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="member-header household-section-header">
                 <div class="member-name">${member.firstName} ${member.lastName}</div>
-                <div style="display:flex;align-items:center;gap:6px;">
+                <div class="member-header-actions">
                     ${member.tags && member.tags.length > 0 ? member.tags.map(tag => `<span class="status-badge status-active">${tag}</span>`).join(' ') : ''}
                     ${currentUserIsDeacon && member.tags && (member.tags.includes('deacon') || member.tags.includes('helper') || member.tags.includes('staff')) ? `
                         <a href="/deacon-quick-contact.html?deaconMemberId=${member._id}" class="icon-btn" title="Quick contact for ${member.firstName} ${member.lastName}" aria-label="Quick contact for ${member.firstName} ${member.lastName}">
-                            <span style="font-size:1.1em;color:#22c55e;line-height:1;">📞</span>
+                            <span class="quick-contact-icon">📞</span>
                         </a>
                     ` : ''}
-                    <a href="edit-member.html?householdId=${member.householdId}&memberId=${member._id}" class="icon-btn" title="Edit Member">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                    <a href="edit-member.html?householdId=${member.householdId}&memberId=${member._id}" class="icon-btn section-icon-link" title="Edit Member">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
                     </a>
                 </div>
             </div>
@@ -328,11 +328,11 @@ function displayMembers(members) {
                 ` : ''}
                 ${member.phone ? `
                     <span class="info-label">Phone</span>
-                    <span class="info-value"><a href="tel:${encodeURIComponent(member.phone)}" style="color:#667eea;text-decoration:none;">${member.phone}</a></span>
+                    <span class="info-value household-links"><a href="tel:${encodeURIComponent(member.phone)}">${member.phone}</a></span>
                 ` : ''}
                 ${member.email ? `
                     <span class="info-label">Email</span>
-                    <span class="info-value"><a href="mailto:${member.email}" style="color:#667eea;text-decoration:none;">${member.email}</a></span>
+                    <span class="info-value household-links"><a href="mailto:${member.email}">${member.email}</a></span>
                 ` : ''}
             </div>
             ${member.notes ? `
