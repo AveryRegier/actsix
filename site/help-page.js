@@ -61,6 +61,69 @@ function getBehaviorsForRole(config, pageKey, role) {
   });
 }
 
+function shouldUseMobileHelpImages() {
+  const mobileViewport = window.matchMedia('(max-width: 900px)').matches;
+  const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  return mobileViewport || coarsePointer;
+}
+
+function withMobileVariant(src) {
+  if (!/\.png(\?.*)?$/i.test(src)) return src;
+  if (/\.mobile\.png(\?.*)?$/i.test(src)) return src;
+  return src.replace(/\.png(\?.*)?$/i, '.mobile.png$1');
+}
+
+function applyHelpImageVariant(contentEl) {
+  const useMobile = shouldUseMobileHelpImages();
+
+  contentEl.querySelectorAll('img.help-screenshot').forEach(img => {
+    const baseSrc = img.dataset.helpImageBase || img.getAttribute('src') || '';
+    if (!baseSrc) return;
+
+    img.dataset.helpImageBase = baseSrc;
+
+    const preferredSrc = useMobile ? withMobileVariant(baseSrc) : baseSrc;
+    const fallbackSrc = useMobile ? baseSrc : withMobileVariant(baseSrc);
+
+    img.dataset.helpPreferredSrc = preferredSrc;
+    img.dataset.helpFallbackSrc = fallbackSrc;
+
+    if (!img.dataset.helpFallbackBound) {
+      img.addEventListener('error', () => {
+        const currentSrc = img.getAttribute('src') || '';
+        const preferred = img.dataset.helpPreferredSrc || '';
+        const fallback = img.dataset.helpFallbackSrc || '';
+        const base = img.dataset.helpImageBase || '';
+
+        if (currentSrc === preferred && fallback && fallback !== preferred) {
+          img.setAttribute('src', fallback);
+          return;
+        }
+
+        if (currentSrc === fallback && base && base !== fallback) {
+          img.setAttribute('src', base);
+        }
+      });
+      img.dataset.helpFallbackBound = '1';
+    }
+
+    if (img.getAttribute('src') !== preferredSrc) {
+      img.setAttribute('src', preferredSrc);
+    }
+  });
+}
+
+let helpImageResizeTimer = null;
+
+function bindHelpImageVariantUpdates(contentEl) {
+  window.addEventListener('resize', () => {
+    if (helpImageResizeTimer) {
+      clearTimeout(helpImageResizeTimer);
+    }
+    helpImageResizeTimer = setTimeout(() => applyHelpImageVariant(contentEl), 150);
+  });
+}
+
 async function loadHelpContent() {
   const contentEl = document.getElementById('help-content');
 
@@ -130,6 +193,9 @@ async function loadHelpContent() {
     img.classList.add('help-screenshot');
     if (!img.alt) img.alt = 'Screenshot';
   });
+
+  applyHelpImageVariant(contentEl);
+  bindHelpImageVariantUpdates(contentEl);
 }
 
 loadHelpContent();

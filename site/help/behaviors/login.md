@@ -28,8 +28,6 @@ Check your inbox for an email from the Deacon Care System. It looks like this:
 
 The code is a **6-digit number**. Copy or note it down.
 
-![Example validation code email](../images/login-code-email.png)
-
 ### Step 3 — Enter the code
 
 1. Return to the login page (it now shows the **Validation code** field).

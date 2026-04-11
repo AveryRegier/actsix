@@ -59,6 +59,20 @@ function buildUniqueSummaryRows() {
   ];
 }
 
+async function setWideSummaryDesktopViewport(page) {
+  const viewport = page.viewportSize();
+  if (viewport && viewport.width > 700) {
+    await page.setViewportSize({ width: 1366, height: 768 });
+  }
+}
+
+async function setDesktopOnlyAssignViewport(page) {
+  const viewport = page.viewportSize();
+  if (viewport && viewport.width > 700) {
+    await page.setViewportSize({ width: 1000, height: 420 });
+  }
+}
+
 test.describe('contact-summary and quick-contact screenshots', () => {
   test('capture contact summary table', async ({ page, request }) => {
     await seedDemoData(request);
@@ -73,6 +87,7 @@ test.describe('contact-summary and quick-contact screenshots', () => {
       });
     });
 
+    await setWideSummaryDesktopViewport(page);
     await page.goto('/contact-summary.html');
     await page.waitForLoadState('networkidle');
     await takeHelpScreenshot(page, 'contact-summary-table.png');
@@ -91,6 +106,7 @@ test.describe('contact-summary and quick-contact screenshots', () => {
       });
     });
 
+    await setWideSummaryDesktopViewport(page);
     await page.goto('/contact-summary.html');
     await page.waitForLoadState('networkidle');
     const assignmentFilter = page.locator('#assignmentFilter');
@@ -136,10 +152,9 @@ test.describe('contact-summary and quick-contact screenshots', () => {
       });
     });
 
+    await setDesktopOnlyAssignViewport(page);
     await page.goto(`/assign-deacons.html?householdId=${ids.memberHHId}`);
     await page.waitForLoadState('networkidle');
-
-    await page.setViewportSize({ width: 1000, height: 360 });
 
     const deaconList = page.locator('#deaconList');
     await expect(deaconList).toBeVisible();

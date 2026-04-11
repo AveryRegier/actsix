@@ -19,7 +19,7 @@ export default defineConfig({
   use: {
     baseURL,
     headless: true,
-    viewport: { width: 1280, height: 800 },
+    viewport: { width: 1024, height: 640 },
     screenshot: 'off',
   },
   webServer: {
@@ -45,8 +45,18 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'chromium-desktop',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1024, height: 640 },
+      },
+    },
+    {
+      name: 'chromium-mobile',
+      use: {
+        ...devices['iPhone 15 Pro Max'],
+        browserName: 'chromium',
+      },
     },
   ],
 });

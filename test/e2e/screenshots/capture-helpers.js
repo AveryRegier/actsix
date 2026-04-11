@@ -214,7 +214,7 @@ export async function loginAsEmail(page, email) {
   await page.waitForURL(/\/$/, { timeout: 10_000 });
 }
 
-async function waitForCode(email, timeoutMs = 10_000) {
+export async function waitForCode(email, timeoutMs = 10_000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const code = findLatestCodeForEmail(email);
@@ -263,7 +263,12 @@ export async function highlightElement(page, locator, color = 'orange') {
  * Take a help screenshot and save it to site/help/images/<filename>.
  */
 export async function takeHelpScreenshot(page, filename) {
-  const outPath = path.join(imagesDir, filename);
+  const viewport = page.viewportSize();
+  const isMobileViewport = Boolean(viewport && viewport.width <= 600);
+  const outputFilename = isMobileViewport
+    ? filename.replace(/\.png$/i, '.mobile.png')
+    : filename;
+  const outPath = path.join(imagesDir, outputFilename);
   await page.screenshot({ path: outPath, fullPage: false });
-  console.log(`  📸 Saved ${filename}`);
+  console.log(`  📸 Saved ${outputFilename}`);
 }
