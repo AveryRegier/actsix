@@ -18,7 +18,7 @@
     { "file": "edit-household-form.md",  "roles": ["deacon", "staff", "helper"] },
     { "file": "add-household-member.md", "roles": ["deacon", "staff", "helper"] },
     { "file": "assign-deacons-form.md",  "roles": ["deacon", "helper"] },
-    { "file": "view-contact-history.md", "roles": ["deacon", "staff"] },
+    { "file": "view-contact-history.md", "roles": ["deacon", "staff", "helper"] },
     { "file": "record-contact-form.md",  "roles": ["deacon", "staff", "helper"] }
   ],
   "record-contact": [

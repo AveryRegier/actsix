@@ -19,3 +19,14 @@ The contact history table shows:
 ### Recording a New Contact
 
 To add a new contact entry, click the **Record Contact** button in the Contact History section.
+
+### Editing an Existing Contact
+
+Each contact entry includes an **Edit Contact** icon in the top-right of the notes row.
+
+1. Find the contact entry you want to update.
+2. Click the **Edit Contact** icon.
+3. The **Record Contact** form opens in edit mode with the existing details loaded.
+4. Make your changes and submit.
+
+After saving, you return to the household page and see the updated contact history.

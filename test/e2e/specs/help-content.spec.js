@@ -36,14 +36,14 @@ test.describe('help content role filtering', () => {
     await expect(page.locator('#help-content')).toContainText(/viewing contact history/i);
   });
 
-  test('helper does not see contact-history behavior in household help', async ({ page, request }) => {
+  test('helper sees contact-history behavior in household help', async ({ page, request }) => {
     const scenario = await seedHelperScenario(request);
     await loginAsEmail(page, scenario.helperEmail);
 
     await page.goto('/help.html?page=household');
 
     await expect(page.locator('#help-content')).toContainText(/assigning deacons to a household/i);
-    await expect(page.locator('#help-content')).not.toContainText(/viewing contact history/i);
+    await expect(page.locator('#help-content')).toContainText(/viewing contact history/i);
   });
 
   test('members help page is non-empty for deacon role', async ({ page, request }) => {

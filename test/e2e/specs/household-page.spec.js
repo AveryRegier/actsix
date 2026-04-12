@@ -101,8 +101,15 @@ test.describe('household page functions', () => {
     await expect(contactDateCell).toBeVisible();
 
     // Verify edit contact link exists
-    const editContactBtn = page.locator('.contact-edit-btn').first();
+    const editContactBtn = page.locator('.contact-notes-cell .contact-edit-btn').first();
     await expect(editContactBtn).toBeVisible();
+
+    // Regression guard: icon must render with an actual stroke (not none)
+    const editContactIcon = editContactBtn.locator('svg');
+    await expect(editContactIcon).toBeVisible();
+    const iconStroke = await editContactIcon.evaluate((el) => getComputedStyle(el).stroke);
+    expect(iconStroke).not.toBe('none');
+
     const href = await editContactBtn.getAttribute('href');
     expect(href).toContain('record-contact.html');
     expect(href).toContain(`householdId=${scenario.targetHouseholdId}`);
