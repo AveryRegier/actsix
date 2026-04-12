@@ -43,6 +43,7 @@ Do not finish capture work if any output category is non-empty (`missing-desktop
 | household-add-member-button.png | test/e2e/screenshots/household.spec.js | Household page add member CTA | Add member button |
 | household-assign-button.png | test/e2e/screenshots/household.spec.js | Household page assign CTA | Assign button |
 | household-contact-history.png | test/e2e/screenshots/household.spec.js | Household contact history | None |
+| household-edit-contact-button.png | test/e2e/screenshots/household.spec.js | Household contact history edit action | Edit Contact icon |
 | record-contact-button.png | test/e2e/screenshots/household.spec.js | Household page record contact CTA | Record Contact button |
 | record-contact-form.png | test/e2e/screenshots/record-contact.spec.js | Record contact form | Contact type + summary fields |
 | record-contact-contacted-by.png | test/e2e/screenshots/record-contact.spec.js | Record contact contacted-by list | Contacted-by section |

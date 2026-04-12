@@ -61,7 +61,26 @@ test.describe('household screenshots', () => {
     await loginAsEmail(page, DEMO.deaconEmail);
     await page.goto(`/household.html?id=${ids.memberHHId}`);
     await page.waitForLoadState('networkidle');
+
+    const contactHistoryTarget = page.locator('.contacts-table').first();
+    await expect(contactHistoryTarget).toBeVisible();
+    await contactHistoryTarget.scrollIntoViewIfNeeded();
+
     await takeHelpScreenshot(page, 'household-contact-history.png');
+  });
+
+  test('capture edit contact button', async ({ page, request }) => {
+    const ids = await seedDemoData(request);
+    await loginAsEmail(page, DEMO.deaconEmail);
+    await page.goto(`/household.html?id=${ids.memberHHId}`);
+    await page.waitForLoadState('networkidle');
+
+    const editContactBtn = page.locator('.contact-edit-btn').first();
+    await expect(editContactBtn).toBeVisible();
+    await editContactBtn.scrollIntoViewIfNeeded();
+
+    await highlightElement(page, editContactBtn, 'orange');
+    await takeHelpScreenshot(page, 'household-edit-contact-button.png');
   });
 
   test('capture record contact button', async ({ page, request }) => {
