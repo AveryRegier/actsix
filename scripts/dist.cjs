@@ -116,7 +116,7 @@ function prepareDistFolder() {
     // Install production dependencies in dist (now without clox/sengo)
     console.log('Installing production dependencies in dist...');
     const { execSync } = require('child_process');
-    execSync('npm install --omit-dev', { cwd: DIST_FOLDER, stdio: 'inherit' });
+    execSync('npm install --omit=dev', { cwd: DIST_FOLDER, stdio: 'inherit' });
     console.log('Production dependencies installed successfully.');
 
     // Copy real clox and sengo files into dist/node_modules
@@ -128,14 +128,14 @@ function prepareDistFolder() {
     // Install dependencies for clox and sengo in dist/node_modules
     try {
         console.log('Installing clox dependencies...');
-        execSync('npm install --omit-dev', { cwd: cloxTarget, stdio: 'inherit' });
+        execSync('npm install --omit=dev', { cwd: cloxTarget, stdio: 'inherit' });
         console.log('clox dependencies installed.');
     } catch (err) {
         console.log('Error installing clox dependencies:', err);
     }
     try {
         console.log('Installing sengo dependencies with --legacy-peer-deps...');
-        execSync('npm install --legacy-peer-deps --omit-dev', { cwd: sengoTarget, stdio: 'inherit' });
+        execSync('npm install --legacy-peer-deps --omit=dev', { cwd: sengoTarget, stdio: 'inherit' });
         console.log('sengo dependencies installed.');
     } catch (err) {
         console.log('Error installing sengo dependencies:', err);
