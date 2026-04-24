@@ -203,6 +203,87 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  app.get('/api/reports/widows', async (c) => {
+    if (!verifyRole(c, ['deacon', 'staff', 'elder', 'helper'])) {
+      return c.json({ error: 'Unauthorized access' }, 403);
+    }
+    try {
+      const WIDOW_TAGS = ['widow', 'widower', 'shut-in', 'long-term-needs'];
+
+      // Find all non-deceased members with at least one widow-related tag
+      const taggedMembers = await safeCollectionFind('members', {
+        tags: { $in: WIDOW_TAGS }
+      });
+      const activeMembers = taggedMembers.filter(m => !m.tags?.includes('deceased'));
+
+      if (!activeMembers.length) {
+        return c.json({ summary: [] });
+      }
+
+      const householdIds = Array.from(new Set(activeMembers.map(m => m.householdId).filter(Boolean)));
+
+      const [households = [], allHouseholdMembers = [], assignments = [], deacons = []] = await Promise.all([
+        safeCollectionFind('households', { _id: { $in: householdIds } }),
+        safeCollectionFind('members', { householdId: { $in: householdIds } }),
+        safeCollectionFind('assignments', { householdId: { $in: householdIds }, isActive: true }),
+        safeCollectionFind('members', { tags: { $in: ['deacon', 'deaconess', 'staff', 'helper'] } })
+      ]);
+
+      // Get last contact per household
+      const memberIds = allHouseholdMembers.map(m => m._id).filter(Boolean);
+      let contacts = await Promise.all(
+        memberIds.map(memberId =>
+          safeCollectionFindOne('contacts', { memberId: { $in: [memberId] } }, { sort: { contactDate: -1 } })
+        )
+      );
+      contacts = contacts.filter(Boolean);
+      contacts.sort((a, b) => new Date(b.contactDate) - new Date(a.contactDate));
+
+      // Build last contact per household
+      const memberHouseholdMap = new Map();
+      allHouseholdMembers.forEach(m => { if (m._id) memberHouseholdMap.set(m._id, m.householdId); });
+
+      const lastContactByHousehold = new Map();
+      for (const ct of contacts) {
+        const memberIdList = Array.isArray(ct.memberId) ? ct.memberId : [ct.memberId];
+        const hId = memberIdList.map(id => memberHouseholdMap.get(id)).find(Boolean);
+        if (!hId) continue;
+        if (!lastContactByHousehold.has(hId)) {
+          lastContactByHousehold.set(hId, ct);
+        }
+      }
+
+      const summary = households.map(household => {
+        const householdMembers = allHouseholdMembers
+          .filter(m => m.householdId === household._id && !m.tags?.includes('deceased'));
+        const householdAssignments = assignments.filter(a => a.householdId === household._id);
+        const assignedDeacons = deacons.filter(d => householdAssignments.some(a => a.deaconMemberId === d._id));
+        const lastContact = lastContactByHousehold.get(household._id) || {};
+        lastContact.contactedBy = deacons.filter(d => lastContact.deaconId?.includes(d._id));
+
+        // Collect widow-related tags across all household members
+        const widowTags = Array.from(new Set(
+          householdMembers.flatMap(m => (m.tags || []).filter(t => WIDOW_TAGS.includes(t)))
+        ));
+
+        household.members = householdMembers;
+
+        return {
+          household,
+          assignedDeacons,
+          lastContact,
+          summary: lastContact.summary || 'No contact logged',
+          widowTags
+        };
+      });
+
+      return c.json({ summary });
+    } catch (error) {
+      getLogger().error(error, 'Error fetching widows report:');
+      return c.json({ error: 'Failed to fetch widows report', message: error.message }, 500);
+    }
+  });
+
   app.get('/api/households/:householdId/contacts', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'elder', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);

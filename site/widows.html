@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widows in Need</title>
+    <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="print.css" media="print">
+</head>
+<body>
+    <div class="container">
+        <!-- Reusable navigation bar -->
+        <div id="site-nav-container"></div>
+        <div class="header summary-header">
+            <h1 class="summary-title">
+                <span class="summary-title-icon">🕊️</span>
+                Widows in Need
+            </h1>
+            <div class="summary-filter-wrap">
+                <label for="assignmentFilter" class="summary-filter-label">
+                    <span class="assignment-filter-label-text">Filter</span>
+                    <select id="assignmentFilter" class="summary-filter-select">
+                        <option value="all">All</option>
+                        <option value="assigned">Has Deacon</option>
+                        <option value="unassigned">No Deacon</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+        <table id="summaryTable" class="summary-table">
+            <thead>
+                <tr>
+                    <th colspan="2">Name</th>
+                    <th>Tags</th>
+                    <th colspan="2">Assignment</th>
+                    <th colspan="2">Last Contact</th>
+                    <th rowspan="2" class="notes-col print-only is-hidden">Summary</th>
+                </tr>
+                <tr>
+                    <th>Last</th>
+                    <th>First</th>
+                    <th></th>
+                    <th>Make Contact</th>
+                    <th>Deacons</th>
+                    <th>When</th>
+                    <th>Who & How</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module" src="widows-page.js"></script>
+</body>
+</html>

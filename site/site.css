@@ -947,3 +947,29 @@ th {
 	text-align: center;
 	margin-bottom: 20px;
 }
+
+/* Tag badges used in widows-page.js and similar summary tables */
+.tag-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 50px;
+	font-size: 0.75em;
+	font-weight: 600;
+	white-space: nowrap;
+	margin: 1px 2px;
+	background: #e3ecef;
+	color: var(--gh-text);
+}
+.tag-badge.tag-widow,
+.tag-badge.tag-widower {
+	background: #d4e6f0;
+	color: #1a4a6b;
+}
+.tag-badge.tag-shut-in {
+	background: #fde8c8;
+	color: #7a4400;
+}
+.tag-badge.tag-long-term-needs {
+	background: #f5d5d5;
+	color: #7a1c1c;
+}
