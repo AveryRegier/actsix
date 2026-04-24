@@ -48,9 +48,31 @@ Read from Muninn before proceeding when uncertainty, risk, or ambiguity is prese
 
 Capture anything that is likely to help future agents, including defects, open issues, deferred work, and constraints that shape implementation choices.
 
+## Workflow Skills — Required Before Coding
+
+**Before writing code in the following areas, invoke or read the corresponding skill:**
+
+| Task | Skill to invoke |
+|------|----------------|
+| Writing any `src/api/*.js` route | **api-security** skill |
+| Writing any Sengo query (`safeCollection*`) | **sengo-queries** skill |
+| Writing `site/*.html` or `site/*-page.js` | **site-frontend** skill |
+| Writing `test/e2e/` specs | **e2e-tests** skill |
+| Editing help docs or `help-config.json` | **help-docs** skill |
+| Capturing help screenshots | **help-image-capture** skill |
+
+Skill files are in `.github/skills/<skill-name>/SKILL.md`.
+
+**Non-negotiable rules enforced by the skills:**
+- `verifyRole` is **async — MUST be `await`ed** on every route handler; omitting `await` authorizes all requests regardless of role
+- `c.req.roles` is an **array** (`string[]`) — use `hasRole(c, 'role')` after `verifyRole`; never use `c.req.role` (old single-string pattern is gone)
+- Sengo: use `$in`, implicit AND, JS post-filter — never `$or`, `$ne`, `$regex`, `$gt/$lt`, `$exists` (silently return empty)
+- All page JavaScript in `site/*-page.js` files — never inline `<script>` logic blocks in HTML
+- Use `GET /api/me` for role detection in frontend — never parse JWT client-side
+
 ---
 
-## Help Documentation System
+
 
 The app has a user-facing help system at `/help.html?page=<key>`. It is driven by composable
 behavior markdown files in `site/help/behaviors/` and a role-access config at `site/help/help-config.json`.

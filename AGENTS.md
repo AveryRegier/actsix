@@ -9,15 +9,35 @@ This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get sta
 - **Site** (`site/*.html`) - Static pages, client JS for display only
 - **Form** (`src/form/*`) - POST handlers → call `/api/*` → redirect browser
 - **API** (`src/api/*`) - JSON endpoints → business logic → `safeCollection*`
-- **Auth** (`src/auth/*`) - Middleware sets `c.req.memberId`, `c.req.role`
+- **Auth** (`src/auth/*`) - Middleware sets `c.req.memberId`, `c.req.roles` (array)
 - **Data** (`src/util/helpers.js`) - `safeCollection*` functions only
 
 **Rules:**
 - Form layer calls API layer (never direct DB)
 - Form → API calls use HTTP with JWT in Authorization header
 - API layer contains all validation and business logic
-- Use `verifyRole(c, ['deacon','staff'])` for authorization
+- Use `await verifyRole(c, ['deacon','staff'])` for authorization — **MUST `await`**
+- Roles are a list: `c.req.roles: string[]` — use `hasRole(c, 'role')` for checks after `verifyRole`
 - Register routes: `export default function register*Routes(app)`
+
+## Workflow Skills
+
+**Before writing code in the following areas, read the corresponding skill file:**
+
+| Task | Skill | Path |
+|------|-------|------|
+| Writing any `src/api/*.js` route | **api-security** | `.github/skills/api-security/SKILL.md` |
+| Writing any Sengo query (`safeCollection*`) | **sengo-queries** | `.github/skills/sengo-queries/SKILL.md` |
+| Writing `site/*.html` or `site/*-page.js` | **site-frontend** | `.github/skills/site-frontend/SKILL.md` |
+| Writing `test/e2e/` specs | **e2e-tests** | `.github/skills/e2e-tests/SKILL.md` |
+| Editing help docs or `help-config.json` | **help-docs** | `.github/skills/help-docs/SKILL.md` |
+| Capturing help screenshots | **help-image-capture** | `.github/skills/help-image-capture/SKILL.md` |
+
+**Critical rules enforced by the skills:**
+- `verifyRole` is **async — must be `await`ed** on every route (missing `await` authorizes all requests)
+- Use `$in`, implicit AND, and JS post-filtering — never `$or`, `$ne`, `$regex`, `$gt/$lt`, `$exists` (silent Sengo failures)
+- All page JavaScript in `*-page.js` files — never inline `<script>` blocks in HTML
+- Use `GET /api/me` for role detection in frontend JS — never parse JWT or trust stored strings
 
 ## Quick Reference
 
