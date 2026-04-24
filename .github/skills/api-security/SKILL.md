@@ -11,7 +11,7 @@ description: >
   directly — safeCollection* from helpers.js only; normalizePayload before any insert/update.
   NEVER: skip verifyRole on any authenticated endpoint; trust client-supplied memberId or
   role fields; use hasRole as the primary auth check (verifyRole first).
-  DO NOT USE FOR: Sengo query operators (use sengo-queries skill); frontend/CSS work
+  DO NOT USE FOR: Sengo query operators (use sengo skill); frontend/CSS work
   (use site-frontend skill).
 ---
 

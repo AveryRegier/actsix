@@ -27,7 +27,7 @@ This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get sta
 | Task | Skill | Path |
 |------|-------|------|
 | Writing any `src/api/*.js` route | **api-security** | `.github/skills/api-security/SKILL.md` |
-| Writing any Sengo query (`safeCollection*`) | **sengo-queries** | `.github/skills/sengo-queries/SKILL.md` |
+| Writing any Sengo query (`safeCollection*`) | **sengo** | `.github/skills/sengo/SKILL.md` |
 | Writing `site/*.html` or `site/*-page.js` | **site-frontend** | `.github/skills/site-frontend/SKILL.md` |
 | Writing `test/e2e/` specs | **e2e-tests** | `.github/skills/e2e-tests/SKILL.md` |
 | Editing help docs or `help-config.json` | **help-docs** | `.github/skills/help-docs/SKILL.md` |
@@ -35,7 +35,7 @@ This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get sta
 
 **Critical rules enforced by the skills:**
 - `verifyRole` is **async — must be `await`ed** on every route (missing `await` authorizes all requests)
-- Use `$in`, implicit AND, and JS post-filtering — never `$or`, `$ne`, `$regex`, `$gt/$lt`, `$exists` (silent Sengo failures)
+- For Sengo queries, use only commands/operators documented by the `sengo` skill and rewrite unsupported features accordingly
 - All page JavaScript in `*-page.js` files — never inline `<script>` blocks in HTML
 - Use `GET /api/me` for role detection in frontend JS — never parse JWT or trust stored strings
 

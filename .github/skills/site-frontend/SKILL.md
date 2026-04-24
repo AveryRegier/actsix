@@ -10,7 +10,7 @@ description: >
   site.css; load site-nav.html via #site-nav-container; call GET /api/me for role detection.
   NEVER: add a <script> block with business logic directly in the HTML file; duplicate badge
   CSS already in site.css; skip the #loadingState / error state pattern.
-  DO NOT USE FOR: API routes (use api-security skill); Sengo queries (use sengo-queries skill).
+  DO NOT USE FOR: API routes (use api-security skill); Sengo queries (use sengo skill).
 ---
 
 # Site Frontend Skill

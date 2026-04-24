@@ -55,7 +55,7 @@ Capture anything that is likely to help future agents, including defects, open i
 | Task | Skill to invoke |
 |------|----------------|
 | Writing any `src/api/*.js` route | **api-security** skill |
-| Writing any Sengo query (`safeCollection*`) | **sengo-queries** skill |
+| Writing any Sengo query (`safeCollection*`) | **sengo** skill |
 | Writing `site/*.html` or `site/*-page.js` | **site-frontend** skill |
 | Writing `test/e2e/` specs | **e2e-tests** skill |
 | Editing help docs or `help-config.json` | **help-docs** skill |
@@ -66,7 +66,7 @@ Skill files are in `.github/skills/<skill-name>/SKILL.md`.
 **Non-negotiable rules enforced by the skills:**
 - `verifyRole` is **async — MUST be `await`ed** on every route handler; omitting `await` authorizes all requests regardless of role
 - `c.req.roles` is an **array** (`string[]`) — use `hasRole(c, 'role')` after `verifyRole`; never use `c.req.role` (old single-string pattern is gone)
-- Sengo: use `$in`, implicit AND, JS post-filter — never `$or`, `$ne`, `$regex`, `$gt/$lt`, `$exists` (silently return empty)
+- Sengo: use only operators/commands documented in the `sengo` skill references; if a feature is unsupported, rewrite with a supported query pattern
 - All page JavaScript in `site/*-page.js` files — never inline `<script>` logic blocks in HTML
 - Use `GET /api/me` for role detection in frontend — never parse JWT client-side
 
