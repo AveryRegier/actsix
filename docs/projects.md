@@ -1,6 +1,6 @@
 # ActSix Projects feature
 
-We have a need to track projects that the deacons manage for those in need at the church.
+We have a need to track projects that the deacons manage for those in need at the church.  Projects should be centered on a specific household.
 
 ## Project phases
 
@@ -10,6 +10,8 @@ Projects have several phases.
 3. Funding
 4. Preparation
 5. Implementation
+
+Any of the phases prior to implementation can occur in any order or in parallel.
 
 ### Discovery
 
@@ -55,10 +57,12 @@ The cost of the project should be estimated during this phase.
 We need to put together a plan for doing the work.
 * Materials
 * Tools
-* Worksers
+* Workers
 * Time/Scheduling
 
-Sometimes we will want to redirect the project to a small group, or youth team, or missions team looking to raise money.
+Sometimes we will want to redirect the project to a small group, or youth team, or missions team looking to raise money.  We want to keep an external communications point of contact if that happens.
+
+Wee need to identify a main point of contact deacon for the project.  They can recruit others who can come to the system and see communications about the project.  Would be nice to have the system notify those involved of changes to the project, or provide some kind of forum for communications.  It could be a pointer to a whats app or discorde forum, a set of phone numbers to use for text commmunication, an in-app forum that sends out emails to members for each update, a Group Me group, etc.  This whole feature needs to just get out of the way if it is just one person going to take care off a small issue.
 
 ### Decision gate
  Who may approve proceeding?  Is there some kind of limit on project size and who should be involved in approving it?
@@ -69,6 +73,8 @@ Sometimes we will want to redirect the project to a small group, or youth team, 
  * Staff
  * Head pastor
  * Elders
+
+ Simplify to any deacon being able to move forward unless there is a budget outlay required. Then lead deacon can approve as proxy for any other decision makers.
 
 ### Implementation
 
