@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - Deacon Care System</title>
+    <link rel="stylesheet" href="site.css">
+</head>
+<body>
+    <div id="site-nav-container"></div>
+    <div class="container">
+        <script type="module">
+            document.addEventListener('DOMContentLoaded', async () => {
+                const navContainer = document.getElementById('site-nav-container');
+                if (navContainer) {
+                    const navResp = await fetch('site-nav.html');
+                    if (navResp.ok) {
+                        navContainer.innerHTML = await navResp.text();
+                        const script = document.createElement('script');
+                        script.src = 'site-nav.js';
+                        document.body.appendChild(script);
+                    }
+                }
+            });
+        </script>
+        <div class="header">
+            <h1 class="page-title-with-icon"><span class="page-title-icon">🔨</span> Projects</h1>
+            <p>Ministry projects for households in need</p>
+        </div>
+
+        <div class="content">
+            <div class="household-section-header" style="margin-bottom:12px;">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <select id="statusFilter" class="summary-filter-select">
+                        <option value="">All statuses</option>
+                        <option value="active" selected>Active</option>
+                        <option value="on-hold">On hold</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                    <select id="phaseFilter" class="summary-filter-select">
+                        <option value="">All phases</option>
+                        <option value="discovery">Discovery</option>
+                        <option value="vetting">Vetting</option>
+                        <option value="preparation">Preparation</option>
+                        <option value="implementation">Implementation</option>
+                        <option value="followup">Follow-up</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <a href="edit-project.html" class="btn" id="newProjectBtn" style="display:none;">+ New Project</a>
+            </div>
+
+            <div id="loadingState"><p>Loading projects…</p></div>
+            <div id="projectsList" class="is-hidden"></div>
+            <div id="emptyState" class="is-hidden"><p>No projects found.</p></div>
+            <div id="errorState" class="is-hidden"><p class="error-message">Failed to load projects.</p></div>
+        </div>
+    </div>
+    <script type="module" src="projects-page.js"></script>
+</body>
+</html>

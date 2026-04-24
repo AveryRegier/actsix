@@ -15,7 +15,7 @@ export default function registerEmailLoginRoutes(app) {
                 if (decoded) {
                     // already logged in
                     c.req.memberId = addContext("memberId", decoded.id);
-                    c.req.role = addContext("role", decoded.role);
+                    c.req.roles = addContext("roles", decoded.roles || (decoded.role ? [decoded.role] : []));
                     logger.info("already logged in, calling next");
                     return await next();
                 }
@@ -28,7 +28,7 @@ export default function registerEmailLoginRoutes(app) {
                 const decoded = verifyToken(token);
                 if (decoded) {
                     c.req.memberId = addContext("memberId", decoded.id);
-                    c.req.role = addContext("role", decoded.role);
+                    c.req.roles = addContext("roles", decoded.roles || (decoded.role ? [decoded.role] : []));
                     logger.info("authenticated via Authorization header");
                     return await next();
                 }
@@ -48,8 +48,8 @@ export default function registerEmailLoginRoutes(app) {
                     // Do not set persistent cookies here; this is for script-based automation only
                     addContext('auth_method', 'generation_api_key');
 
-                    c.req.memberId = addContext("memberId", memberId); // Save memberId as an attribute on the request
-                    c.req.role = addContext("role", role); // Save role as an attribute on the request
+                    c.req.memberId = addContext("memberId", memberId);
+                    c.req.roles = addContext("roles", ['deacon']);
 
                     return await next();
                 }

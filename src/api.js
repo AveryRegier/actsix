@@ -8,6 +8,7 @@ import registerAssignmentRoutes from './api/assignments.js'
 import registerDeaconRoutes from './api/deacons.js'
 import registerContactRoutes from './api/contacts.js'
 import registerCommonLocationRoutes from './api/common-locations.js'
+import registerProjectRoutes from './api/projects.js'
 import registerEmailLoginRoutes from './auth/email-login.js'
 import registerContactFormRoutes from './form/contact-form.js'
 import logger, {getLogger, follow, addContexts, addContext } from './util/logger.js';
@@ -94,12 +95,17 @@ export function createApp() {
     return await next();
   });
 
+  app.get('/api/me', (c) => {
+    return c.json({ memberId: c.req.memberId || null, roles: c.req.roles || [] });
+  });
+
   registerMemberRoutes(app)
   registerHouseholdRoutes(app)
   registerAssignmentRoutes(app)
   registerDeaconRoutes(app)
   registerContactRoutes(app)
   registerCommonLocationRoutes(app)
+  registerProjectRoutes(app)
 
   // Help subdirectory — serves site/help/** for the help viewer
   app.get('/help/*', async (c) => {

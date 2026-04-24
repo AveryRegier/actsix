@@ -198,9 +198,8 @@ export default function registerMemberRoutes(app) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      // only other deacons can modify tags as they allow secure access to the site
-      const role = c.req.role; // Assuming role is set in the request
-      if(role === 'deacon' || role === 'staff' || role === 'helper') {
+      const roles = c.req.roles || [];
+      if(roles.some(r => ['deacon','staff','helper'].includes(r))) {
         memberData.tags = body.tags || [];
       }
 
@@ -283,9 +282,8 @@ export default function registerMemberRoutes(app) {
       if (isClearingTemporaryAddress) {
         updateData.temporaryAddress = null;
       }
-      // only other deacons can modify tags as they allow secure access to the site
-      const role = c.req.role; // Assuming role is set in the request
-      if(role === 'deacon' || role === 'staff' || role === 'helper') {
+      const roles = c.req.roles || [];
+      if(roles.some(r => ['deacon','staff','helper'].includes(r))) {
         updateData.tags = body.tags || [];
       }
 

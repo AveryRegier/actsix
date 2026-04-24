@@ -62,7 +62,7 @@ export default function registerCognitoRoutes(app) {
                                 try {
                                     const decoded = jwt.decode(token);
                                     memberId = decoded['custom:member_id'];
-                                    role = decoded['cognito:groups'] ? decoded['cognito:groups'][0] : null; // Extract the first group as role
+                                    role = decoded['cognito:groups'] ? decoded['cognito:groups'] : []; // Extract all groups as roles
 
                                 } catch (error) {
                                     logger.warn('Failed to decode JWT:', error);
@@ -71,10 +71,10 @@ export default function registerCognitoRoutes(app) {
                             }
                         }
                     }
-                    c.req.memberId = memberId; // Save memberId as an attribute on the request
-                    c.req.role = role; // Save role as an attribute on the request
-                    setCookie(c, 'actsix', `${memberId || ''}|${role || ''}`);
-                    logger.info('Incoming request', { method: c.req.method, url: c.req.url, memberId, role });
+                    c.req.memberId = memberId;
+                    c.req.roles = Array.isArray(role) ? role : (role ? [role] : []);
+                    setCookie(c, 'actsix', `${memberId || ''}|${(c.req.roles).join(',')}`);
+                    logger.info('Incoming request', { method: c.req.method, url: c.req.url, memberId, roles: c.req.roles });
 
                     // Exclude the /cognito route from authentication checks
                     if (c.req.path === '/cognito' || c.req.path === '/favicon.ico' || c.req.path.startsWith('/oidc')) {

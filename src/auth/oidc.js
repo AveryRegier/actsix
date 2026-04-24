@@ -76,13 +76,13 @@ export default function registerOidcRoutes(app) {
                 const decoded = verifyToken(actsixCookie);
                 if (decoded) {
                     memberId = decoded.id;
-                    role = decoded.role;
+                    role = decoded.roles || (decoded.role ? [decoded.role] : []);
                 }
             }
 
-            c.req.memberId = memberId; // Save memberId as an attribute on the request
-            c.req.role = role; // Save role as an attribute on the request
-            logger.info('Incoming request', { method: c.req.method, url: c.req.url, memberId, role });
+            c.req.memberId = memberId;
+            c.req.roles = Array.isArray(role) ? role : (role ? [role] : []);
+            logger.info('Incoming request', { method: c.req.method, url: c.req.url, memberId, roles: c.req.roles });
 
             if (!memberId && !c.req.path.includes("/oidc")) {
                 logger.warn('No valid member found in request headers');

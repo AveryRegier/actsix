@@ -33,7 +33,7 @@ export async function safeCollectionInsert(collectionName, data, options = {}) {
       const result = await collection.insertOne(data);
       // Invalidate summary cache for writes to key collections unless caller opts out
       try {
-        if (!options.skipCacheInvalidation && ['members', 'contacts', 'assignments', 'households'].includes(collectionName)) {
+        if (!options.skipCacheInvalidation && ['members', 'contacts', 'assignments', 'households', 'projects', 'project-updates'].includes(collectionName)) {
           await deleteCache('reports_summary');
         }
       } catch (e) {
@@ -62,7 +62,7 @@ export async function safeCollectionUpdate(collectionName, query, update, option
       const result = await collection.updateOne(query, update);
       // Invalidate summary cache for writes to key collections unless caller opts out
       try {
-        if (!options.skipCacheInvalidation && ['members', 'contacts', 'assignments', 'households'].includes(collectionName)) {
+        if (!options.skipCacheInvalidation && ['members', 'contacts', 'assignments', 'households', 'projects', 'project-updates'].includes(collectionName)) {
           await deleteCache('reports_summary');
         }
       } catch (e) {

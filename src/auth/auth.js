@@ -51,9 +51,10 @@ export async function findMemberByEmail(email) {
 
 export function generateToken(user) {
     const tags = (user.tags || []);
-    const role = tags.includes('deacon') ? 'deacon' : tags.includes('staff') ? 'staff' : tags.includes('helper') ? 'helper' : null;
+    const ROLE_TAGS = ['lead-deacon', 'deacon', 'staff', 'helper', 'worker'];
+    const roles = ROLE_TAGS.filter(r => tags.includes(r));
 
-    const token = jwt.sign({ id: user._id, email: user.email, role }, process.env.JWT_SECRET, { expiresIn: '361d' });
+    const token = jwt.sign({ id: user._id, email: user.email, roles }, process.env.JWT_SECRET, { expiresIn: '361d' });
     return token;
 }
 
@@ -104,16 +105,24 @@ export async function authenticateUser(email, validationCode) {
     return member;
 }
 
+// ROLE_INCLUDES and the old single-role hierarchy have been removed.
+// Roles are now a list — verifyRole checks for any overlap.
+
+/** Sync helper: returns true if the caller has the given role. */
+export function hasRole(c, role) {
+    return Array.isArray(c.req.roles) && c.req.roles.includes(role);
+}
+
 export async function verifyRole(c, requiredRoles) {
-    if(c.req.role && requiredRoles.includes(c.req.role)) {
+    if (Array.isArray(c.req.roles) && c.req.roles.some(r => requiredRoles.includes(r))) {
         return true;
     }
     if(c.req.memberId) {
         getLogger().info(`Verifying role for member ID: ${c.req.memberId}`);
         const member = await safeCollectionFind('members', { _id: c.req.memberId });
-       if (member && member.role && requiredRoles.includes(member.role)) {
+       if (member && member.roles && member.roles.some(r => requiredRoles.includes(r))) {
            // then the token and cookie need updated
-           c.req.role = member.roles
+           c.req.roles = member.roles;
            c.res.cookie('actsix', generateToken(member), { httpOnly: true, maxAge: 60 * 24 * 60 * 60 * 1000 }); // 60 days
            return true;
        }

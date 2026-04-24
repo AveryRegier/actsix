@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Project - Deacon Care System</title>
+    <link rel="stylesheet" href="site.css">
+</head>
+<body>
+    <div id="site-nav-container"></div>
+    <div class="container">
+        <script type="module">
+            document.addEventListener('DOMContentLoaded', async () => {
+                const navContainer = document.getElementById('site-nav-container');
+                if (navContainer) {
+                    const navResp = await fetch('site-nav.html');
+                    if (navResp.ok) {
+                        navContainer.innerHTML = await navResp.text();
+                        const script = document.createElement('script');
+                        script.src = 'site-nav.js';
+                        document.body.appendChild(script);
+                    }
+                }
+            });
+        </script>
+        <div class="header">
+            <h1 id="pageTitle">New Project</h1>
+        </div>
+
+        <div id="loadingState"><p>Loading…</p></div>
+
+        <div id="formContent" class="is-hidden content">
+            <form id="projectForm" novalidate>
+
+                <div class="section">
+                    <h2>Project Details</h2>
+
+                    <div class="form-group">
+                        <label class="form-label" for="titleInput">Title <span style="color:red">*</span></label>
+                        <input type="text" id="titleInput" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="descriptionInput">Description <span style="color:red">*</span></label>
+                        <textarea id="descriptionInput" class="form-input" rows="4" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="householdSearch">Household <span style="color:red">*</span></label>
+                        <input type="text" id="householdSearch" class="form-input" placeholder="Search by last name…" autocomplete="off">
+                        <input type="hidden" id="householdId">
+                        <div id="householdSuggestions" class="is-hidden" style="border:1px solid var(--gh-border);border-radius:4px;background:#fff;max-height:160px;overflow-y:auto;"></div>
+                        <div id="householdSelected" class="is-hidden" style="margin-top:4px;font-size:0.9em;color:var(--gh-text-muted);"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="phaseSelect">Phase <span style="color:red">*</span></label>
+                        <select id="phaseSelect" class="form-input" required>
+                            <option value="discovery">Discovery</option>
+                            <option value="vetting">Vetting</option>
+                            <option value="preparation">Preparation</option>
+                            <option value="implementation">Implementation</option>
+                            <option value="followup">Follow-up</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="statusSelect">Status</label>
+                        <select id="statusSelect" class="form-input">
+                            <option value="active">Active</option>
+                            <option value="on-hold">On hold</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="leadDeaconSelect">Lead Deacon <span style="color:red">*</span></label>
+                        <select id="leadDeaconSelect" class="form-input" required>
+                            <option value="">Select a deacon…</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="estimatedCostInput">Estimated Cost ($)</label>
+                        <input type="number" id="estimatedCostInput" class="form-input" min="0" step="0.01" placeholder="0.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="needsApprovalCheck"> Needs approval before proceeding
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="communicationLinkInput">Communication Link (GroupMe, etc.)</label>
+                        <input type="url" id="communicationLinkInput" class="form-input" placeholder="https://…">
+                    </div>
+                </div>
+
+                <div id="formError" class="is-hidden" style="color:red;margin-bottom:10px;"></div>
+
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+                    <a href="projects.html" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn" id="saveBtn">Save Project</button>
+                </div>
+
+            </form>
+        </div>
+
+        <div id="errorState" class="is-hidden"><p class="error-message">Failed to load form.</p></div>
+    </div>
+    <script type="module" src="edit-project-page.js"></script>
+</body>
+</html>
