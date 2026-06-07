@@ -18,6 +18,9 @@ We need to be able to schedule communion, usually a month or two out.  we would 
 ### Sign up
 Deacons should be able to use the app to mark when they expect to be available.  The app could show a current count of for each date right on that screen.  It should be as simple as just clicking on the request on the home screen to mark their availablility and the count would go up or down immediately.  They should also be able to mark themselves as unavailable.
 
+Deacons would see a Sign Up section in the header and menu following 
+the existing responsive design patterns. 
+
 The color coding is red for 18 or fewer, yellow for 21 or fewer, and 
 green for 22 or more.
 
@@ -47,7 +50,7 @@ it should be printable. This page would be available to staff and deacons.
 
 ### Non-deacon sign ups
 We will add an 'usher' role that can login, and will see the sign up page, but that is it.  Staff, and elders should also be able to sign up
-for communion.
+for communion.  Usher's should see the sign up page as their home screen.
 
 It should be easy to add an Usher, We just need their name and email address.
 
