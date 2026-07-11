@@ -41,6 +41,14 @@ function normalizePriority(value, fallback) {
   return fallback;
 }
 
+function normalizeOffsetMinutes(value) {
+  const asNumber = Number(value);
+  if (Number.isFinite(asNumber)) {
+    return Math.trunc(asNumber);
+  }
+  return 0;
+}
+
 function normalizeRoleList(roles, fallback = []) {
   if (!Array.isArray(roles)) {
     return fallback;
@@ -48,6 +56,86 @@ function normalizeRoleList(roles, fallback = []) {
 
   const values = Array.from(new Set(roles.map(role => toStringOrNull(role)).filter(Boolean)));
   return values.length > 0 ? values : fallback;
+}
+
+function normalizeDependencyScope(value) {
+  const scope = toStringOrNull(value);
+  if (!scope) {
+    return 'slot';
+  }
+
+  return scope === 'day' ? 'day' : 'slot';
+}
+
+function normalizeScheduleDependencies(dependencies, fallback = []) {
+  const source = Array.isArray(dependencies) ? dependencies : fallback;
+  const normalized = [];
+
+  for (const dependency of source) {
+    const eventType = toStringOrNull(dependency?.eventType);
+    if (!eventType) {
+      continue;
+    }
+
+    normalized.push({
+      eventType,
+      offsetMinutes: normalizeOffsetMinutes(dependency?.offsetMinutes),
+      uniquePer: normalizeDependencyScope(dependency?.uniquePer)
+    });
+  }
+
+  return normalized;
+}
+
+function formatDatePart(value) {
+  return String(value).padStart(2, '0');
+}
+
+function formatLocalDate(date) {
+  return `${date.getFullYear()}-${formatDatePart(date.getMonth() + 1)}-${formatDatePart(date.getDate())}`;
+}
+
+function formatLocalTime(date) {
+  return `${formatDatePart(date.getHours())}:${formatDatePart(date.getMinutes())}`;
+}
+
+function applyMinuteOffset(serviceDate, serviceTime, offsetMinutes) {
+  const base = new Date(`${serviceDate}T${serviceTime}:00`);
+  if (Number.isNaN(base.getTime())) {
+    return null;
+  }
+
+  base.setMinutes(base.getMinutes() + offsetMinutes);
+  return {
+    serviceDate: formatLocalDate(base),
+    serviceTime: formatLocalTime(base)
+  };
+}
+
+function normalizeServiceTimes(body) {
+  const source = Array.isArray(body?.serviceTimes)
+    ? body.serviceTimes
+    : [body?.serviceTime];
+
+  const seen = new Set();
+  const normalized = [];
+  const timePattern = /^\d{2}:\d{2}$/;
+
+  for (const value of source) {
+    const time = toStringOrNull(value);
+    if (!time || !timePattern.test(time)) {
+      continue;
+    }
+    if (seen.has(time)) {
+      continue;
+    }
+
+    seen.add(time);
+    normalized.push(time);
+  }
+
+  normalized.sort();
+  return normalized;
 }
 
 export function normalizeEventPositions(positions) {
@@ -63,6 +151,7 @@ export function normalizeEventPositions(positions) {
         label,
         priority: normalizePriority(position.priority, index + 1),
         isCritical: normalizeBoolean(position.isCritical, false),
+        allowSelfSignup: normalizeBoolean(position.allowSelfSignup, true),
         assignedMemberId: toStringOrNull(position.assignedMemberId)
       };
     })
@@ -78,6 +167,7 @@ function normalizeDefinitionPositions(positions) {
     label: position.label,
     priority: position.priority,
     isCritical: position.isCritical,
+    allowSelfSignup: position.allowSelfSignup,
     assignedMemberId: null
   }));
 }
@@ -92,6 +182,7 @@ function normalizeEventTypeDocument(doc) {
   const fallbackAllowed = defaultSeed?.allowedRoles || [];
   const fallbackAssignment = defaultSeed?.assignmentRoles || [];
   const fallbackPositions = defaultSeed?.defaultPositions || [];
+  const fallbackDependencies = defaultSeed?.scheduleDependencies || [];
 
   const defaultPositions = normalizeDefinitionPositions(
     Array.isArray(doc?.defaultPositions) && doc.defaultPositions.length > 0
@@ -105,7 +196,9 @@ function normalizeEventTypeDocument(doc) {
     allowedRoles: normalizeRoleList(doc?.allowedRoles, fallbackAllowed),
     assignmentRoles: normalizeRoleList(doc?.assignmentRoles, fallbackAssignment),
     defaultPositions,
-    isActive: doc?.isActive !== false
+    scheduleDependencies: normalizeScheduleDependencies(doc?.scheduleDependencies, fallbackDependencies),
+    isActive: doc?.isActive !== false,
+    isSchedulable: doc?.isSchedulable !== false
   };
 }
 
@@ -192,6 +285,10 @@ export function assignPositions(signups, positions) {
   }
 
   for (const position of normalizedPositions) {
+    if (position.allowSelfSignup === false) {
+      continue;
+    }
+
     if (assignedByPosition.has(position.positionId)) {
       continue;
     }
@@ -233,6 +330,10 @@ function buildDefaultTitle(eventType, serviceDate, serviceTime, eventTypeConfigM
   const config = getEventTypeConfig(eventType, eventTypeConfigMap);
   const typeTitle = config?.title || 'Event';
   return `${serviceDate} ${serviceTime} ${typeTitle}`;
+}
+
+function buildCalendarKey(eventId, serviceDate, serviceTime) {
+  return `${eventId}:${serviceDate} ${serviceTime}`;
 }
 
 function getDefaultPositionsForType(eventType, eventTypeConfigMap = null) {
@@ -293,6 +394,167 @@ export function normalizeEventBody(body, eventTypeConfigMap = null) {
       updatedAt: new Date().toISOString()
     }
   };
+}
+
+async function createCalendarSlot({
+  eventDefinition,
+  serviceDate,
+  serviceTime,
+  title = null,
+  createdBy = null,
+  failOnDuplicate = true
+}) {
+  const calendarKey = buildCalendarKey(eventDefinition._id, serviceDate, serviceTime);
+  const duplicate = await safeCollectionFindOne('event_calendar', { calendarKey });
+  if (duplicate) {
+    if (failOnDuplicate) {
+      return {
+        error: 'An event already exists for this date and service time'
+      };
+    }
+
+    return {
+      skipped: true,
+      calendarSlot: duplicate
+    };
+  }
+
+  const now = new Date().toISOString();
+  const fallbackTitle = toStringOrNull(eventDefinition?.title);
+  const createdCalendar = {
+    calendarKey,
+    eventId: eventDefinition._id,
+    eventType: eventDefinition.eventType,
+    serviceDate,
+    serviceTime,
+    title: toStringOrNull(title) || fallbackTitle || buildDefaultTitle(eventDefinition.eventType, serviceDate, serviceTime),
+    status: deriveEventStatusFromPositions(eventDefinition.positions),
+    neededCount: eventDefinition.positions.length,
+    criticalPositionIds: eventDefinition.positions.filter(position => position.isCritical).map(position => position.positionId),
+    createdBy,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  const result = await safeCollectionInsert('event_calendar', createdCalendar);
+  const calendarId = result.insertedId?.toString();
+
+  const normalizedPositions = normalizeDefinitionPositions(eventDefinition.positions || []);
+  const lockedPosition = normalizedPositions
+    .filter(position => position.allowSelfSignup === false)
+    .sort((a, b) => a.priority - b.priority)[0] || null;
+
+  if (calendarId && createdBy && lockedPosition) {
+    const existingCreatorSignup = await safeCollectionFindOne('event_signups', { calendarId, memberId: createdBy });
+    const nowForSignup = new Date().toISOString();
+
+    if (existingCreatorSignup) {
+      await safeCollectionUpdate(
+        'event_signups',
+        { _id: existingCreatorSignup._id },
+        {
+          $set: {
+            calendarId,
+            eventId: eventDefinition._id,
+            eventType: eventDefinition.eventType,
+            memberId: createdBy,
+            positionId: lockedPosition.positionId,
+            isAvailable: true,
+            unavailableReason: null,
+            assignedPositionId: lockedPosition.positionId,
+            updatedAt: nowForSignup
+          }
+        }
+      );
+    } else {
+      await safeCollectionInsert('event_signups', {
+        calendarId,
+        eventId: eventDefinition._id,
+        eventType: eventDefinition.eventType,
+        memberId: createdBy,
+        positionId: lockedPosition.positionId,
+        isAvailable: true,
+        unavailableReason: null,
+        assignedPositionId: lockedPosition.positionId,
+        createdAt: nowForSignup,
+        updatedAt: nowForSignup
+      });
+    }
+  }
+
+  return {
+    skipped: false,
+    calendarSlot: {
+      _id: calendarId,
+      ...createdCalendar
+    }
+  };
+}
+
+async function autoScheduleDependencies({
+  parentCalendarSlot,
+  parentEventConfig,
+  eventTypeConfigMap,
+  createdBy
+}) {
+  const dependencies = Array.isArray(parentEventConfig?.scheduleDependencies)
+    ? parentEventConfig.scheduleDependencies
+    : [];
+
+  if (dependencies.length === 0) {
+    return [];
+  }
+
+  const created = [];
+
+  for (const dependency of dependencies) {
+    const targetConfig = getEventTypeConfig(dependency.eventType, eventTypeConfigMap);
+    if (!targetConfig) {
+      continue;
+    }
+
+    const shifted = applyMinuteOffset(
+      parentCalendarSlot.serviceDate,
+      parentCalendarSlot.serviceTime,
+      dependency.offsetMinutes || 0
+    );
+    if (!shifted) {
+      continue;
+    }
+
+    if (dependency.uniquePer === 'day') {
+      const existingForDay = await safeCollectionFindOne('event_calendar', {
+        eventType: dependency.eventType,
+        serviceDate: shifted.serviceDate
+      });
+      if (existingForDay) {
+        continue;
+      }
+    }
+
+    const targetDefinition = await getOrCreateEventDefinition(
+      dependency.eventType,
+      null,
+      eventTypeConfigMap
+    );
+    if (!targetDefinition || !targetDefinition._id) {
+      continue;
+    }
+
+    const createdSlot = await createCalendarSlot({
+      eventDefinition: targetDefinition,
+      serviceDate: shifted.serviceDate,
+      serviceTime: shifted.serviceTime,
+      createdBy,
+      failOnDuplicate: false
+    });
+
+    if (!createdSlot.skipped && createdSlot.calendarSlot) {
+      created.push(buildCalendarView(createdSlot.calendarSlot, targetDefinition, []));
+    }
+  }
+
+  return created;
 }
 
 async function getOrCreateEventDefinition(eventType, requestedPositions = null, eventTypeConfigMap = null) {
@@ -529,7 +791,7 @@ export default function registerEventRoutes(app) {
     const role = c.req.role || null;
     const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
     const eventTypes = Object.entries(eventTypeConfigMap)
-      .filter(([, config]) => role && config.assignmentRoles.includes(role))
+      .filter(([, config]) => role && config.assignmentRoles.includes(role) && config.isSchedulable !== false)
       .map(([eventType, config]) => ({
         eventType,
         title: config.title,
@@ -615,7 +877,16 @@ export default function registerEventRoutes(app) {
     try {
       const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
       const body = await c.req.json();
-      const normalized = normalizeEventBody(body, eventTypeConfigMap);
+      const explicitTitle = toStringOrNull(body?.title);
+      const serviceTimes = normalizeServiceTimes(body);
+      if (serviceTimes.length === 0) {
+        return c.json({ error: 'Validation failed', message: 'Missing required field: serviceTime or serviceTimes is required' }, 400);
+      }
+
+      const normalized = normalizeEventBody({
+        ...body,
+        serviceTime: serviceTimes[0]
+      }, eventTypeConfigMap);
       if (normalized.error) {
         return c.json({ error: 'Validation failed', message: normalized.error }, 400);
       }
@@ -630,42 +901,42 @@ export default function registerEventRoutes(app) {
         return c.json({ error: 'Failed to resolve event definition' }, 500);
       }
 
-      const calendarKey = `${eventDefinition._id}:${normalized.data.serviceDate} ${normalized.data.serviceTime}`;
-      const duplicate = await safeCollectionFindOne('event_calendar', { calendarKey });
-      if (duplicate) {
-        return c.json({ error: 'Validation failed', message: 'An event already exists for this date and service time' }, 400);
+      const createdEvents = [];
+      const autoScheduledEvents = [];
+      for (const serviceTime of serviceTimes) {
+        const createdSlot = await createCalendarSlot({
+          eventDefinition,
+          serviceDate: normalized.data.serviceDate,
+          serviceTime,
+          title: explicitTitle,
+          createdBy: c.req.memberId || null,
+          failOnDuplicate: true
+        });
+
+        if (createdSlot.error) {
+          return c.json({ error: 'Validation failed', message: createdSlot.error }, 400);
+        }
+
+        const eventView = buildCalendarView(createdSlot.calendarSlot, eventDefinition, []);
+        createdEvents.push(eventView);
+
+        const autoScheduled = await autoScheduleDependencies({
+          parentCalendarSlot: createdSlot.calendarSlot,
+          parentEventConfig: config,
+          eventTypeConfigMap,
+          createdBy: c.req.memberId || null
+        });
+        autoScheduledEvents.push(...autoScheduled);
       }
-
-      const now = new Date().toISOString();
-      const createdCalendar = {
-        calendarKey,
-        eventId: eventDefinition._id,
-        eventType: eventDefinition.eventType,
-        serviceDate: normalized.data.serviceDate,
-        serviceTime: normalized.data.serviceTime,
-        title: normalized.data.title,
-        status: deriveEventStatusFromPositions(eventDefinition.positions),
-        neededCount: eventDefinition.positions.length,
-        criticalPositionIds: eventDefinition.positions.filter(position => position.isCritical).map(position => position.positionId),
-        createdBy: c.req.memberId || null,
-        createdAt: now,
-        updatedAt: now
-      };
-
-      const result = await safeCollectionInsert('event_calendar', createdCalendar);
-      const calendarId = result.insertedId?.toString();
-
-      const calendarSlot = {
-        _id: calendarId,
-        ...createdCalendar
-      };
-
-      const eventView = buildCalendarView(calendarSlot, eventDefinition, []);
 
       return c.json({
         message: 'Event scheduled successfully',
-        id: calendarId,
-        event: eventView
+        id: createdEvents[0]?._id || null,
+        event: createdEvents[0] || null,
+        events: createdEvents,
+        autoScheduledEvents,
+        count: createdEvents.length,
+        autoScheduledCount: autoScheduledEvents.length
       });
     } catch (error) {
       getLogger().error(error, 'Error creating event:');
@@ -722,9 +993,13 @@ export default function registerEventRoutes(app) {
 
       const requestedPositionId = toStringOrNull(body.positionId);
       if (requestedPositionId) {
-        const positionExists = (loaded.eventDefinition.positions || []).some(position => position.positionId === requestedPositionId);
-        if (!positionExists) {
+        const requestedPosition = (loaded.eventDefinition.positions || []).find(position => position.positionId === requestedPositionId);
+        if (!requestedPosition) {
           return c.json({ error: 'Validation failed', message: `Unknown positionId: ${requestedPositionId}` }, 400);
+        }
+
+        if (requestedPosition.allowSelfSignup === false) {
+          return c.json({ error: 'Validation failed', message: `Position ${requestedPositionId} is assigned by event leadership` }, 400);
         }
       }
 

@@ -34,9 +34,18 @@
                         <input id="serviceDate" name="serviceDate" type="date" required style="width:100%; padding:10px; box-sizing:border-box;">
                     </label>
                     <label>
-                        <div><strong>Service Time</strong></div>
-                        <input id="serviceTime" name="serviceTime" type="time" required style="width:100%; padding:10px; box-sizing:border-box;">
+                        <div><strong>Add Service Time</strong></div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <input id="serviceTime" name="serviceTime" type="time" style="width:100%; padding:10px; box-sizing:border-box;">
+                            <button id="addServiceTimeBtn" type="button" class="btn">Add</button>
+                        </div>
                     </label>
+                </div>
+
+                <div>
+                    <div><strong>Service Times</strong></div>
+                    <div id="serviceTimesList" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;"></div>
+                    <div id="serviceTimesHelp" style="margin-top:8px; color:#666; font-size:14px;"></div>
                 </div>
 
                 <div style="display:flex; gap:12px; flex-wrap:wrap;">

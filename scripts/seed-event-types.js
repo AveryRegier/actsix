@@ -33,6 +33,20 @@ const POSITION_MAPS = {
     { positionId: 'PM4', label: 'Middle Extra Right', priority: 8, isCritical: false },
     { positionId: 'PB1', label: 'Back Left', priority: 9, isCritical: false },
     { positionId: 'PB2', label: 'Back Right', priority: 10, isCritical: false }
+  ],
+  lords_supper_setup_team: [
+    { positionId: 'PREP1', label: 'Preparation Team 1', priority: 1, isCritical: true },
+    { positionId: 'PREP2', label: 'Preparation Team 2', priority: 2, isCritical: true },
+    { positionId: 'TRAINEE', label: 'Preparation Trainee', priority: 3, isCritical: false }
+  ],
+  lords_supper_leadership_team: [
+    { positionId: 'LEADER', label: 'Event Leader', priority: 1, isCritical: true, allowSelfSignup: false },
+    { positionId: 'ASSIST', label: 'Event Assistant', priority: 2, isCritical: false }
+  ],
+  lords_supper_cleanup_team: [
+    { positionId: 'CLEAN1', label: 'Cleanup Team 1', priority: 1, isCritical: true },
+    { positionId: 'CLEAN2', label: 'Cleanup Team 2', priority: 2, isCritical: true },
+    { positionId: 'CLEAN3', label: 'Cleanup Team 3', priority: 3, isCritical: true }
   ]
 };
 
@@ -47,6 +61,11 @@ const EVENT_TYPE_VARIANTS = [
     positionMap: 'lords_supper_standard_8',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
+    scheduleDependencies: [
+      { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
+      { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
+      { eventType: 'lords-supper-cleanup', offsetMinutes: 60, uniquePer: 'slot' }
+    ],
     isActive: true
   },
   {
@@ -55,6 +74,11 @@ const EVENT_TYPE_VARIANTS = [
     positionMap: 'lords_supper_compact_6',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
+    scheduleDependencies: [
+      { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
+      { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
+      { eventType: 'lords-supper-cleanup', offsetMinutes: 60, uniquePer: 'slot' }
+    ],
     isActive: true
   },
   {
@@ -63,6 +87,38 @@ const EVENT_TYPE_VARIANTS = [
     positionMap: 'lords_supper_extended_10',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
+    scheduleDependencies: [
+      { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
+      { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
+      { eventType: 'lords-supper-cleanup', offsetMinutes: 60, uniquePer: 'slot' }
+    ],
+    isActive: true
+  },
+  {
+    eventType: 'lords-supper-leadership',
+    title: "Lord's Supper Leadership",
+    positionMap: 'lords_supper_leadership_team',
+    allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
+    assignmentRoles: ['deacon', 'staff'],
+    isSchedulable: false,
+    isActive: true
+  },
+  {
+    eventType: 'lords-supper-setup',
+    title: "Lord's Supper Setup",
+    positionMap: 'lords_supper_setup_team',
+    allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
+    assignmentRoles: ['deacon', 'staff'],
+    isSchedulable: false,
+    isActive: true
+  },
+  {
+    eventType: 'lords-supper-cleanup',
+    title: "Lord's Supper Cleanup",
+    positionMap: 'lords_supper_cleanup_team',
+    allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
+    assignmentRoles: ['deacon', 'staff'],
+    isSchedulable: false,
     isActive: true
   }
 ];
@@ -83,7 +139,8 @@ function normalizePositionMap(positions) {
       priority: Number.isFinite(Number(position.priority)) && Number(position.priority) > 0
         ? Number(position.priority)
         : index + 1,
-      isCritical: Boolean(position.isCritical)
+      isCritical: Boolean(position.isCritical),
+      allowSelfSignup: position.allowSelfSignup !== false
     }))
     .filter(position => position.positionId && position.label);
 
@@ -118,6 +175,16 @@ function buildEventTypeDoc(variant, nowIso) {
     allowedRoles,
     assignmentRoles,
     defaultPositions,
+    scheduleDependencies: Array.isArray(variant.scheduleDependencies)
+      ? variant.scheduleDependencies
+          .map(rule => ({
+            eventType: String(rule.eventType || '').trim(),
+            offsetMinutes: Number.isFinite(Number(rule.offsetMinutes)) ? Number(rule.offsetMinutes) : 0,
+            uniquePer: rule.uniquePer === 'day' ? 'day' : 'slot'
+          }))
+          .filter(rule => rule.eventType)
+      : [],
+    isSchedulable: variant.isSchedulable !== false,
     isActive: variant.isActive !== false,
     updatedAt: nowIso
   };

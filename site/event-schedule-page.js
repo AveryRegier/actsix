@@ -3,6 +3,12 @@ import { apiFetch } from './fetch-utils.js';
 const form = document.getElementById('eventScheduleForm');
 const eventTypeSelect = document.getElementById('eventType');
 const pageMessage = document.getElementById('pageMessage');
+const serviceTimeInput = document.getElementById('serviceTime');
+const addServiceTimeButton = document.getElementById('addServiceTimeBtn');
+const serviceTimesList = document.getElementById('serviceTimesList');
+const serviceTimesHelp = document.getElementById('serviceTimesHelp');
+
+const selectedServiceTimes = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
   await loadNav();
@@ -29,21 +35,34 @@ async function loadNav() {
 
 function setSmartDefaults() {
   const dateInput = document.getElementById('serviceDate');
-  const timeInput = document.getElementById('serviceTime');
   if (!dateInput.value) {
     dateInput.value = new Date().toISOString().split('T')[0];
   }
-  updateDefaultTime();
-  dateInput.addEventListener('change', updateDefaultTime);
-  timeInput.addEventListener('input', () => {
-    timeInput.dataset.userEdited = 'true';
+  updateDefaultTimes();
+  dateInput.addEventListener('change', updateDefaultTimes);
+  serviceTimeInput.addEventListener('input', () => {
+    serviceTimeInput.dataset.userEdited = 'true';
   });
+
+  addServiceTimeButton.addEventListener('click', () => {
+    addServiceTimeFromInput();
+  });
+
+  serviceTimeInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') {
+      return;
+    }
+
+    event.preventDefault();
+    addServiceTimeFromInput();
+  });
+
+  renderSelectedServiceTimes();
 }
 
-function updateDefaultTime() {
+function updateDefaultTimes() {
   const dateInput = document.getElementById('serviceDate');
-  const timeInput = document.getElementById('serviceTime');
-  if (timeInput.dataset.userEdited === 'true') {
+  if (serviceTimeInput.dataset.userEdited === 'true' || serviceTimesList.dataset.userEdited === 'true') {
     return;
   }
 
@@ -52,7 +71,74 @@ function updateDefaultTime() {
     return;
   }
 
-  timeInput.value = date.getDay() === 0 ? '08:30' : '19:00';
+  const defaults = date.getDay() === 0 ? ['08:30', '10:30'] : ['19:00'];
+  selectedServiceTimes.clear();
+  for (const time of defaults) {
+    selectedServiceTimes.add(time);
+  }
+  serviceTimeInput.value = defaults[0];
+  renderSelectedServiceTimes();
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderSelectedServiceTimes() {
+  const sortedTimes = Array.from(selectedServiceTimes).sort();
+  if (sortedTimes.length === 0) {
+    serviceTimesList.innerHTML = '<div style="color:#666;">No service times added yet.</div>';
+    serviceTimesHelp.textContent = 'Add at least one service time.';
+    return;
+  }
+
+  serviceTimesHelp.textContent = `${sortedTimes.length} time${sortedTimes.length === 1 ? '' : 's'} selected.`;
+  serviceTimesList.innerHTML = sortedTimes
+    .map(time => `
+      <button type="button" class="btn" data-remove-service-time="${escapeHtml(time)}" style="padding:6px 10px; font-size:14px;">
+        ${escapeHtml(time)} ×
+      </button>
+    `)
+    .join('');
+
+  for (const removeButton of serviceTimesList.querySelectorAll('[data-remove-service-time]')) {
+    removeButton.addEventListener('click', () => {
+      const time = removeButton.getAttribute('data-remove-service-time');
+      if (!time) {
+        return;
+      }
+      selectedServiceTimes.delete(time);
+      serviceTimesList.dataset.userEdited = 'true';
+      renderSelectedServiceTimes();
+    });
+  }
+}
+
+function addServiceTimeFromInput() {
+  const time = serviceTimeInput.value;
+  if (!time) {
+    return;
+  }
+
+  selectedServiceTimes.add(time);
+  serviceTimesList.dataset.userEdited = 'true';
+  serviceTimeInput.dataset.userEdited = 'true';
+  renderSelectedServiceTimes();
+}
+
+function includePendingTimeInput() {
+  const pending = serviceTimeInput.value;
+  if (!pending) {
+    return;
+  }
+
+  selectedServiceTimes.add(pending);
+  renderSelectedServiceTimes();
 }
 
 function showMessage(message, isError) {
@@ -83,17 +169,11 @@ async function loadSchedulableEventTypes() {
   ].join('');
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
+
+  // If the user typed a time but did not click Add, include it automatically.
+  includePendingTimeInput();
 
   const eventType = eventTypeSelect.value;
   if (!eventType) {
@@ -101,10 +181,16 @@ form.addEventListener('submit', async (event) => {
     return;
   }
 
+  if (selectedServiceTimes.size === 0) {
+    showMessage('Please add at least one service time.', true);
+    return;
+  }
+
   const payload = {
     eventType,
     serviceDate: document.getElementById('serviceDate').value,
-    serviceTime: document.getElementById('serviceTime').value
+    serviceTimes: Array.from(selectedServiceTimes).sort(),
+    serviceTime: Array.from(selectedServiceTimes).sort()[0]
   };
 
   const response = await apiFetch('/api/events', {
@@ -120,7 +206,9 @@ form.addEventListener('submit', async (event) => {
   }
 
   const eventId = responseBody.id || responseBody.event?._id;
-  showMessage('Event created successfully. Redirecting to sign ups...', false);
+  const createdCount = Number(responseBody.count || payload.serviceTimes.length || 1);
+  const autoCount = Number(responseBody.autoScheduledCount || 0);
+  showMessage(`Created ${createdCount} event${createdCount === 1 ? '' : 's'}${autoCount > 0 ? ` and auto-scheduled ${autoCount} linked event${autoCount === 1 ? '' : 's'}` : ''}. Redirecting to sign ups...`, false);
   const target = eventId
     ? `/sign-ups.html?created=${encodeURIComponent(eventId)}`
     : '/sign-ups.html';
