@@ -303,6 +303,7 @@ function renderAssignmentsTable(event, canManage) {
           <th>Priority</th>
           <th>Position ID</th>
           <th>Label</th>
+          <th>Note</th>
           <th>Assigned To</th>
         </tr>
       </thead>
@@ -312,6 +313,7 @@ function renderAssignmentsTable(event, canManage) {
             <td>${escapeHtml(position.priority)}</td>
             <td>${escapeHtml(position.positionId)}</td>
             <td>${escapeHtml(position.label)}</td>
+            <td>${position.note ? escapeHtml(position.note) : '<span style="color:#6d7c82;">-</span>'}</td>
             <td>
               ${canManage
                 ? `<button

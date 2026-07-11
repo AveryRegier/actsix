@@ -165,6 +165,7 @@ export function normalizeEventPositions(positions) {
       return {
         positionId,
         label,
+        note: toStringOrNull(position.note),
         priority: normalizePriority(position.priority, index + 1),
         isCritical: normalizeBoolean(position.isCritical, false),
         allowSelfSignup: normalizeBoolean(position.allowSelfSignup, true),
@@ -181,6 +182,7 @@ function normalizeDefinitionPositions(positions) {
   return normalizeEventPositions(positions).map(position => ({
     positionId: position.positionId,
     label: position.label,
+    note: position.note,
     priority: position.priority,
     isCritical: position.isCritical,
     allowSelfSignup: position.allowSelfSignup,

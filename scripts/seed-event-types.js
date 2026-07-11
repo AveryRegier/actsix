@@ -4,35 +4,23 @@ import { db } from '../src/util/sengoClient.js';
  * Reusable position maps. Add new maps here, then reference them from EVENT_TYPE_VARIANTS.
  */
 const POSITION_MAPS = {
-  lords_supper_standard_8: [
-    { positionId: 'PF1', label: 'Front Left', priority: 1, isCritical: true },
-    { positionId: 'PF2', label: 'Front Center Left', priority: 2, isCritical: true },
-    { positionId: 'PF3', label: 'Front Center Right', priority: 3, isCritical: true },
-    { positionId: 'PF4', label: 'Front Right', priority: 4, isCritical: true },
-    { positionId: 'PM1', label: 'Middle Left', priority: 5, isCritical: false },
-    { positionId: 'PM2', label: 'Middle Right', priority: 6, isCritical: false },
-    { positionId: 'PB1', label: 'Back Left', priority: 7, isCritical: false },
-    { positionId: 'PB2', label: 'Back Right', priority: 8, isCritical: false }
-  ],
-  lords_supper_compact_6: [
-    { positionId: 'PF1', label: 'Front Left', priority: 1, isCritical: true },
-    { positionId: 'PF2', label: 'Front Right', priority: 2, isCritical: true },
-    { positionId: 'PM1', label: 'Middle Left', priority: 3, isCritical: true },
-    { positionId: 'PM2', label: 'Middle Right', priority: 4, isCritical: true },
-    { positionId: 'PB1', label: 'Back Left', priority: 5, isCritical: false },
-    { positionId: 'PB2', label: 'Back Right', priority: 6, isCritical: false }
-  ],
-  lords_supper_extended_10: [
-    { positionId: 'PF1', label: 'Front Left', priority: 1, isCritical: true },
-    { positionId: 'PF2', label: 'Front Center Left', priority: 2, isCritical: true },
-    { positionId: 'PF3', label: 'Front Center Right', priority: 3, isCritical: true },
-    { positionId: 'PF4', label: 'Front Right', priority: 4, isCritical: true },
-    { positionId: 'PM1', label: 'Middle Left', priority: 5, isCritical: false },
-    { positionId: 'PM2', label: 'Middle Right', priority: 6, isCritical: false },
-    { positionId: 'PM3', label: 'Middle Extra Left', priority: 7, isCritical: false },
-    { positionId: 'PM4', label: 'Middle Extra Right', priority: 8, isCritical: false },
-    { positionId: 'PB1', label: 'Back Left', priority: 9, isCritical: false },
-    { positionId: 'PB2', label: 'Back Right', priority: 10, isCritical: false }
+  lords_supper_standard_16: [
+    { positionId: '1-FFL', label: 'Aisle 1 Front Far Left', priority: 1, isCritical: true },
+    { positionId: '2-FL', label: 'Aisle 2 Front Left', note: 'Take 2 trays', priority: 2, isCritical: true },
+    { positionId: '3-FCL', label: 'Aisle 3 Front Center Left', note: 'Take 2 trays', priority: 3, isCritical: true },
+    { positionId: '4-FC', label: 'Aisle 4 Front Center', note: 'Take 2 trays', priority: 4, isCritical: true },
+    { positionId: '5-FCR', label: 'Aisle 5 Front Center Right', note: 'Take 2 trays', priority: 5, isCritical: true },
+    { positionId: '6-FR', label: 'Aisle 6 Front Right', note: 'Take 2 trays', priority: 6, isCritical: true },
+    { positionId: '7-FFR', label: 'Aisle 7 Front Far Right', priority: 7, isCritical: true },
+    { positionId: '8-BFL', label: 'Aisle 1 Back Far Left', priority: 8, isCritical: false },
+    { positionId: '9-BL', label: 'Aisle 2 Back Left', priority: 9, isCritical: true },
+    { positionId: '10-SABL', label: 'Short Aisle Back Left', priority: 10, isCritical: false },
+    { positionId: '11-BCL', label: 'Aisle 3 Back Center Left', priority: 11, isCritical: true },
+    { positionId: '12-BC', label: 'Aisle 4 Back Center', priority: 12, isCritical: true },
+    { positionId: '13-BCR', label: 'Aisle 5 Back Center Right', priority: 13, isCritical: true },
+    { positionId: '14-SABR', label: 'Short Aisle Back Right', priority: 14, isCritical: false },
+    { positionId: '15-BR', label: 'Aisle 6 Back Right', priority: 15, isCritical: true },
+    { positionId: '16-BFR', label: 'Aisle 7 Back Far Right', priority: 16, isCritical: false }
   ],
   lords_supper_setup_team: [
     { positionId: 'PREP1', label: 'Preparation Team 1', priority: 1, isCritical: true },
@@ -57,40 +45,8 @@ const POSITION_MAPS = {
 const EVENT_TYPE_VARIANTS = [
   {
     eventType: 'lords-supper-standard',
-    title: "Lord's Supper (Standard)",
-    positionMap: 'lords_supper_standard_8',
-    allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
-    assignmentRoles: ['deacon', 'staff'],
-    assigneeRoles: ['deacon', 'elder', 'usher'],
-    quickAddAssigneeRole: 'usher',
-    requiredGender: 'male',
-    scheduleDependencies: [
-      { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
-      { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
-      { eventType: 'lords-supper-cleanup', offsetMinutes: 60, uniquePer: 'slot' }
-    ],
-    isActive: true
-  },
-  {
-    eventType: 'lords-supper-compact',
-    title: "Lord's Supper (Compact)",
-    positionMap: 'lords_supper_compact_6',
-    allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
-    assignmentRoles: ['deacon', 'staff'],
-    assigneeRoles: ['deacon', 'elder', 'usher'],
-    quickAddAssigneeRole: 'usher',
-    requiredGender: 'male',
-    scheduleDependencies: [
-      { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
-      { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
-      { eventType: 'lords-supper-cleanup', offsetMinutes: 60, uniquePer: 'slot' }
-    ],
-    isActive: true
-  },
-  {
-    eventType: 'lords-supper-extended',
-    title: "Lord's Supper (Extended)",
-    positionMap: 'lords_supper_extended_10',
+    title: "Lord's Supper",
+    positionMap: 'lords_supper_standard_16',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
     assigneeRoles: ['deacon', 'elder', 'usher'],
@@ -107,10 +63,10 @@ const EVENT_TYPE_VARIANTS = [
     eventType: 'lords-supper-leadership',
     title: "Lord's Supper Leadership",
     positionMap: 'lords_supper_leadership_team',
-    allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
-    assignmentRoles: ['deacon', 'staff'],
-    assigneeRoles: ['deacon', 'elder', 'usher'],
-    quickAddAssigneeRole: 'usher',
+    allowedRoles: ['deacon', 'elder'],
+    assignmentRoles: ['deacon', 'staff', 'elder'],
+    assigneeRoles: ['deacon', 'elder'],
+    allowQuickAddAssignee: false,
     requiredGender: 'male',
     isSchedulable: false,
     isActive: true
@@ -119,10 +75,9 @@ const EVENT_TYPE_VARIANTS = [
     eventType: 'lords-supper-setup',
     title: "Lord's Supper Setup",
     positionMap: 'lords_supper_setup_team',
-    allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
+    allowedRoles: ['deacon'],
     assignmentRoles: ['deacon', 'staff'],
-    assigneeRoles: ['deacon', 'elder', 'usher'],
-    quickAddAssigneeRole: 'usher',
+    assigneeRoles: ['deacon'],
     allowQuickAddAssignee: false,
     isSchedulable: false,
     isActive: true
@@ -133,7 +88,7 @@ const EVENT_TYPE_VARIANTS = [
     positionMap: 'lords_supper_cleanup_team',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
-    assigneeRoles: ['deacon', 'elder', 'usher'],
+    assigneeRoles: ['deacon', 'usher'],
     quickAddAssigneeRole: 'usher',
     isSchedulable: false,
     isActive: true
@@ -153,6 +108,7 @@ function normalizePositionMap(positions) {
     .map((position, index) => ({
       positionId: String(position.positionId || `P${index + 1}`).trim(),
       label: String(position.label || `Position ${index + 1}`).trim(),
+      note: String(position.note || '').trim() || null,
       priority: Number.isFinite(Number(position.priority)) && Number(position.priority) > 0
         ? Number(position.priority)
         : index + 1,
