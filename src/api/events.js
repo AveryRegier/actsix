@@ -181,6 +181,7 @@ function normalizeEventTypeDocument(doc) {
   const defaultSeed = DEFAULT_EVENT_TYPE_DOCS.find(seed => seed.eventType === eventType);
   const fallbackAllowed = defaultSeed?.allowedRoles || [];
   const fallbackAssignment = defaultSeed?.assignmentRoles || [];
+  const fallbackAssigneeRoles = defaultSeed?.assigneeRoles || [];
   const fallbackPositions = defaultSeed?.defaultPositions || [];
   const fallbackDependencies = defaultSeed?.scheduleDependencies || [];
 
@@ -195,6 +196,7 @@ function normalizeEventTypeDocument(doc) {
     title: toStringOrNull(doc?.title) || defaultSeed?.title || 'Event',
     allowedRoles: normalizeRoleList(doc?.allowedRoles, fallbackAllowed),
     assignmentRoles: normalizeRoleList(doc?.assignmentRoles, fallbackAssignment),
+    assigneeRoles: normalizeRoleList(doc?.assigneeRoles, fallbackAssigneeRoles),
     defaultPositions,
     scheduleDependencies: normalizeScheduleDependencies(doc?.scheduleDependencies, fallbackDependencies),
     isActive: doc?.isActive !== false,
@@ -613,6 +615,102 @@ async function getOrCreateEventDefinition(eventType, requestedPositions = null, 
 function canManageOtherSignups(role, eventType, eventTypeConfigMap = null) {
   const config = getEventTypeConfig(eventType, eventTypeConfigMap);
   return Boolean(config && config.assignmentRoles.includes(role));
+}
+
+function getAssigneeRolesForEventType(eventType, eventTypeConfigMap = null) {
+  const config = getEventTypeConfig(eventType, eventTypeConfigMap);
+  const configured = normalizeRoleList(config?.assigneeRoles);
+  if (configured.length > 0) {
+    return configured;
+  }
+
+  const fallback = normalizeRoleList(config?.allowedRoles);
+  return fallback.length > 0 ? fallback : ['deacon', 'elder', 'usher'];
+}
+
+async function loadAssignmentCandidates(eventType, eventTypeConfigMap = null) {
+  const assigneeRoles = getAssigneeRolesForEventType(eventType, eventTypeConfigMap);
+  const members = await safeCollectionFind('members', { tags: { $in: assigneeRoles } });
+
+  const unique = new Map();
+  for (const member of members) {
+    if (!member?._id) {
+      continue;
+    }
+    if (Array.isArray(member.tags) && member.tags.includes('deceased')) {
+      continue;
+    }
+    unique.set(member._id, {
+      _id: member._id,
+      firstName: member.firstName || '',
+      lastName: member.lastName || '',
+      email: member.email || '',
+      tags: Array.isArray(member.tags) ? member.tags : []
+    });
+  }
+
+  const candidates = Array.from(unique.values()).sort((a, b) => {
+    const lastCompare = (a.lastName || '').localeCompare(b.lastName || '', undefined, { sensitivity: 'base' });
+    if (lastCompare !== 0) {
+      return lastCompare;
+    }
+    return (a.firstName || '').localeCompare(b.firstName || '', undefined, { sensitivity: 'base' });
+  });
+
+  return {
+    candidates,
+    assigneeRoles
+  };
+}
+
+function isLeadershipAssignmentPosition(position) {
+  if (!position) {
+    return false;
+  }
+
+  if (position.allowSelfSignup === false) {
+    return true;
+  }
+
+  const positionId = String(position.positionId || '').toLowerCase();
+  const label = String(position.label || '').toLowerCase();
+  return positionId.includes('assist') || label.includes('assistant');
+}
+
+async function memberHasLeadershipAccessOnServiceDate(memberId, serviceDate, eventTypeConfigMap = null) {
+  if (!memberId || !serviceDate) {
+    return false;
+  }
+
+  const dateEvents = await safeCollectionFind('event_calendar', { serviceDate });
+  for (const slot of dateEvents) {
+    const loaded = await loadCalendarAndDefinition(slot._id, eventTypeConfigMap);
+    if (!loaded) {
+      continue;
+    }
+
+    const signups = await loadSignupsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
+    const assignment = assignPositions(signups, loaded.eventDefinition.positions || []);
+    if (assignment.positions.some(position => isLeadershipAssignmentPosition(position) && position.assignedMemberId === memberId)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function canManageAssignments(c, loaded, eventTypeConfigMap = null) {
+  const role = toStringOrNull(c.req.role);
+  if (role && ['staff', 'admin'].includes(role)) {
+    return true;
+  }
+
+  const memberId = toStringOrNull(c.req.memberId);
+  if (!memberId) {
+    return false;
+  }
+
+  return memberHasLeadershipAccessOnServiceDate(memberId, loaded?.calendarSlot?.serviceDate, eventTypeConfigMap);
 }
 
 function buildCalendarView(calendarSlot, eventDefinition, signups) {
@@ -1063,11 +1161,17 @@ export default function registerEventRoutes(app) {
       }
 
       const config = getEventTypeConfig(loaded.eventDefinition.eventType, eventTypeConfigMap);
-      if (!config || !verifyRole(c, config.assignmentRoles)) {
+      if (!config) {
+        return c.json({ error: 'Unauthorized access' }, 403);
+      }
+
+      const canManage = await canManageAssignments(c, loaded, eventTypeConfigMap);
+      if (!canManage && !verifyRole(c, config.allowedRoles)) {
         return c.json({ error: 'Unauthorized access' }, 403);
       }
 
       const event = await rebuildAssignmentsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
+      const { candidates, assigneeRoles } = await loadAssignmentCandidates(loaded.eventDefinition.eventType, eventTypeConfigMap);
       const members = await safeCollectionFind('members');
       const memberById = new Map(members.map(member => [member._id, member]));
 
@@ -1091,12 +1195,176 @@ export default function registerEventRoutes(app) {
           ...event,
           positions: printableAssignments
         },
+        canManageAssignments: canManage,
+        assignmentCandidates: candidates,
+        assigneeRoles,
         openPositions: printableAssignments.filter(position => !position.assignedMember),
         filledPositions: printableAssignments.filter(position => position.assignedMember)
       });
     } catch (error) {
       getLogger().error(error, 'Error fetching event assignments:');
       return c.json({ error: 'Failed to fetch event assignments', message: error.message }, 500);
+    }
+  });
+
+  app.put('/api/events/:eventId/assignments', async (c) => {
+    try {
+      const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
+      const calendarId = c.req.param('eventId');
+      const loaded = await loadCalendarAndDefinition(calendarId, eventTypeConfigMap);
+      if (!loaded) {
+        return c.json({ error: 'Event not found' }, 404);
+      }
+
+      const canManage = await canManageAssignments(c, loaded, eventTypeConfigMap);
+      if (!canManage) {
+        return c.json({ error: 'Unauthorized access' }, 403);
+      }
+
+      const { candidates } = await loadAssignmentCandidates(loaded.eventDefinition.eventType, eventTypeConfigMap);
+      const allowedMemberIds = new Set(candidates.map(candidate => candidate._id));
+
+      const body = await c.req.json();
+      const updates = Array.isArray(body?.assignments) ? body.assignments : null;
+      if (!updates) {
+        return c.json({ error: 'Validation failed', message: 'assignments array is required' }, 400);
+      }
+
+      const normalizedPositions = normalizeEventPositions(loaded.eventDefinition.positions || []);
+      const positionIds = new Set(normalizedPositions.map(position => position.positionId));
+
+      const assignmentByPosition = new Map();
+      for (const update of updates) {
+        const positionId = toStringOrNull(update?.positionId);
+        if (!positionId || !positionIds.has(positionId)) {
+          return c.json({ error: 'Validation failed', message: `Unknown positionId: ${positionId || '(missing)'}` }, 400);
+        }
+
+        const memberId = toStringOrNull(update?.memberId);
+        if (memberId && !allowedMemberIds.has(memberId)) {
+          return c.json({ error: 'Validation failed', message: `Member is not eligible for assignment: ${memberId}` }, 400);
+        }
+
+        assignmentByPosition.set(positionId, memberId || null);
+      }
+
+      const now = new Date().toISOString();
+      for (const position of normalizedPositions) {
+        if (!assignmentByPosition.has(position.positionId)) {
+          continue;
+        }
+
+        const memberId = assignmentByPosition.get(position.positionId);
+        if (!memberId) {
+          const signups = await safeCollectionFind('event_signups', {
+            calendarId,
+            assignedPositionId: position.positionId
+          });
+          for (const signup of signups) {
+            await safeCollectionUpdate(
+              'event_signups',
+              { _id: signup._id },
+              {
+                $set: {
+                  assignedPositionId: null,
+                  updatedAt: now
+                }
+              }
+            );
+          }
+          continue;
+        }
+
+        let signup = await safeCollectionFindOne('event_signups', { calendarId, memberId });
+        if (!signup) {
+          signup = await safeCollectionFindOne('event_signups', { eventId: calendarId, memberId });
+        }
+
+        if (signup) {
+          await safeCollectionUpdate(
+            'event_signups',
+            { _id: signup._id },
+            {
+              $set: {
+                calendarId,
+                eventId: loaded.eventDefinition._id,
+                eventType: loaded.eventDefinition.eventType,
+                isAvailable: true,
+                unavailableReason: null,
+                assignedPositionId: position.positionId,
+                updatedAt: now
+              }
+            }
+          );
+        } else {
+          await safeCollectionInsert('event_signups', {
+            calendarId,
+            eventId: loaded.eventDefinition._id,
+            eventType: loaded.eventDefinition.eventType,
+            memberId,
+            positionId: null,
+            isAvailable: true,
+            unavailableReason: null,
+            assignedPositionId: position.positionId,
+            createdAt: now,
+            updatedAt: now
+          });
+        }
+
+        const otherAssigned = await safeCollectionFind('event_signups', {
+          calendarId,
+          assignedPositionId: position.positionId
+        });
+        for (const other of otherAssigned) {
+          if (other.memberId === memberId) {
+            continue;
+          }
+          await safeCollectionUpdate(
+            'event_signups',
+            { _id: other._id },
+            {
+              $set: {
+                assignedPositionId: null,
+                updatedAt: now
+              }
+            }
+          );
+        }
+      }
+
+      const event = await rebuildAssignmentsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
+      const members = await safeCollectionFind('members');
+      const memberById = new Map(members.map(member => [member._id, member]));
+
+      const positions = event.positions.map(position => {
+        const assignedMember = position.assignedMemberId ? memberById.get(position.assignedMemberId) : null;
+        return {
+          ...position,
+          assignedMember: assignedMember
+            ? {
+                _id: assignedMember._id,
+                firstName: assignedMember.firstName,
+                lastName: assignedMember.lastName,
+                email: assignedMember.email
+              }
+            : null
+        };
+      });
+
+      return c.json({
+        message: 'Assignments saved',
+        event: {
+          ...event,
+          positions
+        },
+        canManageAssignments: true,
+        assignmentCandidates: candidates,
+        openPositions: positions.filter(position => !position.assignedMember),
+        filledPositions: positions.filter(position => position.assignedMember)
+      });
+    } catch (error) {
+      getLogger().error(error, 'Error updating event assignments:');
+      return c.json({ error: 'Failed to update event assignments', message: error.message }, 500);
     }
   });
 }

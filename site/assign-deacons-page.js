@@ -1,4 +1,5 @@
 import { apiFetch } from './fetch-utils.js';
+import { createAssignmentPicker } from './assignment-picker-widget.js';
 
 // Get householdId from query params
 const urlParams = new URLSearchParams(window.location.search);
@@ -34,24 +35,23 @@ async function renderDeaconList() {
     const assignments = await fetchAssignments();
     const assignedIds = assignments.map(a => a.deaconMemberId);
     const container = document.getElementById('deaconList');
-    container.innerHTML = '';
-    deacons.forEach(deacon => {
-        const div = document.createElement('div');
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = deacon._id;
-        checkbox.checked = assignedIds.includes(deacon._id);
-        div.appendChild(checkbox);
-        div.appendChild(document.createTextNode(`${deacon.firstName} ${deacon.lastName}`));
-        container.appendChild(div);
+    const picker = createAssignmentPicker({
+        container,
+        options: deacons,
+        selectedValues: assignedIds,
+        multi: true,
+        searchPlaceholder: 'Search deacons by name...',
     });
+
+    return picker;
 }
 
-renderDeaconList();
+const deaconPickerPromise = renderDeaconList();
 
 // Assign selected deacons
 document.getElementById('assignBtn').onclick = async function() {
-    const checked = Array.from(document.querySelectorAll('#deaconList input:checked')).map(cb => cb.value);
+    const picker = await deaconPickerPromise;
+    const checked = picker.getValues();
     // Send assignments to API
     const res = await apiFetch(`api/households/${householdId}/assignments`, {
         method: 'POST',

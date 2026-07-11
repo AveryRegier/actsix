@@ -61,6 +61,7 @@ const EVENT_TYPE_VARIANTS = [
     positionMap: 'lords_supper_standard_8',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
+    assigneeRoles: ['deacon', 'elder', 'usher'],
     scheduleDependencies: [
       { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
       { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
@@ -74,6 +75,7 @@ const EVENT_TYPE_VARIANTS = [
     positionMap: 'lords_supper_compact_6',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
+    assigneeRoles: ['deacon', 'elder', 'usher'],
     scheduleDependencies: [
       { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
       { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
@@ -87,6 +89,7 @@ const EVENT_TYPE_VARIANTS = [
     positionMap: 'lords_supper_extended_10',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
+    assigneeRoles: ['deacon', 'elder', 'usher'],
     scheduleDependencies: [
       { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
       { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
@@ -100,6 +103,7 @@ const EVENT_TYPE_VARIANTS = [
     positionMap: 'lords_supper_leadership_team',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
+    assigneeRoles: ['deacon', 'elder', 'usher'],
     isSchedulable: false,
     isActive: true
   },
@@ -109,6 +113,7 @@ const EVENT_TYPE_VARIANTS = [
     positionMap: 'lords_supper_setup_team',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
+    assigneeRoles: ['deacon', 'elder', 'usher'],
     isSchedulable: false,
     isActive: true
   },
@@ -118,6 +123,7 @@ const EVENT_TYPE_VARIANTS = [
     positionMap: 'lords_supper_cleanup_team',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
+    assigneeRoles: ['deacon', 'elder', 'usher'],
     isSchedulable: false,
     isActive: true
   }
@@ -163,6 +169,7 @@ function buildEventTypeDoc(variant, nowIso) {
   const title = String(variant.title || eventType).trim();
   const allowedRoles = normalizeList(variant.allowedRoles);
   const assignmentRoles = normalizeList(variant.assignmentRoles);
+  const assigneeRoles = normalizeList(variant.assigneeRoles);
   const defaultPositions = normalizePositionMap(map);
 
   if (defaultPositions.length === 0) {
@@ -174,6 +181,7 @@ function buildEventTypeDoc(variant, nowIso) {
     title,
     allowedRoles,
     assignmentRoles,
+    assigneeRoles,
     defaultPositions,
     scheduleDependencies: Array.isArray(variant.scheduleDependencies)
       ? variant.scheduleDependencies
