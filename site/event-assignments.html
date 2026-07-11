@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Assignments</title>
+    <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="print.css" media="print">
+</head>
+<body>
+    <div class="container">
+        <div id="site-nav-container"></div>
+        <div class="header">
+            <h1 class="page-title-with-icon">
+                <span class="page-title-icon">📄</span>
+                Event Assignments
+            </h1>
+            <p class="subtitle">Printable view of filled and open positions for a scheduled event.</p>
+        </div>
+
+        <div id="pageMessage" class="api-status" style="display:none;"></div>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+            <button id="printAssignmentsBtn" type="button" class="btn">Print</button>
+            <a href="/sign-ups.html" class="btn" style="text-decoration:none; display:inline-flex; align-items:center;">Back to Sign Ups</a>
+        </div>
+
+        <div id="assignmentHeader" style="margin-bottom:20px;"></div>
+        <div id="openPositionsCallout" style="margin-bottom:20px;"></div>
+        <div id="assignmentsTableWrap"></div>
+    </div>
+
+    <script type="module" src="event-assignments-page.js"></script>
+</body>
+</html>

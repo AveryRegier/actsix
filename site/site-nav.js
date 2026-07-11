@@ -27,7 +27,9 @@ function hideCurrentPageNavLinks() {
   const navMap = {
     'deacon-quick-contact.html': '.deacon-link',
     'members.html': '.members-link',
-    'contact-summary.html': '.summary-link'
+    'contact-summary.html': '.summary-link',
+    'sign-ups.html': '.sign-ups-link',
+    'event-schedule.html': '.schedule-event-link'
   };
   Object.entries(navMap).forEach(([key, selector]) => {
     document.querySelectorAll(selector).forEach(el => {

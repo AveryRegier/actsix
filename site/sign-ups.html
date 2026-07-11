@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Ups</title>
+    <link rel="stylesheet" href="site.css">
+</head>
+<body>
+    <div class="container">
+        <div id="site-nav-container"></div>
+        <div class="header">
+            <h1 class="page-title-with-icon">
+                <span class="page-title-icon">✅</span>
+                Sign Ups
+            </h1>
+            <p class="subtitle">View upcoming services, mark your availability, and see when critical positions are filled.</p>
+        </div>
+
+        <div id="pageMessage" class="api-status" style="display:none;"></div>
+
+        <div>
+            <h2 style="margin-bottom:8px;">Upcoming Services</h2>
+            <p style="color:#666; margin-top:0;">Mark yourself available or unavailable for each scheduled event.</p>
+            <div id="eventsList" style="display:grid; gap:12px;"></div>
+        </div>
+
+    </div>
+    <script src="redirect-handler.js"></script>
+    <!--ASSIGNMENTS_ACCESS_SCRIPT-->
+    <script type="module" src="sign-ups-page.js"></script>
+</body>
+</html>

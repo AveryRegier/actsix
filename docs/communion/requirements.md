@@ -67,4 +67,7 @@ Communion will be called "Lord's Supper" everywhere in the app.
 It wil have its own section of the API.
 
 Sengo should have 'calendar', 'event', and 'sign-up' documents to track the data.
-Events should have positions in them.  The calendar would be date focussed and point to the event on that date/time.  The sign-up would need indexes for memberId and eventId.
+Events should represent event definitions (type + positions), not specific dates.
+Calendar entries should be date/time focused instances that point to an event definition.
+Sign-up entries should point to the calendar instance and a specific position in the related event definition.
+Sign-up documents should be queryable by memberId and eventId, and also by calendarId for per-service lookups.

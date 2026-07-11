@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Event</title>
+    <link rel="stylesheet" href="site.css">
+</head>
+<body>
+    <div class="container">
+        <div id="site-nav-container"></div>
+        <div class="header">
+            <h1 class="page-title-with-icon">
+                <span class="page-title-icon">🗓️</span>
+                Schedule Event
+            </h1>
+            <p class="subtitle">Choose the event type and service time to schedule.</p>
+        </div>
+
+        <div id="pageMessage" class="api-status" style="display:none;"></div>
+
+        <form id="eventScheduleForm">
+            <div style="display:grid; gap:16px;">
+                <label>
+                    <div><strong>Event Type</strong></div>
+                    <select id="eventType" name="eventType" required style="width:100%; padding:10px; box-sizing:border-box;">
+                        <option value="">Loading event types...</option>
+                    </select>
+                </label>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+                    <label>
+                        <div><strong>Service Date</strong></div>
+                        <input id="serviceDate" name="serviceDate" type="date" required style="width:100%; padding:10px; box-sizing:border-box;">
+                    </label>
+                    <label>
+                        <div><strong>Service Time</strong></div>
+                        <input id="serviceTime" name="serviceTime" type="time" required style="width:100%; padding:10px; box-sizing:border-box;">
+                    </label>
+                </div>
+
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <button id="saveEventBtn" type="submit" class="btn add-member-btn">Create Event</button>
+                    <a href="/sign-ups.html" class="btn" style="text-decoration:none; display:inline-flex; align-items:center;">Back to Sign Ups</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="redirect-handler.js"></script>
+    <script type="module" src="event-schedule-page.js"></script>
+</body>
+</html>

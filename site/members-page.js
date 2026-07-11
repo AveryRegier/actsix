@@ -1,17 +1,113 @@
 import { apiFetch } from './fetch-utils.js';
 
-// Load reusable navigation bar.
-document.addEventListener('DOMContentLoaded', async () => {
+const pendingNavLinkHtml = [];
+let shouldHideCurrentPageNavLinks = false;
+
+function applyBootstrapAddNavLink(html) {
+  let applied = false;
+  const desktopExtra = document.querySelector('.site-nav .nav-extra');
+  if (desktopExtra) {
+    desktopExtra.insertAdjacentHTML('beforeend', html);
+    applied = true;
+  }
+
+  const mobileExtra = document.querySelector('.site-nav #navMobileMenu .nav-extra');
+  if (mobileExtra) {
+    mobileExtra.insertAdjacentHTML('beforeend', html);
+    applied = true;
+  }
+
+  return applied;
+}
+
+function applyBootstrapHideCurrentPageNavLinks() {
+  let page = window.location.pathname.split('/').pop();
+  if (!page.endsWith('.html')) {
+    page += '.html';
+  }
+
+  const navMap = {
+    'deacon-quick-contact.html': '.deacon-link',
+    'members.html': '.members-link',
+    'contact-summary.html': '.summary-link',
+    'sign-ups.html': '.sign-ups-link',
+    'event-schedule.html': '.schedule-event-link'
+  };
+
+  Object.entries(navMap).forEach(([key, selector]) => {
+    document.querySelectorAll(selector).forEach((el) => {
+      el.style.display = (key === page) ? 'none' : '';
+    });
+  });
+}
+
+if (typeof window.goBack !== 'function') {
+  window.goBack = function goBackBootstrap() {
+    if (document.referrer) {
+      window.location.href = document.referrer;
+    } else {
+      window.location.href = 'index.html';
+    }
+  };
+}
+
+if (typeof window.addNavLink !== 'function') {
+  window.addNavLink = function addNavLinkBootstrap(html) {
+    if (!applyBootstrapAddNavLink(html)) {
+      pendingNavLinkHtml.push(html);
+    }
+  };
+}
+
+if (typeof window.hideCurrentPageNavLinks !== 'function') {
+  window.hideCurrentPageNavLinks = function hideCurrentPageNavLinksBootstrap() {
+    shouldHideCurrentPageNavLinks = true;
+    applyBootstrapHideCurrentPageNavLinks();
+  };
+}
+
+async function loadNav() {
   const navContainer = document.getElementById('site-nav-container');
-  if (navContainer) {
-    const navResp = await fetch('site-nav.html');
-    if (navResp.ok) {
-      navContainer.innerHTML = await navResp.text();
-      const script = document.createElement('script');
-      script.src = 'site-nav.js';
-      document.body.appendChild(script);
+  if (!navContainer) {
+    return;
+  }
+
+  const navResp = await fetch('site-nav.html');
+  if (!navResp.ok) {
+    return;
+  }
+
+  navContainer.innerHTML = await navResp.text();
+
+  await new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = 'site-nav.js';
+    script.onload = resolve;
+    script.onerror = resolve;
+    document.body.appendChild(script);
+  });
+
+  while (pendingNavLinkHtml.length > 0) {
+    const html = pendingNavLinkHtml.shift();
+    if (typeof window.addNavLink === 'function') {
+      window.addNavLink(html);
+    } else {
+      applyBootstrapAddNavLink(html);
     }
   }
+
+  if (shouldHideCurrentPageNavLinks) {
+    if (typeof window.hideCurrentPageNavLinks === 'function') {
+      window.hideCurrentPageNavLinks();
+    } else {
+      applyBootstrapHideCurrentPageNavLinks();
+    }
+  }
+}
+
+// Load reusable navigation bar.
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadNav();
 });
 
 let membersCache = [];

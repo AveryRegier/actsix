@@ -3,6 +3,7 @@ export const tags = [
     { name: 'deaconess', description: 'Deaconess', type: 'role' },
     { name: 'elder', description: 'Elder', type: 'role' },
     { name: 'staff', description: 'Staff', type: 'role' },
+    { name: 'usher', description: 'Usher', type: 'role' },
     { name: 'member', description: 'Member', type: 'situation' },
     { name: 'attender', description: 'Attender', type: 'situation' },
     { name: 'in-small-group', description: 'In Small Group', type: 'situation' },
