@@ -58,6 +58,13 @@ const POSITION_MAPS = {
     { positionId: 'CLEAN1', label: 'Cleanup Team 1', priority: 1, isCritical: true },
     { positionId: 'CLEAN2', label: 'Cleanup Team 2', priority: 2, isCritical: true },
     { positionId: 'CLEAN3', label: 'Cleanup Team 3', priority: 3, isCritical: false }
+  ],
+  baptism: [
+    { positionId: 'BAP-ASSIST', label: 'Baptism Assistant', priority: 1, isCritical: true },
+    { positionId: 'BAP-TRAINEE', label: 'Baptism Assistant Trainee', priority: 2, isCritical: false }
+  ],
+  baptism_cleanup: [
+    { positionId: 'TOWELS', label: 'Baptism Towels', priority: 1, isCritical: true }
   ]
 };
 
@@ -129,6 +136,29 @@ const EVENT_TYPE_VARIANTS = [
     assignmentRoles: ['deacon', 'staff'],
     assigneeRoles: ['deacon', 'usher'],
     quickAddAssigneeRole: 'usher',
+    isSchedulable: false,
+    isActive: true
+  },
+  {
+    eventType: 'baptism',
+    title: 'Baptism',
+    positionMap: 'baptism',
+    allowedRoles: ['deacon', 'staff', 'elder'],
+    assignmentRoles: ['deacon', 'staff'],
+    assigneeRoles: ['deacon'],
+    requiredGender: 'male',
+    scheduleDependencies: [
+        { eventType: 'baptism-cleanup', offsetMinutes: 180, uniquePer: 'day' }
+    ],
+    isActive: true
+  },
+  {
+    eventType: 'baptism-cleanup',
+    title: 'Baptism Cleanup',
+    positionMap: 'baptism_cleanup',
+    allowedRoles: ['deacon', 'staff', 'elder', 'deaconess'],
+    assignmentRoles: ['deacon', 'staff'],
+    assigneeRoles: ['deacon', 'deaconess'],
     isSchedulable: false,
     isActive: true
   }
