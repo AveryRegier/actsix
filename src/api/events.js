@@ -58,6 +58,22 @@ function normalizeRoleList(roles, fallback = []) {
   return values.length > 0 ? values : fallback;
 }
 
+function normalizeBinaryGender(value, fallback = 'male') {
+  const normalized = toStringOrNull(value)?.toLowerCase();
+  if (normalized === 'male' || normalized === 'female') {
+    return normalized;
+  }
+  return fallback;
+}
+
+function normalizeRequiredGender(value) {
+  const normalized = toStringOrNull(value)?.toLowerCase();
+  if (normalized === 'male' || normalized === 'female') {
+    return normalized;
+  }
+  return null;
+}
+
 function normalizeDependencyScope(value) {
   const scope = toStringOrNull(value);
   if (!scope) {
@@ -182,6 +198,9 @@ function normalizeEventTypeDocument(doc) {
   const fallbackAllowed = defaultSeed?.allowedRoles || [];
   const fallbackAssignment = defaultSeed?.assignmentRoles || [];
   const fallbackAssigneeRoles = defaultSeed?.assigneeRoles || [];
+  const fallbackQuickAddAssigneeRole = toStringOrNull(defaultSeed?.quickAddAssigneeRole);
+  const fallbackAllowQuickAddAssignee = defaultSeed?.allowQuickAddAssignee !== false;
+  const fallbackRequiredGender = normalizeRequiredGender(defaultSeed?.requiredGender);
   const fallbackPositions = defaultSeed?.defaultPositions || [];
   const fallbackDependencies = defaultSeed?.scheduleDependencies || [];
 
@@ -197,6 +216,11 @@ function normalizeEventTypeDocument(doc) {
     allowedRoles: normalizeRoleList(doc?.allowedRoles, fallbackAllowed),
     assignmentRoles: normalizeRoleList(doc?.assignmentRoles, fallbackAssignment),
     assigneeRoles: normalizeRoleList(doc?.assigneeRoles, fallbackAssigneeRoles),
+    quickAddAssigneeRole: toStringOrNull(doc?.quickAddAssigneeRole) || fallbackQuickAddAssigneeRole,
+    allowQuickAddAssignee: doc?.allowQuickAddAssignee !== undefined
+      ? normalizeBoolean(doc?.allowQuickAddAssignee, true)
+      : fallbackAllowQuickAddAssignee,
+    requiredGender: normalizeRequiredGender(doc?.requiredGender) || fallbackRequiredGender,
     defaultPositions,
     scheduleDependencies: normalizeScheduleDependencies(doc?.scheduleDependencies, fallbackDependencies),
     isActive: doc?.isActive !== false,
@@ -265,12 +289,27 @@ export function deriveEventStatusFromPositions(positions) {
 export function assignPositions(signups, positions) {
   const normalizedPositions = normalizeEventPositions(positions);
   const availableSignups = (Array.isArray(signups) ? signups : [])
-    .filter(signup => signup && signup.isAvailable && signup.memberId)
+    .filter(signup => signup && signup.isAvailable && signup.memberId && signup.assignmentOptOut !== true)
     .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
   const positionIds = new Set(normalizedPositions.map(position => position.positionId));
   const assignedByPosition = new Map();
   const assignedByMember = new Map();
+
+  // Explicit assignment from management UI should win over all other strategies.
+  for (const signup of availableSignups) {
+    const explicitPositionId = toStringOrNull(signup.assignedPositionId);
+    if (!explicitPositionId || !positionIds.has(explicitPositionId)) {
+      continue;
+    }
+
+    if (assignedByPosition.has(explicitPositionId) || assignedByMember.has(signup.memberId)) {
+      continue;
+    }
+
+    assignedByPosition.set(explicitPositionId, signup.memberId);
+    assignedByMember.set(signup.memberId, explicitPositionId);
+  }
 
   for (const signup of availableSignups) {
     const preferredPositionId = toStringOrNull(signup.positionId);
@@ -628,8 +667,23 @@ function getAssigneeRolesForEventType(eventType, eventTypeConfigMap = null) {
   return fallback.length > 0 ? fallback : ['deacon', 'elder', 'usher'];
 }
 
-async function loadAssignmentCandidates(eventType, eventTypeConfigMap = null) {
+function getQuickAddRoleForEventType(eventType, eventTypeConfigMap = null) {
+  const config = getEventTypeConfig(eventType, eventTypeConfigMap);
+  const quickAddRole = toStringOrNull(config?.quickAddAssigneeRole);
   const assigneeRoles = getAssigneeRolesForEventType(eventType, eventTypeConfigMap);
+  if (quickAddRole && assigneeRoles.includes(quickAddRole)) {
+    return quickAddRole;
+  }
+
+  return assigneeRoles[0] || 'usher';
+}
+
+async function loadAssignmentCandidates(eventType, eventTypeConfigMap = null) {
+  const config = getEventTypeConfig(eventType, eventTypeConfigMap);
+  const assigneeRoles = getAssigneeRolesForEventType(eventType, eventTypeConfigMap);
+  const quickAddAssigneeRole = getQuickAddRoleForEventType(eventType, eventTypeConfigMap);
+  const allowQuickAddAssignee = config?.allowQuickAddAssignee !== false;
+  const requiredGender = normalizeRequiredGender(config?.requiredGender);
   const members = await safeCollectionFind('members', { tags: { $in: assigneeRoles } });
 
   const unique = new Map();
@@ -638,6 +692,9 @@ async function loadAssignmentCandidates(eventType, eventTypeConfigMap = null) {
       continue;
     }
     if (Array.isArray(member.tags) && member.tags.includes('deceased')) {
+      continue;
+    }
+    if (requiredGender && normalizeRequiredGender(member.gender) !== requiredGender) {
       continue;
     }
     unique.set(member._id, {
@@ -659,7 +716,27 @@ async function loadAssignmentCandidates(eventType, eventTypeConfigMap = null) {
 
   return {
     candidates,
-    assigneeRoles
+    assigneeRoles,
+    quickAddAssigneeRole,
+    allowQuickAddAssignee,
+    requiredGender
+  };
+}
+
+function parseNameParts(fullName) {
+  const normalized = toStringOrNull(fullName);
+  if (!normalized) {
+    return null;
+  }
+
+  const parts = normalized.split(/\s+/).filter(Boolean);
+  if (parts.length < 2) {
+    return null;
+  }
+
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(' ')
   };
 }
 
@@ -1120,6 +1197,7 @@ export default function registerEventRoutes(app) {
               eventType: loaded.eventDefinition.eventType,
               positionId: requestedPositionId,
               isAvailable,
+              assignmentOptOut: false,
               unavailableReason: toStringOrNull(body.unavailableReason),
               updatedAt: now
             }
@@ -1133,6 +1211,7 @@ export default function registerEventRoutes(app) {
           memberId,
           positionId: requestedPositionId,
           isAvailable,
+          assignmentOptOut: false,
           unavailableReason: toStringOrNull(body.unavailableReason),
           assignedPositionId: null,
           createdAt: now,
@@ -1171,7 +1250,7 @@ export default function registerEventRoutes(app) {
       }
 
       const event = await rebuildAssignmentsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
-      const { candidates, assigneeRoles } = await loadAssignmentCandidates(loaded.eventDefinition.eventType, eventTypeConfigMap);
+      const { candidates, assigneeRoles, quickAddAssigneeRole, allowQuickAddAssignee, requiredGender } = await loadAssignmentCandidates(loaded.eventDefinition.eventType, eventTypeConfigMap);
       const members = await safeCollectionFind('members');
       const memberById = new Map(members.map(member => [member._id, member]));
 
@@ -1198,6 +1277,9 @@ export default function registerEventRoutes(app) {
         canManageAssignments: canManage,
         assignmentCandidates: candidates,
         assigneeRoles,
+        quickAddAssigneeRole,
+        allowQuickAddAssignee,
+        requiredGender,
         openPositions: printableAssignments.filter(position => !position.assignedMember),
         filledPositions: printableAssignments.filter(position => position.assignedMember)
       });
@@ -1221,7 +1303,7 @@ export default function registerEventRoutes(app) {
         return c.json({ error: 'Unauthorized access' }, 403);
       }
 
-      const { candidates } = await loadAssignmentCandidates(loaded.eventDefinition.eventType, eventTypeConfigMap);
+      const { candidates, assigneeRoles, quickAddAssigneeRole, allowQuickAddAssignee, requiredGender } = await loadAssignmentCandidates(loaded.eventDefinition.eventType, eventTypeConfigMap);
       const allowedMemberIds = new Set(candidates.map(candidate => candidate._id));
 
       const body = await c.req.json();
@@ -1256,17 +1338,35 @@ export default function registerEventRoutes(app) {
 
         const memberId = assignmentByPosition.get(position.positionId);
         if (!memberId) {
-          const signups = await safeCollectionFind('event_signups', {
+          const signupsByCalendar = await safeCollectionFind('event_signups', {
             calendarId,
             assignedPositionId: position.positionId
           });
+          const signupsByLegacyEventId = await safeCollectionFind('event_signups', {
+            eventId: calendarId,
+            assignedPositionId: position.positionId
+          });
+
+          const dedupedSignups = new Map();
+          [...signupsByCalendar, ...signupsByLegacyEventId].forEach(signup => {
+            if (signup?._id) {
+              dedupedSignups.set(signup._id, signup);
+            }
+          });
+
+          const signups = Array.from(dedupedSignups.values());
           for (const signup of signups) {
             await safeCollectionUpdate(
               'event_signups',
               { _id: signup._id },
               {
                 $set: {
+                  calendarId,
+                  eventId: loaded.eventDefinition._id,
+                  eventType: loaded.eventDefinition.eventType,
+                  isAvailable: true,
                   assignedPositionId: null,
+                  assignmentOptOut: true,
                   updatedAt: now
                 }
               }
@@ -1290,6 +1390,7 @@ export default function registerEventRoutes(app) {
                 eventId: loaded.eventDefinition._id,
                 eventType: loaded.eventDefinition.eventType,
                 isAvailable: true,
+                assignmentOptOut: false,
                 unavailableReason: null,
                 assignedPositionId: position.positionId,
                 updatedAt: now
@@ -1304,6 +1405,7 @@ export default function registerEventRoutes(app) {
             memberId,
             positionId: null,
             isAvailable: true,
+            assignmentOptOut: false,
             unavailableReason: null,
             assignedPositionId: position.positionId,
             createdAt: now,
@@ -1325,6 +1427,7 @@ export default function registerEventRoutes(app) {
             {
               $set: {
                 assignedPositionId: null,
+                  assignmentOptOut: true,
                 updatedAt: now
               }
             }
@@ -1359,12 +1462,103 @@ export default function registerEventRoutes(app) {
         },
         canManageAssignments: true,
         assignmentCandidates: candidates,
+        assigneeRoles,
+        quickAddAssigneeRole,
+        allowQuickAddAssignee,
+        requiredGender,
         openPositions: positions.filter(position => !position.assignedMember),
         filledPositions: positions.filter(position => position.assignedMember)
       });
     } catch (error) {
       getLogger().error(error, 'Error updating event assignments:');
       return c.json({ error: 'Failed to update event assignments', message: error.message }, 500);
+    }
+  });
+
+  app.post('/api/events/:eventId/assignment-candidates', async (c) => {
+    try {
+      const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
+      const calendarId = c.req.param('eventId');
+      const loaded = await loadCalendarAndDefinition(calendarId, eventTypeConfigMap);
+      if (!loaded) {
+        return c.json({ error: 'Event not found' }, 404);
+      }
+
+      const canManage = await canManageAssignments(c, loaded, eventTypeConfigMap);
+      if (!canManage) {
+        return c.json({ error: 'Unauthorized access' }, 403);
+      }
+
+      const body = await c.req.json();
+      let firstName = toStringOrNull(body?.firstName);
+      let lastName = toStringOrNull(body?.lastName);
+
+      if (!firstName || !lastName) {
+        const parsed = parseNameParts(body?.fullName);
+        if (parsed) {
+          firstName = firstName || parsed.firstName;
+          lastName = lastName || parsed.lastName;
+        }
+      }
+
+      if (!firstName || !lastName) {
+        return c.json({ error: 'Validation failed', message: 'firstName and lastName are required (or provide fullName with first and last name)' }, 400);
+      }
+
+      const { assigneeRoles, quickAddAssigneeRole, allowQuickAddAssignee, requiredGender } = await loadAssignmentCandidates(loaded.eventDefinition.eventType, eventTypeConfigMap);
+      if (!allowQuickAddAssignee) {
+        return c.json({ error: 'Validation failed', message: 'Quick add is disabled for this event type' }, 400);
+      }
+
+      const requestedRole = toStringOrNull(body?.role) || quickAddAssigneeRole;
+      const roleTag = assigneeRoles.includes(requestedRole) ? requestedRole : quickAddAssigneeRole;
+      if (!roleTag) {
+        return c.json({ error: 'Validation failed', message: 'No eligible assignee role is configured for this event type' }, 400);
+      }
+
+      const requestedGender = normalizeRequiredGender(body?.gender);
+      const memberGender = requiredGender || requestedGender;
+      if (!memberGender) {
+        return c.json({ error: 'Validation failed', message: 'gender is required when event type does not specify requiredGender' }, 400);
+      }
+
+      const now = new Date().toISOString();
+      const householdResult = await safeCollectionInsert('households', {
+        lastName,
+        createdAt: now,
+        updatedAt: now
+      });
+      const householdId = householdResult.insertedId?.toString();
+
+      const memberDoc = {
+        firstName,
+        lastName,
+        relationship: 'other',
+        gender: normalizeBinaryGender(memberGender, 'male'),
+        householdId,
+        tags: [roleTag],
+        createdAt: now,
+        updatedAt: now
+      };
+
+      const memberResult = await safeCollectionInsert('members', memberDoc);
+      const memberId = memberResult.insertedId?.toString();
+
+      return c.json({
+        message: 'Assignment candidate created',
+        candidate: {
+          _id: memberId,
+          firstName,
+          lastName,
+          email: '',
+          tags: [roleTag],
+          gender: memberGender,
+          householdId
+        }
+      });
+    } catch (error) {
+      getLogger().error(error, 'Error creating assignment candidate:');
+      return c.json({ error: 'Failed to create assignment candidate', message: error.message }, 500);
     }
   });
 }

@@ -62,6 +62,8 @@ const EVENT_TYPE_VARIANTS = [
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
     assigneeRoles: ['deacon', 'elder', 'usher'],
+    quickAddAssigneeRole: 'usher',
+    requiredGender: 'male',
     scheduleDependencies: [
       { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
       { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
@@ -76,6 +78,8 @@ const EVENT_TYPE_VARIANTS = [
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
     assigneeRoles: ['deacon', 'elder', 'usher'],
+    quickAddAssigneeRole: 'usher',
+    requiredGender: 'male',
     scheduleDependencies: [
       { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
       { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
@@ -90,6 +94,8 @@ const EVENT_TYPE_VARIANTS = [
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
     assigneeRoles: ['deacon', 'elder', 'usher'],
+    quickAddAssigneeRole: 'usher',
+    requiredGender: 'male',
     scheduleDependencies: [
       { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
       { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
@@ -104,6 +110,8 @@ const EVENT_TYPE_VARIANTS = [
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
     assigneeRoles: ['deacon', 'elder', 'usher'],
+    quickAddAssigneeRole: 'usher',
+    requiredGender: 'male',
     isSchedulable: false,
     isActive: true
   },
@@ -114,6 +122,8 @@ const EVENT_TYPE_VARIANTS = [
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
     assigneeRoles: ['deacon', 'elder', 'usher'],
+    quickAddAssigneeRole: 'usher',
+    allowQuickAddAssignee: false,
     isSchedulable: false,
     isActive: true
   },
@@ -124,6 +134,7 @@ const EVENT_TYPE_VARIANTS = [
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
     assigneeRoles: ['deacon', 'elder', 'usher'],
+    quickAddAssigneeRole: 'usher',
     isSchedulable: false,
     isActive: true
   }
@@ -170,6 +181,11 @@ function buildEventTypeDoc(variant, nowIso) {
   const allowedRoles = normalizeList(variant.allowedRoles);
   const assignmentRoles = normalizeList(variant.assignmentRoles);
   const assigneeRoles = normalizeList(variant.assigneeRoles);
+  const quickAddAssigneeRole = String(variant.quickAddAssigneeRole || '').trim() || null;
+  const allowQuickAddAssignee = variant.allowQuickAddAssignee !== false;
+  const requiredGender = ['male', 'female'].includes(String(variant.requiredGender || '').trim().toLowerCase())
+    ? String(variant.requiredGender || '').trim().toLowerCase()
+    : null;
   const defaultPositions = normalizePositionMap(map);
 
   if (defaultPositions.length === 0) {
@@ -182,6 +198,9 @@ function buildEventTypeDoc(variant, nowIso) {
     allowedRoles,
     assignmentRoles,
     assigneeRoles,
+    quickAddAssigneeRole,
+    allowQuickAddAssignee,
+    requiredGender,
     defaultPositions,
     scheduleDependencies: Array.isArray(variant.scheduleDependencies)
       ? variant.scheduleDependencies

@@ -11,6 +11,9 @@ const openPositionsCallout = document.getElementById('openPositionsCallout');
 const assignmentsTableWrap = document.getElementById('assignmentsTableWrap');
 
 const assignmentCandidatesByEvent = new Map();
+const quickAddRoleByEvent = new Map();
+const allowQuickAddByEvent = new Map();
+const requiredGenderByEvent = new Map();
 let activeModalContext = null;
 let assignmentModalPicker = null;
 let assignmentModalElements = null;
@@ -235,12 +238,42 @@ function openAssignmentModal(context) {
   modal.overlay.focus();
 
   const candidates = assignmentCandidatesByEvent.get(context.eventId) || [];
+  const quickAddRole = quickAddRoleByEvent.get(context.eventId) || '';
+  const allowQuickAdd = allowQuickAddByEvent.get(context.eventId) === true;
+  const requiredGender = requiredGenderByEvent.get(context.eventId) || '';
   assignmentModalPicker = createAssignmentPicker({
     container: modal.pickerContainer,
     options: candidates,
     selectedValues: context.assignedMemberId ? [context.assignedMemberId] : [],
     multi: false,
-    searchPlaceholder: 'Type to filter names...'
+    searchPlaceholder: 'Type to filter names...',
+    allowQuickAdd: allowQuickAdd && Boolean(quickAddRole),
+    quickAddLabel: 'Add new member',
+    quickAddRoleLabel: quickAddRole,
+    quickAddRequiredGender: requiredGender,
+    onQuickAdd: async ({ fullName, gender }) => {
+      const response = await apiFetch(`/api/events/${encodeURIComponent(context.eventId)}/assignment-candidates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName,
+          role: quickAddRole,
+          gender
+        })
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.candidate?._id) {
+        showMessage(body.message || 'Failed to add member.', true);
+        return null;
+      }
+
+      const currentCandidates = assignmentCandidatesByEvent.get(context.eventId) || [];
+      const nextCandidates = [...currentCandidates.filter(candidate => candidate._id !== body.candidate._id), body.candidate];
+      assignmentCandidatesByEvent.set(context.eventId, nextCandidates);
+      showMessage(`Added ${body.candidate.firstName} ${body.candidate.lastName} as ${quickAddRole}.`, false);
+      return body.candidate;
+    }
   });
 }
 
@@ -388,7 +421,13 @@ async function loadAssignmentsForEvent(calendarEventId) {
   const openPositions = body.openPositions || [];
   const canManage = body.canManageAssignments === true;
   const assignmentCandidates = Array.isArray(body.assignmentCandidates) ? body.assignmentCandidates : [];
+  const quickAddAssigneeRole = String(body.quickAddAssigneeRole || '').trim();
+  const allowQuickAddAssignee = body.allowQuickAddAssignee === true;
+  const requiredGender = String(body.requiredGender || '').trim().toLowerCase();
   assignmentCandidatesByEvent.set(event._id, assignmentCandidates);
+  quickAddRoleByEvent.set(event._id, quickAddAssigneeRole);
+  allowQuickAddByEvent.set(event._id, allowQuickAddAssignee);
+  requiredGenderByEvent.set(event._id, requiredGender);
 
   assignmentHeader.innerHTML = `
     <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
@@ -463,6 +502,9 @@ async function loadAssignmentsForDate(date) {
   for (const body of validAssignments) {
     if (body.canManageAssignments === true) {
       assignmentCandidatesByEvent.set(body.event._id, Array.isArray(body.assignmentCandidates) ? body.assignmentCandidates : []);
+      quickAddRoleByEvent.set(body.event._id, String(body.quickAddAssigneeRole || '').trim());
+      allowQuickAddByEvent.set(body.event._id, body.allowQuickAddAssignee === true);
+      requiredGenderByEvent.set(body.event._id, String(body.requiredGender || '').trim().toLowerCase());
     }
   }
 

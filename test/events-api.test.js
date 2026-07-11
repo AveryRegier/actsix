@@ -1,19 +1,23 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+const initialMembers = [
+  { _id: 'member-1', firstName: 'Ada', lastName: 'One', email: 'ada@example.com', gender: 'male', tags: ['deacon'] },
+  { _id: 'member-2', firstName: 'Ben', lastName: 'Two', email: 'ben@example.com', gender: 'female', tags: ['deacon'] }
+];
+
 const mockState = {
   event_types: [],
   events: [],
   event_calendar: [],
   event_signups: [],
-  members: [
-    { _id: 'member-1', firstName: 'Ada', lastName: 'One', email: 'ada@example.com' },
-    { _id: 'member-2', firstName: 'Ben', lastName: 'Two', email: 'ben@example.com' }
-  ],
+  households: [],
+  members: clone(initialMembers),
   counters: {
     event_types: 1,
     events: 1,
     event_calendar: 1,
-    event_signups: 1
+    event_signups: 1,
+    households: 1
   }
 };
 
@@ -78,6 +82,9 @@ describe('events API routes', () => {
         title: 'Service A',
         allowedRoles: ['deacon', 'staff', 'elder', 'helper'],
         assignmentRoles: ['deacon', 'staff'],
+        assigneeRoles: ['deacon', 'elder', 'usher'],
+        quickAddAssigneeRole: 'usher',
+        requiredGender: 'male',
         scheduleDependencies: [
           { eventType: 'service-leadership', offsetMinutes: -30, uniquePer: 'day' },
           { eventType: 'service-setup', offsetMinutes: -60, uniquePer: 'day' },
@@ -95,6 +102,9 @@ describe('events API routes', () => {
         title: 'Service Leadership',
         allowedRoles: ['deacon', 'staff', 'elder', 'helper'],
         assignmentRoles: ['deacon', 'staff'],
+        assigneeRoles: ['deacon', 'elder', 'usher'],
+        quickAddAssigneeRole: 'usher',
+        requiredGender: 'male',
         defaultPositions: [
           { positionId: 'LEADER', label: 'Event Leader', priority: 1, isCritical: true, allowSelfSignup: false },
           { positionId: 'ASSIST', label: 'Event Assistant', priority: 2, isCritical: false }
@@ -108,6 +118,9 @@ describe('events API routes', () => {
         title: 'Service Setup',
         allowedRoles: ['deacon', 'staff', 'elder', 'helper'],
         assignmentRoles: ['deacon', 'staff'],
+        assigneeRoles: ['deacon', 'elder', 'usher'],
+        quickAddAssigneeRole: 'usher',
+        requiredGender: 'male',
         defaultPositions: [
           { positionId: 'S1', label: 'Setup 1', priority: 1, isCritical: true }
         ],
@@ -120,6 +133,9 @@ describe('events API routes', () => {
         title: 'Service Cleanup',
         allowedRoles: ['deacon', 'staff', 'elder', 'helper'],
         assignmentRoles: ['deacon', 'staff'],
+        assigneeRoles: ['deacon', 'elder', 'usher'],
+        quickAddAssigneeRole: 'usher',
+        requiredGender: 'male',
         defaultPositions: [
           { positionId: 'C1', label: 'Cleanup 1', priority: 1, isCritical: true }
         ],
@@ -130,10 +146,13 @@ describe('events API routes', () => {
     mockState.events = [];
     mockState.event_calendar = [];
     mockState.event_signups = [];
+    mockState.households = [];
+    mockState.members = clone(initialMembers);
     mockState.counters.event_types = 5;
     mockState.counters.events = 1;
     mockState.counters.event_calendar = 1;
     mockState.counters.event_signups = 1;
+    mockState.counters.households = 1;
     process.env.GENERATION_API_KEY = 'test-generation-key';
   });
 
@@ -325,5 +344,187 @@ describe('events API routes', () => {
     const serviceASignups = mockState.event_signups.filter(signup => signup.eventType === 'service-a');
     expect(serviceASignups).toHaveLength(1);
     expect(serviceASignups[0].assignedPositionId).toBe('P1');
+  });
+
+  test('POST /api/events/:id/assignment-candidates creates a member and household', async () => {
+    const { createApp } = await import('../src/api.js');
+    const app = createApp();
+
+    const createResponse = await app.request('/api/events', {
+      method: 'POST',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        eventType: 'service-a',
+        serviceDate: '2026-06-07',
+        serviceTime: '08:30'
+      })
+    });
+
+    const created = await createResponse.json();
+    const eventId = created.id;
+
+    const response = await app.request(`/api/events/${eventId}/assignment-candidates`, {
+      method: 'POST',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fullName: 'New Usher',
+        gender: 'female'
+      })
+    });
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.candidate.firstName).toBe('New');
+    expect(body.candidate.lastName).toBe('Usher');
+    expect(body.candidate.tags).toContain('usher');
+    expect(body.candidate.gender).toBe('male');
+    expect(body.candidate.householdId).toBeTruthy();
+    expect(mockState.households).toHaveLength(1);
+    expect(mockState.members.some(member => member.firstName === 'New' && member.lastName === 'Usher')).toBe(true);
+  });
+
+  test('GET /api/events/:id/assignments only returns candidates matching requiredGender', async () => {
+    const { createApp } = await import('../src/api.js');
+    const app = createApp();
+
+    const createResponse = await app.request('/api/events', {
+      method: 'POST',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        eventType: 'service-a',
+        serviceDate: '2026-06-07',
+        serviceTime: '08:30'
+      })
+    });
+
+    const created = await createResponse.json();
+    const response = await app.request(`/api/events/${created.id}/assignments`, {
+      headers: { 'x-api-key': 'test-generation-key' }
+    });
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    const candidateIds = (body.assignmentCandidates || []).map(candidate => candidate._id);
+    expect(candidateIds).toContain('member-1');
+    expect(candidateIds).not.toContain('member-2');
+    expect(body.requiredGender).toBe('male');
+  });
+
+  test('PUT /api/events/:id/assignments keeps member on explicitly selected position', async () => {
+    const { createApp } = await import('../src/api.js');
+    const app = createApp();
+
+    const createResponse = await app.request('/api/events', {
+      method: 'POST',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        eventType: 'service-a',
+        serviceDate: '2026-06-07',
+        serviceTime: '08:30'
+      })
+    });
+
+    const created = await createResponse.json();
+    const eventId = created.id;
+
+    const assignResponse = await app.request(`/api/events/${eventId}/assignments`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        assignments: [
+          {
+            positionId: 'P2',
+            memberId: 'member-1'
+          }
+        ]
+      })
+    });
+
+    expect(assignResponse.status).toBe(200);
+    const body = await assignResponse.json();
+    const p2 = (body.event.positions || []).find(position => position.positionId === 'P2');
+    const p1 = (body.event.positions || []).find(position => position.positionId === 'P1');
+
+    expect(p2?.assignedMember?._id).toBe('member-1');
+    expect(p1?.assignedMember?._id).not.toBe('member-1');
+  });
+
+  test('PUT /api/events/:id/assignments clear keeps position open after reload', async () => {
+    const { createApp } = await import('../src/api.js');
+    const app = createApp();
+
+    const createResponse = await app.request('/api/events', {
+      method: 'POST',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        eventType: 'service-a',
+        serviceDate: '2026-06-07',
+        serviceTime: '08:30'
+      })
+    });
+
+    const created = await createResponse.json();
+    const eventId = created.id;
+
+    await app.request(`/api/events/${eventId}/assignments`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        assignments: [
+          {
+            positionId: 'P2',
+            memberId: 'member-1'
+          }
+        ]
+      })
+    });
+
+    const clearResponse = await app.request(`/api/events/${eventId}/assignments`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        assignments: [
+          {
+            positionId: 'P2',
+            memberId: null
+          }
+        ]
+      })
+    });
+    expect(clearResponse.status).toBe(200);
+
+    const reloadResponse = await app.request(`/api/events/${eventId}/assignments`, {
+      headers: { 'x-api-key': 'test-generation-key' }
+    });
+    expect(reloadResponse.status).toBe(200);
+
+    const body = await reloadResponse.json();
+    const p2 = (body.event.positions || []).find(position => position.positionId === 'P2');
+    expect(p2?.assignedMember).toBeNull();
+    expect((body.event.positions || []).some(position => position.assignedMember?._id === 'member-1')).toBe(false);
   });
 });

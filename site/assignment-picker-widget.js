@@ -28,7 +28,12 @@ export function createAssignmentPicker({
   selectedValues = [],
   multi = true,
   searchPlaceholder = 'Type to filter names...',
-  onChange
+  onChange,
+  allowQuickAdd = false,
+  quickAddLabel = 'Add new member',
+  quickAddRoleLabel = '',
+  quickAddRequiredGender = '',
+  onQuickAdd
 }) {
   if (!container) {
     return {
@@ -37,7 +42,7 @@ export function createAssignmentPicker({
     };
   }
 
-  const optionList = Array.isArray(options) ? options : [];
+  const optionList = Array.isArray(options) ? [...options] : [];
   const normalizedSelected = new Set((Array.isArray(selectedValues) ? selectedValues : [selectedValues]).filter(Boolean));
   const radioGroupName = `assignment-picker-${Math.random().toString(36).slice(2)}`;
 
@@ -65,6 +70,74 @@ export function createAssignmentPicker({
   list.style.border = '1px solid #e3ecef';
   list.style.borderRadius = '6px';
   list.style.padding = '6px';
+
+  const quickAddWrap = document.createElement('div');
+  quickAddWrap.style.marginTop = '10px';
+
+  const quickAddToggle = document.createElement('button');
+  quickAddToggle.type = 'button';
+  quickAddToggle.className = 'btn';
+  quickAddToggle.textContent = quickAddLabel;
+
+  const quickAddForm = document.createElement('div');
+  quickAddForm.style.display = 'none';
+  quickAddForm.style.marginTop = '8px';
+  quickAddForm.style.padding = '8px';
+  quickAddForm.style.border = '1px solid #e3ecef';
+  quickAddForm.style.borderRadius = '6px';
+  quickAddForm.style.background = '#f8fbfc';
+
+  const quickAddHint = document.createElement('div');
+  quickAddHint.style.fontSize = '0.85em';
+  quickAddHint.style.color = '#426671';
+  quickAddHint.style.marginBottom = '6px';
+  const normalizedRequiredGender = String(quickAddRequiredGender || '').trim().toLowerCase();
+  const hasRequiredGender = normalizedRequiredGender === 'male' || normalizedRequiredGender === 'female';
+  quickAddHint.textContent = hasRequiredGender
+    ? `New member will be tagged as ${quickAddRoleLabel || 'participant'} and gender will be ${normalizedRequiredGender}.`
+    : (quickAddRoleLabel ? `New member will be tagged as ${quickAddRoleLabel}.` : 'Provide first and last name.');
+
+  const quickAddName = document.createElement('input');
+  quickAddName.type = 'text';
+  quickAddName.className = 'input';
+  quickAddName.placeholder = 'First Last';
+  quickAddName.style.width = '100%';
+  quickAddName.style.marginBottom = '8px';
+
+  const quickAddGender = document.createElement('select');
+  quickAddGender.className = 'input';
+  quickAddGender.style.width = '100%';
+  quickAddGender.style.marginBottom = '8px';
+  quickAddGender.innerHTML = `
+    <option value="">Select gender</option>
+    <option value="male">Male</option>
+    <option value="female">Female</option>
+  `;
+  quickAddGender.style.display = hasRequiredGender ? 'none' : 'block';
+
+  const quickAddActions = document.createElement('div');
+  quickAddActions.style.display = 'flex';
+  quickAddActions.style.gap = '8px';
+  quickAddActions.style.justifyContent = 'flex-end';
+
+  const quickAddCancel = document.createElement('button');
+  quickAddCancel.type = 'button';
+  quickAddCancel.className = 'btn';
+  quickAddCancel.textContent = 'Cancel';
+
+  const quickAddSave = document.createElement('button');
+  quickAddSave.type = 'button';
+  quickAddSave.className = 'btn';
+  quickAddSave.textContent = 'Add Member';
+
+  quickAddActions.appendChild(quickAddCancel);
+  quickAddActions.appendChild(quickAddSave);
+  quickAddForm.appendChild(quickAddHint);
+  quickAddForm.appendChild(quickAddName);
+  quickAddForm.appendChild(quickAddGender);
+  quickAddForm.appendChild(quickAddActions);
+  quickAddWrap.appendChild(quickAddToggle);
+  quickAddWrap.appendChild(quickAddForm);
 
   function getSelectedIds() {
     return Array.from(normalizedSelected);
@@ -147,17 +220,95 @@ export function createAssignmentPicker({
     }
   }
 
+  function upsertOption(option) {
+    if (!option?._id) {
+      return;
+    }
+
+    const index = optionList.findIndex(existing => existing._id === option._id);
+    if (index >= 0) {
+      optionList[index] = option;
+    } else {
+      optionList.push(option);
+    }
+
+    optionList.sort((a, b) => {
+      const lastCompare = String(a.lastName || '').localeCompare(String(b.lastName || ''), undefined, { sensitivity: 'base' });
+      if (lastCompare !== 0) {
+        return lastCompare;
+      }
+      return String(a.firstName || '').localeCompare(String(b.firstName || ''), undefined, { sensitivity: 'base' });
+    });
+  }
+
   search.addEventListener('input', renderRows);
 
   root.appendChild(search);
   root.appendChild(selectedInfo);
   root.appendChild(list);
+  if (allowQuickAdd && typeof onQuickAdd === 'function') {
+    root.appendChild(quickAddWrap);
+  }
 
   container.innerHTML = '';
   container.appendChild(root);
 
   updateSelectedLabel();
   renderRows();
+
+  quickAddToggle.addEventListener('click', () => {
+    const open = quickAddForm.style.display !== 'none';
+    quickAddForm.style.display = open ? 'none' : 'block';
+    if (!open) {
+      quickAddName.focus();
+    }
+  });
+
+  quickAddCancel.addEventListener('click', () => {
+    quickAddForm.style.display = 'none';
+    quickAddName.value = '';
+    quickAddGender.value = '';
+  });
+
+  quickAddSave.addEventListener('click', async () => {
+    if (!allowQuickAdd || typeof onQuickAdd !== 'function') {
+      return;
+    }
+
+    const fullName = String(quickAddName.value || '').trim();
+    if (!fullName) {
+      return;
+    }
+
+    const selectedGender = hasRequiredGender ? normalizedRequiredGender : String(quickAddGender.value || '').trim().toLowerCase();
+    if (!selectedGender) {
+      return;
+    }
+
+    quickAddSave.disabled = true;
+    quickAddSave.textContent = 'Adding...';
+    try {
+      const created = await onQuickAdd({ fullName, gender: selectedGender });
+      if (created?._id) {
+        upsertOption(created);
+        if (!multi) {
+          normalizedSelected.clear();
+        }
+        normalizedSelected.add(created._id);
+        quickAddName.value = '';
+        quickAddGender.value = '';
+        quickAddForm.style.display = 'none';
+        updateSelectedLabel();
+        renderRows();
+        if (typeof onChange === 'function') {
+          onChange(getSelectedIds());
+        }
+      }
+    } finally {
+      quickAddSave.disabled = false;
+      quickAddSave.textContent = 'Add Member';
+    }
+  });
 
   return {
     getValues: getSelectedIds,
@@ -170,6 +321,10 @@ export function createAssignmentPicker({
       const source = Array.isArray(ids) ? ids : [ids];
       source.filter(Boolean).forEach(id => normalizedSelected.add(id));
       updateSelectedLabel();
+      renderRows();
+    },
+    addOption: (option) => {
+      upsertOption(option);
       renderRows();
     }
   };
