@@ -22,6 +22,29 @@ const POSITION_MAPS = {
     { positionId: '15-BR', label: 'Aisle 6 Back Right', priority: 15, isCritical: true },
     { positionId: '16-BFR', label: 'Aisle 7 Back Far Right', priority: 16, isCritical: false }
   ],
+  lords_supper_full_21: [
+    { positionId: '1-FFL', label: 'Aisle 1 Front Far Left', priority: 1, isCritical: true },
+    { positionId: '2-FL-A', label: 'Aisle 2 Front Left (A)',  priority: 2, isCritical: true },
+    { positionId: '2-FL-B', label: 'Aisle 2 Front Left (B)',  priority: 3, isCritical: true },
+    { positionId: '3-FCL-A', label: 'Aisle 3 Front Center Left (A)',  priority: 4, isCritical: true },
+    { positionId: '3-FCL-B', label: 'Aisle 3 Front Center Left (B)',  priority: 5, isCritical: true },
+    { positionId: '4-FC-A', label: 'Aisle 4 Front Center (A)',  priority: 6, isCritical: true },
+    { positionId: '4-FC-B', label: 'Aisle 4 Front Center (B)',  priority: 7, isCritical: true },
+    { positionId: '5-FCR-A', label: 'Aisle 5 Front Center Right (A)',  priority: 8, isCritical: true },
+    { positionId: '5-FCR-B', label: 'Aisle 5 Front Center Right (B)',  priority: 9, isCritical: true },
+    { positionId: '6-FR-A', label: 'Aisle 6 Front Right (A)',  priority: 10, isCritical: true },
+    { positionId: '6-FR-B', label: 'Aisle 6 Front Right (B)',  priority: 11, isCritical: true },
+    { positionId: '7-FFR', label: 'Aisle 7 Front Far Right', priority: 12, isCritical: true },
+    { positionId: '8-BFL', label: 'Aisle 1 Back Far Left', priority: 13, isCritical: false },
+    { positionId: '9-BL', label: 'Aisle 2 Back Left', priority: 14, isCritical: true },
+    { positionId: '10-SABL', label: 'Short Aisle Back Left', priority: 15, isCritical: false },
+    { positionId: '11-BCL', label: 'Aisle 3 Back Center Left', priority: 16, isCritical: true },
+    { positionId: '12-BC', label: 'Aisle 4 Back Center', priority: 17, isCritical: true },
+    { positionId: '13-BCR', label: 'Aisle 5 Back Center Right', priority: 18, isCritical: true },
+    { positionId: '14-SABR', label: 'Short Aisle Back Right', priority: 19, isCritical: false },
+    { positionId: '15-BR', label: 'Aisle 6 Back Right', priority: 20, isCritical: true },
+    { positionId: '16-BFR', label: 'Aisle 7 Back Far Right', priority: 21, isCritical: false }
+  ],
   lords_supper_setup_team: [
     { positionId: 'PREP1', label: 'Preparation Team 1', priority: 1, isCritical: true },
     { positionId: 'PREP2', label: 'Preparation Team 2', priority: 2, isCritical: true },
@@ -29,12 +52,12 @@ const POSITION_MAPS = {
   ],
   lords_supper_leadership_team: [
     { positionId: 'LEADER', label: 'Event Leader', priority: 1, isCritical: true, allowSelfSignup: false },
-    { positionId: 'ASSIST', label: 'Event Assistant', priority: 2, isCritical: false }
+    { positionId: 'ASSIST', label: 'Event Assistant', priority: 2, isCritical: false, allowSelfSignup: false }
   ],
   lords_supper_cleanup_team: [
     { positionId: 'CLEAN1', label: 'Cleanup Team 1', priority: 1, isCritical: true },
     { positionId: 'CLEAN2', label: 'Cleanup Team 2', priority: 2, isCritical: true },
-    { positionId: 'CLEAN3', label: 'Cleanup Team 3', priority: 3, isCritical: true }
+    { positionId: 'CLEAN3', label: 'Cleanup Team 3', priority: 3, isCritical: false }
   ]
 };
 
@@ -47,6 +70,22 @@ const EVENT_TYPE_VARIANTS = [
     eventType: 'lords-supper-standard',
     title: "Lord's Supper",
     positionMap: 'lords_supper_standard_16',
+    allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
+    assignmentRoles: ['deacon', 'staff'],
+    assigneeRoles: ['deacon', 'elder', 'usher'],
+    quickAddAssigneeRole: 'usher',
+    requiredGender: 'male',
+    scheduleDependencies: [
+      { eventType: 'lords-supper-leadership', offsetMinutes: -30, uniquePer: 'day' },
+      { eventType: 'lords-supper-setup', offsetMinutes: -60, uniquePer: 'day' },
+      { eventType: 'lords-supper-cleanup', offsetMinutes: 60, uniquePer: 'slot' }
+    ],
+    isActive: true
+  },
+  {
+    eventType: 'lords-supper-full',
+    title: "Lord's Supper (Full 21)",
+    positionMap: 'lords_supper_full_21',
     allowedRoles: ['deacon', 'staff', 'elder', 'usher'],
     assignmentRoles: ['deacon', 'staff'],
     assigneeRoles: ['deacon', 'elder', 'usher'],

@@ -751,9 +751,7 @@ function isLeadershipAssignmentPosition(position) {
     return true;
   }
 
-  const positionId = String(position.positionId || '').toLowerCase();
-  const label = String(position.label || '').toLowerCase();
-  return positionId.includes('assist') || label.includes('assistant');
+  return false;
 }
 
 async function memberHasLeadershipAccessOnServiceDate(memberId, serviceDate, eventTypeConfigMap = null) {
