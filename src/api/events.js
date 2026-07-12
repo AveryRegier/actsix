@@ -1443,29 +1443,29 @@ export default function registerEventRoutes(app) {
       const event = await rebuildAssignmentsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
 
       const memberById = new Map();
-      function getMemberById(memberId) {
+      async function getMemberById(memberId) {
         let member = memberById.get(memberId);
         if (!member) {
-          member = safeCollectionFind('member', {_id: memberId});
+          member = await safeCollectionFind('members', {_id: memberId});
           memberById.set(memberId, member);
         }
         return member;
       }
 
-      const positions = event.positions.map(position => {
-        const assignedMember = position.assignedMemberId ? getMemberById(position.assignedMemberId) : null;
+      const positions = await Promise.all(event.positions.map(async position => {
+        const assignedMember = position.assignedMemberId ? await getMemberById(position.assignedMemberId) : null;
         return {
           ...position,
-          assignedMember: assignedMember
+          assignedMember: assignedMember && assignedMember.length > 0
             ? {
-                _id: assignedMember._id,
-                firstName: assignedMember.firstName,
-                lastName: assignedMember.lastName,
-                email: assignedMember.email
+                _id: assignedMember[0]._id,
+                firstName: assignedMember[0].firstName,
+                lastName: assignedMember[0].lastName,
+                email: assignedMember[0].email
               }
             : null
         };
-      });
+      }));
 
       return c.json({
         message: 'Assignments saved',
