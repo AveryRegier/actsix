@@ -2,6 +2,7 @@ import { getLogger } from '../util/logger.js';
 import { safeCollectionFind, safeCollectionFindOne, safeCollectionInsert, safeCollectionUpdate } from '../util/helpers.js';
 import { verifyRole } from '../auth/auth.js';
 
+
 const DEFAULT_EVENT_TYPE_DOCS = [];
 
 function toStringOrNull(value) {
@@ -786,6 +787,10 @@ async function canManageAssignments(c, loaded, eventTypeConfigMap = null) {
   if (!memberId) {
     return false;
   }
+  // get the member from sengo
+  if(await safeCollectionFindOne('members', { _id: memberId})?.tags?.includes('admin')) {
+    return true;
+  }
 
   return memberHasLeadershipAccessOnServiceDate(memberId, loaded?.calendarSlot?.serviceDate, eventTypeConfigMap);
 }
@@ -1436,11 +1441,19 @@ export default function registerEventRoutes(app) {
       }
 
       const event = await rebuildAssignmentsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
-      const members = await safeCollectionFind('members');
-      const memberById = new Map(members.map(member => [member._id, member]));
+
+      const memberById = new Map();
+      function getMemberById(memberId) {
+        let member = memberById.get(memberId);
+        if (!member) {
+          member = safeCollectionFind('member', {_id: memberId});
+          memberById.set(memberId, member);
+        }
+        return member;
+      }
 
       const positions = event.positions.map(position => {
-        const assignedMember = position.assignedMemberId ? memberById.get(position.assignedMemberId) : null;
+        const assignedMember = position.assignedMemberId ? getMemberById(position.assignedMemberId) : null;
         return {
           ...position,
           assignedMember: assignedMember

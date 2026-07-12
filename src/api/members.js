@@ -69,6 +69,7 @@ function validateTemporaryAddress(temporaryAddress) {
   return null;
 }
 
+const memberAccessRoles = ['deacon', 'staff', 'helper', 'admin'];
 export default function registerMemberRoutes(app) {
   app.get('/api/members', async (c) => {
     try {
@@ -83,7 +84,7 @@ export default function registerMemberRoutes(app) {
 
   app.get('/api/households/:householdId/members', async (c) => {
     let householdId = c.req.param('householdId');
-    if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
+    if (!verifyRole(c, memberAccessRoles)) {
       const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
       if(!members.map(m=>m.householdId).includes(householdId)) {
         return c.json({ error: 'Unauthorized access' }, 403);
@@ -106,7 +107,7 @@ export default function registerMemberRoutes(app) {
       if (!member) {
         return c.json({ error: 'Member not found', message: 'No member found with the given ID.' }, 404);
       }
-      if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
+      if (!verifyRole(c, memberAccessRoles)) {
         if(c.req.memberId !== member._id) {
           return c.json({ error: 'Unauthorized access' }, 403);
         }
@@ -123,7 +124,7 @@ export default function registerMemberRoutes(app) {
       const body = await c.req.json();
       let householdId = body.householdId;
       if (!householdId) {
-        if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
+        if (!verifyRole(c, memberAccessRoles)) {
           const members = await safeCollectionFind('members', { _id: c.req.memberId }) || [];
           if(!members.map(m=>m.householdId).includes(householdId)) {
             return c.json({ error: 'Unauthorized access' }, 403);
@@ -200,7 +201,7 @@ export default function registerMemberRoutes(app) {
       };
       // only other deacons can modify tags as they allow secure access to the site
       const role = c.req.role; // Assuming role is set in the request
-      if(role === 'deacon' || role === 'staff' || role === 'helper') {
+      if(memberAccessRoles.includes(role)) {
         memberData.tags = body.tags || [];
       }
 
@@ -285,7 +286,7 @@ export default function registerMemberRoutes(app) {
       }
       // only other deacons can modify tags as they allow secure access to the site
       const role = c.req.role; // Assuming role is set in the request
-      if(role === 'deacon' || role === 'staff' || role === 'helper') {
+      if(memberAccessRoles.includes(role)) {
         updateData.tags = body.tags || [];
       }
 

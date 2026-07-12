@@ -15,5 +15,6 @@ export const tags = [
     { name: 'married', description: 'Married', type: 'status' },
     { name: 'deceased', description: 'Deceased', type: 'status' },
     { name: 'helped', description: 'H.E.L.Ped', type: 'situation' },
-    { name: 'helper', description: 'H.E.L.Per', type: 'role' }
+    { name: 'helper', description: 'H.E.L.Per', type: 'role' },
+    { name: 'admin', description: 'Administrator', type: 'role' }
 ]
