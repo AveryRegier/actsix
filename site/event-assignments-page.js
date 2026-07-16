@@ -237,10 +237,44 @@ function openAssignmentModal(context) {
   modal.overlay.style.display = 'flex';
   modal.overlay.focus();
 
-  const candidates = assignmentCandidatesByEvent.get(context.eventId) || [];
-  const quickAddRole = quickAddRoleByEvent.get(context.eventId) || '';
-  const allowQuickAdd = allowQuickAddByEvent.get(context.eventId) === true;
-  const requiredGender = requiredGenderByEvent.get(context.eventId) || '';
+  // Load candidates on-demand if not already cached
+  loadAssignmentModalData(context);
+}
+
+async function loadAssignmentModalData(context) {
+  const modal = ensureAssignmentModal();
+  
+  // Check if we already have candidates cached
+  let candidates = assignmentCandidatesByEvent.get(context.eventId);
+  let quickAddRole = quickAddRoleByEvent.get(context.eventId) || '';
+  let allowQuickAdd = allowQuickAddByEvent.get(context.eventId) === true;
+  let requiredGender = requiredGenderByEvent.get(context.eventId) || '';
+  
+  // If not cached, load from per-event endpoint
+  if (!candidates) {
+    try {
+      const body = await apiFetch(`/api/events/${encodeURIComponent(context.eventId)}/assignments`);
+      if (body) {
+        candidates = Array.isArray(body.assignmentCandidates) ? body.assignmentCandidates : [];
+        quickAddRole = String(body.quickAddAssigneeRole || '').trim();
+        allowQuickAdd = body.allowQuickAddAssignee === true;
+        requiredGender = String(body.requiredGender || '').trim().toLowerCase();
+        
+        // Cache for future use
+        assignmentCandidatesByEvent.set(context.eventId, candidates);
+        quickAddRoleByEvent.set(context.eventId, quickAddRole);
+        allowQuickAddByEvent.set(context.eventId, allowQuickAdd);
+        requiredGenderByEvent.set(context.eventId, requiredGender);
+      }
+    } catch (error) {
+      showMessage('Failed to load assignment options.', true);
+      closeAssignmentModal();
+      return;
+    }
+  }
+  
+  candidates = candidates || [];
+  
   assignmentModalPicker = createAssignmentPicker({
     container: modal.pickerContainer,
     options: candidates,
@@ -338,6 +372,50 @@ function renderAssignmentsTable(event, canManage) {
   `;
 }
 
+function renderAssignmentsTableWithPositions(event, positions, canManage) {
+  // Variant that accepts positions as a parameter instead of reading from event.positions
+  return `
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Priority</th>
+          <th>Position ID</th>
+          <th>Label</th>
+          <th>Note</th>
+          <th>Assigned To</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(positions || []).map(position => `
+          <tr>
+            <td>${escapeHtml(position.priority)}</td>
+            <td>${escapeHtml(position.positionId)}</td>
+            <td>${escapeHtml(position.label)}</td>
+            <td>${position.note ? escapeHtml(position.note) : '<span style="color:#6d7c82;">-</span>'}</td>
+            <td>
+              ${canManage
+                ? `<button
+                    type="button"
+                    class="assignment-edit-trigger"
+                    data-event-id="${escapeHtml(event._id)}"
+                    data-event-title="${escapeHtml(event.title || '')}"
+                    data-event-time="${escapeHtml(event.serviceTime || '')}"
+                    data-position-id="${escapeHtml(position.positionId)}"
+                    data-position-label="${escapeHtml(position.label)}"
+                    data-assigned-member-id="${escapeHtml(position.assignedMember?._id || '')}"
+                    style="background:none; border:none; padding:0; margin:0; text-decoration:underline; color:${position.assignedMember ? '#1f4f5a' : '#b30000'}; cursor:pointer; font:inherit;"
+                  >${escapeHtml(getMemberDisplayName(position.assignedMember))}</button>`
+                : (position.assignedMember
+                    ? `${escapeHtml(position.assignedMember.firstName)} ${escapeHtml(position.assignedMember.lastName)}`
+                    : '<span style="color:#b30000;">Open</span>')}
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
 function renderAssignmentBlock(event, openPositions, canManage, assignmentCandidates) {
   const openNames = (openPositions || []).map(position => escapeHtml(position.label));
   const callout = openNames.length
@@ -361,6 +439,36 @@ function renderAssignmentBlock(event, openPositions, canManage, assignmentCandid
       ${callout}
       <div style="margin-top:14px;">
         ${renderAssignmentsTable(event, canManage)}
+      </div>
+      ${assignmentHint}
+    </section>
+  `;
+}
+
+function renderAssignmentBlockWithPositions(event, positions, openPositions, canManage) {
+  // Variant for when positions come from the API response, not embedded in event
+  const openNames = (openPositions || []).map(position => escapeHtml(position.label));
+  const callout = openNames.length
+    ? `<div style="background:#fff5d6; border:1px solid #e3c976; border-radius:8px; padding:12px; margin-top:10px;"><strong>Open positions needed:</strong> ${openNames.join(', ')}</div>`
+    : '<div style="background:#e2f5e7; border:1px solid #98c5a2; border-radius:8px; padding:12px; margin-top:10px;"><strong>All positions are currently filled.</strong></div>';
+
+  const assignmentHint = canManage
+    ? '<div style="margin-top:12px; background:#eef5f7; border:1px solid #c9d8de; border-radius:8px; padding:10px; color:#426671;">Click Open or an assigned name to edit assignment.</div>'
+    : '';
+
+  return `
+    <section style="border:1px solid #d7dce3; border-radius:10px; padding:14px; background:#fff; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:600; font-size:1.1em;">${escapeHtml(event.serviceTime || '')} - ${escapeHtml(event.title || '')}</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+        ${renderFilledBadge(event.status)}
+      </div>
+      ${callout}
+      <div style="margin-top:14px;">
+        ${renderAssignmentsTableWithPositions(event, positions, canManage)}
       </div>
       ${assignmentHint}
     </section>
@@ -448,14 +556,10 @@ async function loadAssignmentsForEvent(calendarEventId) {
 }
 
 async function loadAssignmentsForDate(date) {
-  const eventsResponse = await apiFetch(`/api/events?serviceDate=${encodeURIComponent(date)}`);
-  const eventsBody = await eventsResponse.json().catch(() => ({}));
-  if (!eventsResponse.ok) {
-    showMessage(eventsBody.message || 'Failed to load events for this date.', true);
-    return;
-  }
-
-  const events = Array.isArray(eventsBody.events) ? eventsBody.events : [];
+  // Use new bulk endpoint that returns all events for a date efficiently
+  const allAssignments = await apiFetch(`/api/event-assignments?serviceDate=${encodeURIComponent(date)}`);
+  
+  const events = Array.isArray(allAssignments) ? allAssignments : [];
   if (events.length === 0) {
     showMessage('No events found for this date.', true);
     return;
@@ -471,44 +575,23 @@ async function loadAssignmentsForDate(date) {
   `;
   openPositionsCallout.innerHTML = '';
 
-  const assignmentBodies = await Promise.all(events.map(async (event) => {
-    const response = await apiFetch(`/api/events/${encodeURIComponent(event._id)}/assignments`);
-    if (!response.ok) {
-      return null;
-    }
-
-    const body = await response.json().catch(() => null);
-    if (!body?.event) {
-      return null;
-    }
-
-    return body;
-  }));
-
-  const validAssignments = assignmentBodies.filter(Boolean);
-  if (validAssignments.length === 0) {
+  const validEvents = events.filter(item => item.event && Array.isArray(item.openPositions));
+  if (validEvents.length === 0) {
     showMessage('No printable assignments available for this date.', true);
     return;
   }
 
-  validAssignments.sort((a, b) => String(a.event.serviceTime || '').localeCompare(String(b.event.serviceTime || '')));
-  assignmentsTableWrap.innerHTML = validAssignments
-    .map(body => renderAssignmentBlock(
-      body.event,
-      body.openPositions || [],
-      body.canManageAssignments === true,
-      Array.isArray(body.assignmentCandidates) ? body.assignmentCandidates : []
+  validEvents.sort((a, b) => String(a.event.serviceTime || '').localeCompare(String(b.event.serviceTime || '')));
+  
+  // Render all events with their assignments
+  assignmentsTableWrap.innerHTML = validEvents
+    .map(item => renderAssignmentBlockWithPositions(
+      item.event,
+      item.positions || [],
+      item.openPositions || [],
+      false // canManage will be determined on-demand when user tries to edit
     ))
     .join('');
-
-  for (const body of validAssignments) {
-    if (body.canManageAssignments === true) {
-      assignmentCandidatesByEvent.set(body.event._id, Array.isArray(body.assignmentCandidates) ? body.assignmentCandidates : []);
-      quickAddRoleByEvent.set(body.event._id, String(body.quickAddAssigneeRole || '').trim());
-      allowQuickAddByEvent.set(body.event._id, body.allowQuickAddAssignee === true);
-      requiredGenderByEvent.set(body.event._id, String(body.requiredGender || '').trim().toLowerCase());
-    }
-  }
 
   wireAssignmentEditTriggers();
 }

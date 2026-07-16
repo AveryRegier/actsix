@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadNav();
   currentMemberId = localStorage.getItem('memberId');
 
-  await loadExistingEvents();
+  await loadMemberAssignments();
 });
 
 async function loadNav() {
@@ -170,6 +170,32 @@ async function loadExistingEvents() {
     return detailBody;
   }));
 
+  renderEvents(eventDetails);
+}
+
+async function loadMemberAssignments() {
+  try {
+    const data = await apiFetch('/api/member/assignments');
+    if (!data || data.length === 0) {
+      eventsList.innerHTML = '<div style="color:#666;">No upcoming events scheduled yet.</div>';
+      return;
+    }
+
+    // Transform the new API response into the format expected by the renderer
+    // The new endpoint returns: [{ event, definition, signup }]
+    // The renderer expects: { event, signups: [...] }
+    const eventDetails = data.map(context => ({
+      event: context.event,
+      signups: context.signup ? [context.signup] : []
+    }));
+
+    renderEvents(eventDetails);
+  } catch (error) {
+    showMessage('Failed to load your assignments. ' + error.message, true);
+  }
+}
+
+function renderEvents(eventDetails) {
   const byDate = new Map();
   for (const detail of eventDetails) {
     const event = detail.event || detail;
@@ -255,18 +281,16 @@ async function loadExistingEvents() {
 }
 
 async function updateAvailability(eventId, isAvailable) {
-  const response = await apiFetch(`/api/events/${encodeURIComponent(eventId)}/signups`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ isAvailable })
-  });
+  try {
+    await apiFetch(`/api/events/${encodeURIComponent(eventId)}/signup`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isAvailable })
+    });
 
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    showMessage(body.message || 'Failed to update availability.', true);
-    return;
+    showMessage('Availability updated.', false);
+    await loadMemberAssignments();
+  } catch (error) {
+    showMessage(error.message || 'Failed to update availability.', true);
   }
-
-  showMessage('Availability updated.', false);
-  await loadExistingEvents();
 }

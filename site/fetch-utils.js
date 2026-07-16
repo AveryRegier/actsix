@@ -47,38 +47,29 @@ export async function apiFetch(url, options = {}) {
     headers: Object.assign({}, defaultHeaders, options.headers || {})
   };
 
-  // Perform the fetch and await the response so we can inspect cookies/localStorage after.
-  var response = await fetch(url, Object.assign({}, defaultOptions, options));
+  const mergedOptions = { ...defaultOptions, ...options, headers: defaultOptions.headers };
 
-  // If the server set a cookie via Set-Cookie, the browser will update document.cookie when allowed.
-  // Try reading the cookie again and persist to localStorage if it changed/appeared.
-  try {
-    if (typeof document !== 'undefined' && typeof document.cookie === 'string') {
-      const name = 'actsix=';
-      const parts = document.cookie.split(';');
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i].trim();
-        if (part.indexOf(name) === 0) {
-          const cookieVal = decodeURIComponent(part.substring(name.length));
-          try {
-            if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-              const prev = window.localStorage.getItem('authToken');
-              if (cookieVal && cookieVal !== prev) {
-                window.localStorage.setItem('authToken', cookieVal);
-                // keep this small console message for debug builds
-                if (typeof console !== 'undefined' && console.log) console.log('Updated authToken from cookies');
-              }
-            }
-          } catch (e) {
-            // localStorage could throw; ignore.
-          }
-          break;
-        }
-      }
+  // Perform the fetch and await the response so we can inspect cookies/localStorage after.
+  const response = await fetch(url, mergedOptions);
+
+  const responseBody = await response.text();
+
+  if (!response.ok) {
+    let errorPayload = { message: `API request failed with status ${response.status}` };
+    try {
+      const parsed = JSON.parse(responseBody);
+      errorPayload = { ...errorPayload, ...parsed };
+    } catch (e) {
+      // Not a JSON response, use the raw text
+      errorPayload.details = responseBody;
     }
-  } catch (e) {
-    // Ignore any errors reading document.cookie or syncing localStorage.
+    throw new Error(errorPayload.message, { cause: errorPayload });
   }
 
-  return response;
+  try {
+    return JSON.parse(responseBody);
+  } catch (e) {
+    // If parsing fails, it might be a plain text response
+    return responseBody;
+  }
 }

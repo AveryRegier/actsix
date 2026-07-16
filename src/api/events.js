@@ -767,7 +767,7 @@ async function memberHasLeadershipAccessOnServiceDate(memberId, serviceDate, eve
       continue;
     }
 
-    const signups = await loadSignupsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
+    const signups = await loadSignupsForCalendar(loaded.calendarSlot._id);
     const assignment = assignPositions(signups, loaded.eventDefinition.positions || []);
     if (assignment.positions.some(position => isLeadershipAssignmentPosition(position) && position.assignedMemberId === memberId)) {
       return true;
@@ -818,43 +818,13 @@ function buildCalendarView(calendarSlot, eventDefinition, signups) {
   };
 }
 
-async function loadSignupsForCalendar(calendarSlot, eventDefinition) {
-  const byCalendar = await safeCollectionFind('event_signups', { calendarId: calendarSlot._id });
-  if (byCalendar.length > 0) {
-    return byCalendar;
-  }
-
-  // Backward compatibility: older rows used eventId as the calendar slot id.
-  const legacy = await safeCollectionFind('event_signups', { eventId: calendarSlot._id });
-  if (legacy.length === 0) {
-    return [];
-  }
-
-  for (const signup of legacy) {
-    await safeCollectionUpdate(
-      'event_signups',
-      { _id: signup._id },
-      {
-        $set: {
-          calendarId: calendarSlot._id,
-          eventId: eventDefinition._id,
-          eventType: eventDefinition.eventType,
-          updatedAt: new Date().toISOString()
-        }
-      }
-    );
-  }
-
-  return legacy.map(signup => ({
-    ...signup,
-    calendarId: calendarSlot._id,
-    eventId: eventDefinition._id,
-    eventType: eventDefinition.eventType
-  }));
+async function loadSignupsForCalendar(calendarId) {
+  const byCalendarId = await safeCollectionFind('event_signups', { calendarId });
+  return byCalendarId;
 }
 
 async function rebuildAssignmentsForCalendar(calendarSlot, eventDefinition) {
-  const signups = await loadSignupsForCalendar(calendarSlot, eventDefinition);
+  const signups = await loadSignupsForCalendar(calendarSlot._id);
   const assignment = assignPositions(signups, eventDefinition.positions || []);
 
   const now = new Date().toISOString();
@@ -1254,9 +1224,15 @@ export default function registerEventRoutes(app) {
         return c.json({ error: 'Unauthorized access' }, 403);
       }
 
-      const event = await rebuildAssignmentsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
+      // Use positions from calendarSlot if available, otherwise use positions from eventDefinition
+      const event = {
+        ...loaded.calendarSlot,
+        positions: loaded.calendarSlot.positions || loaded.eventDefinition.positions || []
+      };
       const { candidates, assigneeRoles, quickAddAssigneeRole, allowQuickAddAssignee, requiredGender } = await loadAssignmentCandidates(loaded.eventDefinition.eventType, eventTypeConfigMap);
-      const members = await safeCollectionFind('members');
+      
+      const assignedMemberIds = new Set(event.positions.map(p => p.assignedMemberId).filter(Boolean));
+      const members = await safeCollectionFind('members', { _id: { $in: [...assignedMemberIds] } });
       const memberById = new Map(members.map(member => [member._id, member]));
 
       const printableAssignments = event.positions.map(position => {
@@ -1291,6 +1267,144 @@ export default function registerEventRoutes(app) {
     } catch (error) {
       getLogger().error(error, 'Error fetching event assignments:');
       return c.json({ error: 'Failed to fetch event assignments', message: error.message }, 500);
+    }
+  });
+
+  app.get('/api/member/assignments', async (c) => {
+    try {
+      // Corrected role validation as per the new plan
+      verifyRole(c, ['deacon', 'staff', 'elder', 'usher']);
+      const memberId = c.req.memberId;
+      if (!memberId) {
+        return c.json({ error: 'Unauthorized' }, 401);
+      }
+
+      // 1. Get all future calendar events
+      const today = new Date().toISOString().split('T')[0];
+      const futureEvents = await safeCollectionFind('event_calendar', { serviceDate: { $gte: today } });
+
+      if (!futureEvents || futureEvents.length === 0) {
+        return c.json([]);
+      }
+
+      const eventIds = futureEvents.map(e => e._id);
+      const eventTypes = [...new Set(futureEvents.map(e => e.eventType).filter(Boolean))];
+
+      // 2. Get all relevant event types and member signups in parallel
+      const [eventTypeConfigs, memberSignups] = await Promise.all([
+        safeCollectionFind('event_types', { eventType: { $in: eventTypes } }),
+        safeCollectionFind('event_signups', { memberId, calendarId: { $in: eventIds } })
+      ]);
+
+      // Create lookup maps for efficient data joining
+      const definitionsByEventType = new Map(eventTypeConfigs.map(def => [def.eventType, def]));
+      const signupsByCalendarId = new Map(memberSignups.map(s => [s.calendarId, s]));
+
+      // 3. Combine the data
+      const results = [];
+      for (const event of futureEvents) {
+        const definition = definitionsByEventType.get(event.eventType);
+        const signup = signupsByCalendarId.get(event._id);
+
+        // Each event becomes an entry, enhanced with signup info
+        results.push({
+          event,
+          definition,
+          signup: signup || null // Include the member's signup if it exists
+        });
+      }
+
+      return c.json(results);
+    } catch (error) {
+      getLogger().error(error, 'Error fetching member assignments:', { error });
+      return c.json({ error: 'Failed to fetch member assignments', message: error.message }, 500);
+    }
+  });
+
+  app.get('/api/event-assignments', async (c) => {
+    try {
+      verifyRole(c, ['deacon', 'staff', 'elder', 'usher', 'helper']);
+      const serviceDate = c.req.query('serviceDate');
+
+      if (!serviceDate) {
+        return c.json({ error: 'serviceDate query parameter is required' }, 400);
+      }
+
+      // 1. Get all events for the specified date
+      const events = await safeCollectionFind('event_calendar', { serviceDate });
+
+      if (!events || events.length === 0) {
+        return c.json([]);
+      }
+
+      // 2. Get all event types needed for this date
+      const eventTypeNames = [...new Set(events.map(e => e.eventType).filter(Boolean))];
+      const eventTypes = await safeCollectionFind('event_types', { eventType: { $in: eventTypeNames } });
+      const typeMap = new Map(eventTypes.map(t => [t.eventType, t]));
+
+      // 3. Load signups for all events (needed for assignPositions)
+      const eventIds = events.map(e => e._id);
+      const allSignups = await safeCollectionFind('event_signups', { calendarId: { $in: eventIds } });
+      const signupsByEvent = new Map();
+      for (const signup of allSignups || []) {
+        if (!signupsByEvent.has(signup.calendarId)) {
+          signupsByEvent.set(signup.calendarId, []);
+        }
+        signupsByEvent.get(signup.calendarId).push(signup);
+      }
+
+      // 4. Assign members to positions for each event
+      const assignedIds = new Set();
+      const positionsByEvent = new Map();
+      const statusByEvent = new Map();
+      for (const event of events) {
+        const positions = event.positions || typeMap.get(event.eventType)?.defaultPositions || [];
+        const signups = signupsByEvent.get(event._id) || [];
+        const result = assignPositions(signups, positions);
+        positionsByEvent.set(event._id, result.positions);
+        statusByEvent.set(event._id, result.status);
+        result.positions.forEach(p => {
+          if (p.assignedMemberId) {
+            assignedIds.add(p.assignedMemberId);
+          }
+        });
+      }
+
+      // 5. Get all assigned members for enrichment
+      const members = assignedIds.size > 0
+        ? await safeCollectionFind('members', { _id: { $in: [...assignedIds] } })
+        : [];
+      const memberMap = new Map(members.map(m => [m._id, m]));
+
+      // 6. Combine all data and format for frontend
+      const results = events.map(event => {
+        const eventType = typeMap.get(event.eventType);
+        const positions = positionsByEvent.get(event._id) || [];
+
+        // Enrich positions with member details
+        const enrichedPositions = positions.map(pos => ({
+          ...pos,
+          assignedMember: pos.assignedMemberId ? memberMap.get(pos.assignedMemberId) : null
+        }));
+
+        // Separate filled and open positions
+        const filledPositions = enrichedPositions.filter(p => p.assignedMemberId);
+        const openPositions = enrichedPositions.filter(p => !p.assignedMemberId);
+
+        return {
+          event,
+          positions: enrichedPositions,
+          filledPositions,
+          openPositions,
+          status: statusByEvent.get(event._id) || {},
+          eventType: eventType ? eventType.title : event.eventType
+        };
+      });
+
+      return c.json(results);
+    } catch (error) {
+      getLogger().error(error, 'Error fetching assignments for date:', { error });
+      return c.json({ error: 'Failed to fetch assignments', message: error.message }, 500);
     }
   });
 
@@ -1446,7 +1560,7 @@ export default function registerEventRoutes(app) {
       async function getMemberById(memberId) {
         let member = memberById.get(memberId);
         if (!member) {
-          member = await safeCollectionFind('members', {_id: memberId});
+          member = await safeCollectionFindOne('members', {_id: memberId});
           memberById.set(memberId, member);
         }
         return member;
@@ -1456,12 +1570,12 @@ export default function registerEventRoutes(app) {
         const assignedMember = position.assignedMemberId ? await getMemberById(position.assignedMemberId) : null;
         return {
           ...position,
-          assignedMember: assignedMember && assignedMember.length > 0
+          assignedMember: assignedMember
             ? {
-                _id: assignedMember[0]._id,
-                firstName: assignedMember[0].firstName,
-                lastName: assignedMember[0].lastName,
-                email: assignedMember[0].email
+                _id: assignedMember._id,
+                firstName: assignedMember.firstName,
+                lastName: assignedMember.lastName,
+                email: assignedMember.email
               }
             : null
         };
@@ -1485,6 +1599,71 @@ export default function registerEventRoutes(app) {
     } catch (error) {
       getLogger().error(error, 'Error updating event assignments:');
       return c.json({ error: 'Failed to update event assignments', message: error.message }, 500);
+    }
+  });
+
+  app.put('/api/events/:eventId/signup', async (c) => {
+    try {
+      verifyRole(c, ['deacon', 'staff', 'elder', 'usher']);
+      const memberId = c.req.memberId;
+      if (!memberId) {
+        return c.json({ error: 'Unauthorized' }, 401);
+      }
+
+      const calendarId = c.req.param('eventId');
+      const { isAvailable } = await c.req.json();
+
+      if (typeof isAvailable !== 'boolean') {
+        return c.json({ error: 'isAvailable must be a boolean' }, 400);
+      }
+
+      // Find the event to get eventId and eventType
+      const event = await safeCollectionFindOne('event_calendar', { _id: calendarId });
+      if (!event) {
+        return c.json({ error: 'Event not found' }, 404);
+      }
+
+      // Find or create signup record for this member
+      let signup = await safeCollectionFindOne('event_signups', {
+        calendarId,
+        memberId
+      });
+
+      const now = new Date().toISOString();
+
+      if (signup) {
+        // Update existing signup
+        await safeCollectionUpdate(
+          'event_signups',
+          { _id: signup._id },
+          {
+            $set: {
+              isAvailable,
+              updatedAt: now
+            }
+          }
+        );
+      } else {
+        // Create new signup
+        await safeCollectionInsert('event_signups', {
+          calendarId,
+          eventId: event._id,
+          eventType: event.eventType,
+          memberId,
+          positionId: null,
+          isAvailable,
+          assignmentOptOut: false,
+          unavailableReason: null,
+          assignedPositionId: null,
+          createdAt: now,
+          updatedAt: now
+        });
+      }
+
+      return c.json({ message: 'Availability updated successfully' });
+    } catch (error) {
+      getLogger().error(error, 'Error updating member availability:');
+      return c.json({ error: 'Failed to update availability', message: error.message }, 500);
     }
   });
 
