@@ -227,8 +227,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (tempMember) {
             const { apiFetch } = await import('./fetch-utils.js');
             apiFetch('api/common-locations/' + tempMember.temporaryAddress.locationId)
-                .then(res => res.json())
                 .then(data => {
+                    // apiFetch already returns parsed JSON
                     const location = data.location;
                     if (location && location.address) {
                         const mapsUrl = formatAddressForMaps(location.address);

@@ -36,16 +36,20 @@ export function resetMailbox(filePath = mailboxPath()) {
 
 export function appendMailboxMessage(message, filePath = mailboxPath()) {
   const messages = readMailbox(filePath);
+  console.log(`[appendMailboxMessage] Appending message to ${message?.to} at ${filePath}`);
   messages.push({
     ...message,
     createdAt: new Date().toISOString(),
   });
   writeMailbox(filePath, messages);
+  console.log(`[appendMailboxMessage] Mailbox now has ${messages.length} messages`);
 }
 
 export function findLatestCodeForEmail(email, filePath = mailboxPath()) {
   const normalized = (email || '').trim().toLowerCase();
   const messages = readMailbox(filePath);
+
+  console.log(`[findLatestCodeForEmail] Looking for code for ${email} in ${messages.length} messages`);
 
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const msg = messages[i];
@@ -54,14 +58,17 @@ export function findLatestCodeForEmail(email, filePath = mailboxPath()) {
       continue;
     }
 
+    console.log(`[findLatestCodeForEmail] Found email to ${to}, checking for code...`);
     const candidates = [msg.subject, msg.text, msg.html].filter(Boolean);
     for (const candidate of candidates) {
       const match = String(candidate).match(/\b(\d{6})\b/);
       if (match) {
+        console.log(`[findLatestCodeForEmail] Found code: ${match[1]}`);
         return match[1];
       }
     }
   }
 
+  console.log(`[findLatestCodeForEmail] No code found for ${email}`);
   return null;
 }

@@ -73,20 +73,18 @@ export function initializeEmailLoginForms() {
             return;
         }
         try {
+            console.log('[emailForm.onsubmit] Requesting validation code for:', email);
             const response = await apiFetch('/email-request-code', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
             });
-            if (response.ok) {
-                alert('Login link sent to your email address.');
-                showValidationForm(email);
-            } else {
-                alert('Error sending login validation code. Please try again. ' + response.statusText);
-            }
+            console.log('[emailForm.onsubmit] Received response:', response);
+            alert('Login link sent to your email address.');
+            showValidationForm(email);
         } catch (err) {
-            console.error(err);
-            alert('Error sending login validation code.');
+            console.error('[emailForm.onsubmit] Error:', err);
+            alert('Error sending login validation code. Please try again.');
         }
     };
 
@@ -100,27 +98,24 @@ export function initializeEmailLoginForms() {
             return;
         }
         try {
-            const validateResp = await apiFetch('/email-validate', {
+            console.log('[validationForm.onsubmit] Validating code for:', email);
+            const data = await apiFetch('/email-validate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, validationCode: code })
             });
-            if (validateResp.ok) {
-                const data = await validateResp.json();
-                // Store token and redirect (cookie set to expire in ~60 days).
-                localStorage.setItem('authToken', data.token);
-                localStorage.setItem('memberId', data.memberId);
-                const _expires = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toUTCString();
-                const _attrs = [`expires=${_expires}`, 'path=/', 'SameSite=Lax'];
-                if (location.protocol === 'https:') _attrs.push('Secure');
-                document.cookie = `actsix=${encodeURIComponent(data.token)}; ${_attrs.join('; ')}`;
-                window.location.href = '/';
-            } else {
-                alert('Invalid code. Please try again.');
-            }
+            console.log('[validationForm.onsubmit] Validation successful, received token');
+            // Store token and redirect (cookie set to expire in ~60 days).
+            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('memberId', data.memberId);
+            const _expires = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toUTCString();
+            const _attrs = [`expires=${_expires}`, 'path=/', 'SameSite=Lax'];
+            if (location.protocol === 'https:') _attrs.push('Secure');
+            document.cookie = `actsix=${encodeURIComponent(data.token)}; ${_attrs.join('; ')}`;
+            window.location.href = '/';
         } catch (err) {
-            console.error(err);
-            alert('Error validating code.');
+            console.error('[validationForm.onsubmit] Error:', err);
+            alert('Invalid code. Please try again.');
         }
     };
 

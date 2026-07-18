@@ -429,12 +429,20 @@ export async function loginAsEmail(page, email) {
 
 async function waitForCode(email, timeoutMs = 10_000) {
   const start = Date.now();
+  console.log(`[waitForCode] Waiting for code for email: ${email}`);
+  let pollCount = 0;
   while (Date.now() - start < timeoutMs) {
+    pollCount++;
     const code = findLatestCodeForEmail(email);
     if (code) {
+      console.log(`[waitForCode] Found code after ${pollCount} polls: ${code}`);
       return code;
+    }
+    if (pollCount % 10 === 1) {
+      console.log(`[waitForCode] Poll ${pollCount}: No code found yet, elapsed: ${Date.now() - start}ms`);
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
+  console.log(`[waitForCode] Timeout after ${pollCount} polls (${timeoutMs}ms), no code found for ${email}`);
   return null;
 }

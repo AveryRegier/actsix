@@ -75,29 +75,15 @@ async function loadHouseholdData() {
         console.log('Fetching households from:', `${API_BASE_URL}/api/households`);
         console.log('Fetching assignments from:', `http://localhost:3001/api/households/${currentHouseholdId}/assignments`);
 
-        const [householdsResponse, assignmentsResponse, membersResponse] = await Promise.all([
+        const [household, assignmentsData, memberData] = await Promise.all([
             apiFetch(`api/households/${currentHouseholdId}`),
             apiFetch(`api/households/${currentHouseholdId}/assignments`),
             apiFetch(`api/households/${currentHouseholdId}/members`)
         ]);
 
-        const household = await householdsResponse.json();
-        let assignmentsData = { assignments: [] };
-
-        // Debugging: Log response status
-        console.log('Households Response Status:', householdsResponse.status);
-        console.log('Assignments Response Status:', assignmentsResponse.status);
-        console.log('Members Response Status:', membersResponse.status);
-
-        if (assignmentsResponse.ok) {
-            assignmentsData = await assignmentsResponse.json();
-        }
-
-        // Debugging: Log fetched data
+        // apiFetch already returns parsed JSON
         console.log('Households Data:', household);
         console.log('Assignments Data:', assignmentsData);
-
-        const memberData = await membersResponse.json();
         console.log('Members Data:', memberData);
 
         if (household) {
@@ -120,8 +106,8 @@ async function loadHouseholdData() {
 // Load contact history
 async function loadContactHistory() {
     try {
-        const contactsResponse = await apiFetch(`api/households/${currentHouseholdId}/contacts`);
-        const contacts = await contactsResponse.json();
+        // apiFetch already returns parsed JSON
+        const contacts = await apiFetch(`api/households/${currentHouseholdId}/contacts`);
 
         const contactsSection = document.createElement('div');
         contactsSection.className = 'section';
@@ -269,7 +255,6 @@ function displayMembers(members) {
         if (member.temporaryAddress && member.temporaryAddress.isActive && member.temporaryAddress.locationId) {
             // Fetch location details from API
             apiFetch(`api/common-locations/${member.temporaryAddress.locationId}`)
-                .then(res => res.json())
                 .then(data => {
                     const location = data.location;
                     if (location && location.address) {

@@ -115,9 +115,14 @@ let currentSort = { key: 'lastName', asc: true };
 let currentTagFilter = '';
 
 async function fetchMembers() {
-  const res = await apiFetch('/api/members');
-  const data = await res.json();
-  return data.members || [];
+  try {
+    const data = await apiFetch('/api/members');
+    console.log('[fetchMembers] Received members data:', data);
+    return data.members || [];
+  } catch (err) {
+    console.error('[fetchMembers] Error fetching members:', err);
+    return [];
+  }
 }
 
 function getAllTags() {

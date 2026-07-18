@@ -12,9 +12,13 @@ const EMAIL_TTL_MS = EMAIL_TTL_MINUTES * 60 * 1000;
 export function generateAndSendValidationCode(member) {
     // Generate a random 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log('[generateAndSendValidationCode] Generated code:', code, 'for email:', member.email);
+    
     // Store the code with an expiration time.
     const codeExpiresAt = Date.now() + VALIDATION_CODE_TTL_MS;
     storeValidationCode(member, code, codeExpiresAt);
+    console.log('[generateAndSendValidationCode] Stored validation code');
+    
     // Send the code via email in a way that will trigger phones to automatically add it to SMS verification code suggestions
     // Build an email subject and body that maximize the chance phones will offer the code for AutoFill.
     const appName = process.env.APP_NAME || 'ActSix';
@@ -37,9 +41,11 @@ export function generateAndSendValidationCode(member) {
 
     try {
         // Prefer richer payload if the original supports it.
+        console.log('[generateAndSendValidationCode] Calling sendEmail...');
         return sendEmail(member.email, subject, { text: textBody, html: htmlBody }, emailOptions);
     } catch (err) {
         // Fallback to plain-text
+        console.log('[generateAndSendValidationCode] Error with rich email, trying plain text:', err.message);
         return sendEmail(member.email, subject, textBody, emailOptions);
     }
 }

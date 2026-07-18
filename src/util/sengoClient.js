@@ -7,4 +7,11 @@ const sengoClient = new sengo.SengoClient({
 });
 
 const db = sengoClient.db(process.env.S3_BUCKET || 'deacon-care-system');
+
+if (process.env.USE_S3_SIMULATOR === '1') {
+  console.log('[sengoClient] Initialized with S3_BUCKET:', process.env.S3_BUCKET, '(simulator mode)');
+} else {
+  console.log('[sengoClient] Initialized with S3_BUCKET:', process.env.S3_BUCKET, '(REAL AWS)');
+}
+
 export { sengoClient as sengo, db };

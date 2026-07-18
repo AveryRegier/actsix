@@ -104,15 +104,22 @@ export default function registerEmailLoginRoutes(app) {
     try {
       const { email } = await c.req.json();
       addContext('email', email);
+      console.log('[email-request-code] Received request for email:', email);
+      
       // first see if the email exists in the members collection
       const member = await findMemberByEmail(email);
       if (!member) {
+        console.log('[email-request-code] Member not found for email:', email);
         return c.text('Member not found', 404);
       }
+      
+      console.log('[email-request-code] Found member, sending validation code');
       await generateAndSendValidationCode(member);
+      console.log('[email-request-code] Validation code sent successfully');
       return c.json({ message: 'Validation code sent' });
     } catch (error) {
       logger.error(error, 'Error requesting validation code:');
+      console.log('[email-request-code] Error:', error.message);
       return c.text('Internal server error', 500);
     }
   });

@@ -41,14 +41,18 @@ export async function sendEmail(to, subject, text, options = {}) {
         },
     };
     try {
+        console.log('[sendEmail] Sending email to:', to, 'subject:', subject);
         await transporter.sendMail(mailOptions);
+        console.log('[sendEmail] Email sent successfully to:', to);
         logger.info('Email sent', { to });
     } catch (error) {
         // Log a clearer message for missing credentials vs other errors
         if (error && error.message && error.message.toLowerCase().includes('missing')) {
             logger.error({ err: error }, 'Email not sent: missing Gmail credentials or misconfiguration');
+            console.log('[sendEmail] Missing credentials error:', error.message);
         } else {
             logger.error({ err: error }, 'Error sending email', { to });
+            console.log('[sendEmail] Error sending email:', error.message);
         }
         throw error; // rethrow so callers can handle failures if needed
     }

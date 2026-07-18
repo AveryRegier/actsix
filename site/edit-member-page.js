@@ -74,8 +74,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (memberId) {
             document.getElementById('formTitle').textContent = 'Edit Member';
             apiFetch('api/members/' + memberId)
-                .then(function(response) { return response.json(); })
                 .then(function(data) {
+                    // apiFetch already returns parsed JSON
                     var member = data.member || data;
                     console.log('Loaded member:', member);
                     document.getElementById('memberId').value = member._id || '';
@@ -110,8 +110,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadTags() {
     try {
-        var response = await apiFetch('/api/tags');
-        var data = await response.json();
+        // apiFetch already returns parsed JSON
+        var data = await apiFetch('/api/tags');
         var tags = data.tags || [];
         var tagsContainer = document.getElementById('tagCheckboxes');
         tagsContainer.innerHTML = '';
