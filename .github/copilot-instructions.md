@@ -50,6 +50,22 @@ Capture anything that is likely to help future agents, including defects, open i
 
 ---
 
+## E2E Testing
+
+All e2e tests **always** use the sengo S3 simulator and the fake mailer — never real AWS or real email.
+
+**To write or maintain e2e tests** — use the `e2e-test` skill (`.github/skills/e2e-test/SKILL.md`):
+- Adding new Playwright specs in `test/e2e/specs/`
+- Using seed helpers from `test/e2e/support/workflow-helpers.js`
+- Running `npm run e2e:mcp:smoke` (smoke gate) and `npm run e2e:mcp` (full suite)
+
+**Key rules:**
+- `USE_S3_SIMULATOR` is hardcoded to `'1'` in both Playwright configs — never override to `0`
+- Tag fast critical-path tests `@smoke` so CI runs them on every PR
+- Seed data must use timestamp-unique names; never share state between test runs
+
+---
+
 ## Help Documentation System
 
 The app has a user-facing help system at `/help.html?page=<key>`. It is driven by composable
