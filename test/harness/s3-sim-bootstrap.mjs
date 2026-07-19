@@ -1,5 +1,4 @@
 import { createRequire } from 'module';
-import path from 'path';
 import { S3BucketSimulator } from './s3-bucket-simulator.js';
 import { appendMailboxMessage } from './fake-mailbox.js';
 
@@ -9,8 +8,10 @@ function loadAwsS3Module() {
   try {
     return require('@aws-sdk/client-s3');
   } catch {
-    const siblingPath = path.join(process.cwd(), '..', 'sengo', 'node_modules', '@aws-sdk', 'client-s3');
-    return require(siblingPath);
+    // Resolve @aws-sdk/client-s3 from sengo's context, since sengo owns that dependency
+    const sengoPath = require.resolve('sengo');
+    const requireFromSengo = createRequire(sengoPath);
+    return requireFromSengo('@aws-sdk/client-s3');
   }
 }
 
