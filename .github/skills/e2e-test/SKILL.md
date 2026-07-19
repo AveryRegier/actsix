@@ -181,3 +181,41 @@ Protocol (CDP) and is collected through `test/e2e/support/browser-coverage.js`.
 - [ ] `npm run e2e:mcp:smoke` passes
 - [ ] `npm run e2e:mcp` passes
 - [ ] No `USE_S3_SIMULATOR=0` anywhere in test configs
+
+---
+
+## Troubleshooting
+
+### WebServer fails with "Cannot find module '@aws-sdk/client-s3'" in git worktrees
+
+**Root cause:** This repo uses `file:` dependencies (`sengo`, `clox`) with relative paths in `package.json`
+that resolve correctly from the main repo but fail in git worktrees checked out at a different path depth.
+After `npm install`, the `node_modules/sengo` and `node_modules/clox` junctions point to nonexistent
+paths, and the bootstrap loader cannot resolve `@aws-sdk/client-s3`.
+
+**Fix:** Run the automatic setup script from the repo root:
+
+```bash
+node scripts/fix-e2e-worktree-setup.js
+```
+
+Or manually recreate the junctions (adjust paths if needed for your OS):
+
+**Windows (PowerShell):**
+```powershell
+Remove-Item node_modules\sengo, node_modules\clox -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Junction -Path node_modules\sengo -Target C:\dev\code\sengo\client\dist
+New-Item -ItemType Junction -Path node_modules\clox -Target C:\dev\code\clox\dist
+```
+
+**macOS/Linux (bash):**
+```bash
+rm -rf node_modules/sengo node_modules/clox
+ln -s ../../../sengo/client/dist node_modules/sengo
+ln -s ../../../clox/dist node_modules/clox
+```
+
+After fixing the junctions, verify:
+```bash
+npm run e2e:mcp:smoke
+```
