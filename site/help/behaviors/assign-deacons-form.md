@@ -14,6 +14,8 @@ You can assign one or more deacons (or H.E.L.P. workers) to care for a household
 
 ![Assign deacons checkbox list](../images/assign-deacons-list.png)
 
+![Assign deacons list with one person selected](../images/assign-deacons-selection.png)
+
 5. Click **Assign Selected Deacons** to save the assignments.
 6. Click **Cancel** to go back without making changes.
 

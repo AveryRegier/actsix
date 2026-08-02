@@ -8,6 +8,15 @@
   "index": [
     { "file": "navigate-site.md", "roles": ["*"] }
   ],
+  "sign-ups": [
+    { "file": "sign-ups.md", "roles": ["*"] }
+  ],
+  "event-schedule": [
+    { "file": "schedule-event.md", "roles": ["deacon", "staff"] }
+  ],
+  "event-assignments": [
+    { "file": "event-assignments.md", "roles": ["*"] }
+  ],
   "members": [
     { "file": "view-members-list.md",    "roles": ["deacon", "staff", "helper"] },
     { "file": "filter-members-by-tag.md","roles": ["deacon", "staff", "helper"] },

@@ -12,6 +12,9 @@ Select a topic below:
 - [Edit Member](/help.html?page=edit-member)
 - [Edit Household](/help.html?page=edit-household)
 - [Assign Deacons](/help.html?page=assign-deacons)
+- [Sign Ups](/help.html?page=sign-ups)
+- [Schedule Event](/help.html?page=event-schedule)
+- [Event Assignments](/help.html?page=event-assignments)
 - [Contact Summary](/help.html?page=contact-summary)
 - [Deacon Quick Contact](/help.html?page=deacon-quick-contact)
 

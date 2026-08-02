@@ -3,6 +3,20 @@ import {
   seedDemoData, loginAsEmail, highlightElement, takeHelpScreenshot, DEMO
 } from './capture-helpers.js';
 
+async function setWideSummaryDesktopViewport(page) {
+  const viewport = page.viewportSize();
+  if (!viewport || viewport.width > 600) {
+    await page.setViewportSize({ width: 1280, height: 800 });
+  }
+}
+
+async function setDesktopOnlyAssignViewport(page) {
+  const viewport = page.viewportSize();
+  if (!viewport || viewport.width > 600) {
+    await page.setViewportSize({ width: 1280, height: 800 });
+  }
+}
+
 test.describe('contact-summary and quick-contact screenshots', () => {
   test('capture contact summary table', async ({ page, request }) => {
     await seedDemoData(request);
@@ -60,15 +74,5 @@ test.describe('contact-summary and quick-contact screenshots', () => {
     await deaconToSelect.click();
 
     await takeHelpScreenshot(page, 'assign-deacons-selection.png');
-  });
-});
-    const rows = deaconList.locator('div');
-    await expect(rows).toHaveCount(4);
-
-    const renderedNames = (await rows.allTextContents()).map(text => text.trim());
-    expect(new Set(renderedNames).size).toBe(renderedNames.length);
-
-    await highlightElement(page, deaconList, 'green');
-    await takeHelpScreenshot(page, 'assign-deacons-list.png');
   });
 });

@@ -10,6 +10,8 @@ The home page displays cards that link to the main sections:
 - **Current Status Report** — see all household assignments and recent contact history
 - **Members** — browse and search the full member directory
 
+For eligible roles, the home page also shows quick links for **Sign Ups** and **Schedule Event** below the cards.
+
 ![Home page navigation cards](../images/index-home-cards.png)
 
 Click any card to open that section.
@@ -22,6 +24,8 @@ Every page has a navigation bar at the top of the screen.
 - **📞 Deacon Quick Contact** — go to your contact list
 - **👥 Members** — go to the member directory
 - **📋 Summary** — go to the contact summary report
+- **✅ Sign Ups** — review upcoming services and mark your availability
+- **🗓️ Schedule Event** — create new service times when you have permission
 - **❓ Help** — open help for the current page
 - **🚪 Sign Out** — sign out of the app
 

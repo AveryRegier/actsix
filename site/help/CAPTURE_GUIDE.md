@@ -54,3 +54,7 @@ Do not finish capture work if any output category is non-empty (`missing-desktop
 | contact-summary-filter.png | test/e2e/screenshots/summary-quick-assign.spec.js | Contact summary filter control | Filter dropdown |
 | quick-contact-list.png | test/e2e/screenshots/summary-quick-assign.spec.js | Deacon quick contact list | None |
 | assign-deacons-list.png | test/e2e/screenshots/summary-quick-assign.spec.js | Assign deacons checkbox list | Deacon list |
+| assign-deacons-selection.png | test/e2e/screenshots/summary-quick-assign.spec.js | Assign deacons list with one person selected | Selected checkbox |
+| sign-ups-availability.png | test/e2e/screenshots/sign-ups.spec.js | Sign Ups page with an upcoming event | Availability buttons |
+| event-schedule-form.png | test/e2e/screenshots/event-schedule.spec.js | Schedule Event form with selected service times | Event type select and service time controls |
+| event-assignments-event.png | test/e2e/screenshots/event-assignments.spec.js | Event Assignments page for a single event | Open position controls |
