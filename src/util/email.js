@@ -6,9 +6,16 @@ const pw = process.env.GMAIL_APP_PASSWORD;
 const from = process.env.GMAIL_FROM_ADDRESS;
 const logger = getLogger();
 
-// Defensive: if credentials are missing, create a dummy transporter that throws a clear error
+// Check if using fake mailer first (for testing)
 let transporter;
-if (!from || !pw) {
+if (process.env.USE_FAKE_MAILER === '1') {
+    logger.info('Using fake mailer (USE_FAKE_MAILER=1)');
+    // Create a placeholder that will be intercepted by the nodemailer patch
+    transporter = nodemailer.createTransport({
+        host: 'localhost',
+        port: 1025,
+    });
+} else if (!from || !pw) {
     logger.warn('Gmail credentials are missing. Set GMAIL_FROM_ADDRESS and GMAIL_APP_PASSWORD in the environment. Email sending will fail.');
     transporter = {
         sendMail: async () => {

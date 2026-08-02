@@ -1,72 +1,62 @@
 # Copilot Instructions
 
-Use Muninn DB continuously during agent work in this repository.
+Always use Muninn DB.
 
-## Muninn Startup And Availability
+## Muninn Lifecycle
 
-Do not rely on the user to start Muninn manually.
+1.  `muninn status` (MCP tool) or `muninn status` (CLI) to check.
+2.  If down, `muninn start`.
+3.  If start fails, `muninn logs --no-follow` to diagnose.
+4.  Only ask user for help if auto-start fails.
 
-- At the start of each session (or before first memory operation), verify availability with `muninn_status` (MCP tool) or `muninn status` (CLI).
-- If unavailable, start it automatically with `muninn start`, then re-check with `muninn status`.
-- If startup still fails, run `muninn logs --no-follow`, capture the error, and report a concise unblock message.
-- Only ask the user to intervene after automatic start and log collection both fail.
+## Memory Writes
 
-Recommended fallback flow:
-1. Check: `muninn status`
-2. Start: `muninn start`
-3. Verify: `muninn status`
-4. Diagnose on failure: `muninn logs --no-follow`
+Write to Muninn often. Include:
+- Decisions & rationale
+- Problems & insights
+- Lessons learned
+- Project goals & constraints
+- Deferred work (tech debt, etc.)
+- Handoff context
 
-## Required Memory Writes
+## Memory Reads
 
-Write to Muninn on every user prompt, or immediately after meaningful progress, and include atomic entries for:
+Read from Muninn before risky work, or when uncertain about:
+- Tradeoffs
+- Architecture
+- Goals or conventions
 
-- Decisions made and rationale
-- Problems found, defects discovered, and root-cause insights
-- Lessons learned and implementation insights likely to help future work
-- Project goals, structure, and constraints discovered during exploration
-- Deferred items: tech debt, postponed features, known issues, and follow-up work
-- Handoff context another agent would need to continue safely and quickly
+## E2E Testing
 
-## Required Memory Reads Before Risky Work
+- **NEVER mock API calls in E2E tests** (`test/e2e/specs/`). Tests must hit a live, data-seeded server.
+- Use `s3Simulator` and its seeding utilities (`seedWorkflowScenario`, `seedDemoData`) for test setup.
+- API mocking (`page.route()`) is ONLY for screenshot tests (`test/e2e/screenshots/`).
 
-Read from Muninn before proceeding when uncertainty, risk, or ambiguity is present, including:
+## Help System
 
-- Sticky situations or tradeoff-heavy choices
-- Architecture or implementation decisions that could have long-term impact
-- Cases where goals, conventions, or prior decisions need confirmation
-- Work in unfamiliar areas where relevant prior context may already exist
+- Help content is in `site/help/behaviors/` and `site/help/help-config.json`.
+- Use `help-docs` skill to edit content.
+- Use `help-image-capture` skill to regenerate screenshots (`npm run help:screenshots`).
+- **Rule:** Role access in `help-config.json` must match API role checks in `src/api/`. Verify before editing.
 
-## Memory Quality Rules
 
-- Store memories as atomic, concise entries
-- Prefer clear tags/types and link related memories (decision <-> issue <-> follow-up)
-- Update lifecycle state as work progresses (active/blocked/completed/archived)
-- Record contradictions or superseded decisions explicitly
+<!-- caveman-begin -->
+## Caveman mode (always on)
 
-## Scope Guidance
+Respond terse like smart caveman. All technical substance stay. Only fluff die.
 
-Capture anything that is likely to help future agents, including defects, open issues, deferred work, and constraints that shape implementation choices.
+The full ruleset and intensity levels live in this workspace's caveman skill:
 
----
+  skills/caveman/SKILL.md
 
-## Help Documentation System
+Default intensity: `full`. Switch with `/caveman lite|full|ultra|wenyan`.
+Stop with: "stop caveman" / "normal mode" / "deactivate caveman".
 
-The app has a user-facing help system at `/help.html?page=<key>`. It is driven by composable
-behavior markdown files in `site/help/behaviors/` and a role-access config at `site/help/help-config.json`.
+Auto-Clarity: drop caveman for security warnings, irreversible action
+confirmations, multi-step sequences where fragments risk misread, or when
+user is confused or repeating. Resume after.
 
-**To maintain help content** — use the `help-docs` skill (`.github/skills/help-docs/SKILL.md`):
-- Adding/updating behavior `.md` files
-- Updating `help-config.json` role mappings
-- Verifying accuracy against `site/*-page.js` and `src/api/` source
+Boundaries: code, commit messages, and PR descriptions stay normal prose.
 
-**To regenerate screenshots** — use the `help-image-capture` skill (`.github/skills/help-image-capture/SKILL.md`):
-- Run `npm run help:screenshots` to capture/re-capture all images
-- All images use demo personas (no real member data)
-- Screenshot specs live in `test/e2e/screenshots/`
-
-**Key rules:**
-- Never show a behavior to a role that cannot perform it — `help-config.json` roles arrays are authoritative
-- Verify role constraints in `src/api/` `verifyRole()` calls before writing or editing behavior files
-- Staff cannot assign deacons (`assign-deacons-form.md` is `deacon` + `helper` only)
-- Helper cannot view contact history (`view-contact-history.md` is `deacon` + `staff` only)
+Use /caveman skill to compact conversations.
+<!-- caveman-end -->

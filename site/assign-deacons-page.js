@@ -11,8 +11,7 @@ if (!householdId) {
 
 // Fetch all deacons
 async function fetchDeacons() {
-    const res = await apiFetch('api/deacons?add=deaconess,staff,helper');
-    const data = await res.json();
+    const data = await apiFetch('api/deacons?add=deaconess,staff,helper');
     const sorted = data.deacons.sort((a, b) => {
         const nameA = `${a.lastName} ${a.firstName}`.toLowerCase();
         const nameB = `${b.lastName} ${b.firstName}`.toLowerCase();
@@ -23,9 +22,7 @@ async function fetchDeacons() {
 
 // Fetch current assignments
 async function fetchAssignments() {
-    const res = await apiFetch(`api/households/${householdId}/assignments`);
-    if (!res.ok) return [];
-    const data = await res.json();
+    const data = await apiFetch(`api/households/${householdId}/assignments`);
     return data.assignments || [];
 }
 
@@ -58,7 +55,7 @@ document.getElementById('assignBtn').onclick = async function() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deaconIds: checked })
     });
-    if (res.ok) {
+    if (res.assignments) {
         const where = document.referrer ?? `household.html?id=${householdId}`;
         window.location.href = where;
     } else {

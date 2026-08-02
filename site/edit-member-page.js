@@ -356,22 +356,20 @@ document.getElementById('memberForm').onsubmit = function(e) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(member)
     })
-    .then(function(res) {
-        if (res.ok) {
+    .then(function(data) {
+        // apiFetch returns parsed JSON, not a Response object
+        // If successful, data will contain the response object
+        if (!data.error) {
             document.getElementById('formSuccess').style.display = 'block';
-            return res.json().then(function(data) {
-                // Use householdId from API response if available
-                var redirectHouseholdId = data.member && data.member.householdId ? data.member.householdId : householdId;
-                setTimeout(function() {
-                    window.location.href = 'household.html?id=' + redirectHouseholdId;
-                }, 800);
-            });
+            // Use householdId from API response if available
+            var redirectHouseholdId = data.member && data.member.householdId ? data.member.householdId : householdId;
+            setTimeout(function() {
+                window.location.href = 'household.html?id=' + redirectHouseholdId;
+            }, 800);
         } else {
-            return res.json().then(function(data) {
-                console.error('API error response:', data);
-                document.getElementById('formError').textContent = data.message || 'Error saving member.';
-                document.getElementById('formError').style.display = 'block';
-            });
+            console.error('API error response:', data);
+            document.getElementById('formError').textContent = data.message || 'Error saving member.';
+            document.getElementById('formError').style.display = 'block';
         }
     })
     .catch(function(err) {

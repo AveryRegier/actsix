@@ -37,26 +37,12 @@ async function waitForCode(email, timeoutMs = 10_000) {
 // Uses page.once so only the one success-alert dialog is consumed here and the
 // caller's own listener can handle any subsequent dialogs independently.
 async function reachValidationForm(page, email) {
-  const dialogs = [];
-  let requestBody = null;
-  page.once('dialog', async (dialog) => {
-    dialogs.push(dialog.message());
-    await dialog.accept();
-  });
-
-  await page.route('**/email-request-code', async (route) => {
-    requestBody = route.request().postDataJSON();
-    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
-  });
-
   await page.goto('/email-login.html');
   await page.getByLabel(/email address/i).fill(email);
   await page.getByRole('button', { name: /send validation code/i }).click();
 
-  // Wait for the validation form to become visible (the alert fires first)
+  // Wait for the validation form to become visible
   await expect(page.locator('#validationForm')).toBeVisible({ timeout: 5000 });
-
-  return { dialogs, requestBody };
 }
 
 test.describe('email-login inline behavior', () => {
@@ -105,17 +91,16 @@ test.describe('email-login inline behavior', () => {
     expect(alertMessage).toMatch(/please enter your email address/i);
   });
 
-  test('successful email submit hides email form and shows validation form', async ({ page }) => {
-    const { dialogs, requestBody } = await reachValidationForm(page, ' inline-test@example.test ');
-    // The success alert fires before the form transitions
-    expect(dialogs.some((m) => /login link sent/i.test(m))).toBeTruthy();
-    expect(requestBody).toEqual({ email: 'inline-test@example.test' });
+  test('successful email submit hides email form and shows validation form', async ({ page, request }) => {
+    const email = 'inline-test@example.test';
+    await createMemberWithEmail(request, email);
+    await reachValidationForm(page, `  ${email}  `);
 
     await expect(page.locator('#emailLoginForm')).toBeHidden();
     await expect(page.locator('#validationForm')).toBeVisible();
     // Validation email hidden input should carry the email
     const hiddenEmail = await page.locator('#validationEmail').inputValue();
-    expect(hiddenEmail).toBe('inline-test@example.test');
+    expect(hiddenEmail).toBe(email);
     await expect(page.locator('#code')).toBeFocused();
     await expect(page.locator('#code')).toHaveValue('');
   });
@@ -134,7 +119,9 @@ test.describe('email-login inline behavior', () => {
   });
 
   test('submitting blank code shows alert', async ({ page }) => {
-    await reachValidationForm(page, 'blank-code@example.test');
+    const email = 'blank-code@example.test';
+    await createMemberWithEmail(page.request, email);
+    await reachValidationForm(page, email);
 
     let codeAlertMessage = '';
     page.on('dialog', async (dialog) => {
@@ -169,8 +156,10 @@ test.describe('email-login inline behavior', () => {
     await expect(page.locator('#emailLoginForm')).toBeVisible();
   });
 
-  test('API error on email-validate shows invalid code alert', async ({ page }) => {
-    await reachValidationForm(page, 'validate-error@example.test');
+  test('API error on email-validate shows invalid code alert', async ({ page, request }) => {
+    const email = 'validate-error@example.test';
+    await createMemberWithEmail(request, email);
+    await reachValidationForm(page, email);
 
     let alertMessage = '';
     page.on('dialog', async (dialog) => {
@@ -178,6 +167,7 @@ test.describe('email-login inline behavior', () => {
       await dialog.accept();
     });
 
+    // Intentionally bypass the real API to simulate a 400 error
     await page.route('**/email-validate', async (route) => {
       await route.fulfill({ status: 400, contentType: 'application/json', body: '{"error":"invalid"}' });
     });

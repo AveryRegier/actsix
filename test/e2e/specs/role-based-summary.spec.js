@@ -64,7 +64,7 @@ async function seedRoleFilterScenario(request) {
     const member = await memberRes.json();
 
     const assignRes = await apiPost(request, `/api/households/${household.id}/assignments`, {
-      deaconIds: [assigneeId],
+      deaconMemberId: assigneeId,
     });
     expect(assignRes.ok()).toBeTruthy();
 

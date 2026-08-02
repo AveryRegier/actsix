@@ -31,9 +31,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadHouseholdData() {
 
         return apiFetch('api/households/' + householdId)
-            .then(function(response) {
-                return response.json();
-            })
             .then(function(household) {
                 document.getElementById('lastName').value = household.lastName || '';
                 populateAddressFields('address', household.address || {});
@@ -92,13 +89,13 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify(householdData)
         })
-        .then(function(response) {
-            if (response.ok) {
+        .then(function(data) {
+            if (data.error) {
+                console.error('Failed to update household:', data.error);
+                alert('Failed to update household. Please try again.');
+            } else {
                 var redirectUrl = document.referrer || ('household.html?id=' + householdId);
                 window.location.href = redirectUrl;
-            } else {
-                console.error('Failed to update household:', response.statusText);
-                alert('Failed to update household. Please try again.');
             }
         })
         .catch(function(error) {

@@ -46,8 +46,8 @@ async function applyDefaultAssignmentFilter() {
     }
 
     try {
-        // apiFetch already returns parsed JSON
-        const data = await apiFetch('api/members/' + currentMemberId);
+        const response = await apiFetch('api/members/' + currentMemberId);
+        const data = await response.json();
         console.log('[contact-summary] member lookup response payload:', data);
         const member = data && data.member ? data.member : null;
         const tags = member && member.tags ? member.tags : [];
@@ -166,6 +166,7 @@ function renderSummary(items) {
 
     tempLocationFetches.forEach(fetchInfo => {
         apiFetch('api/common-locations/' + fetchInfo.locationId)
+            .then(response => response.json())
             .then(data => {
                 const location = data.location;
                 if (location && location.address) {
@@ -176,7 +177,6 @@ function renderSummary(items) {
                     const locElement = document.querySelector(selector);
                     if (locElement) {
                         let html = '<div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px; margin-top: 10px;">' +
-                            '<strong style="color: #856404;">Temporary Location:</strong>' +
                             '<div style="margin-top: 5px;">' +
                             '<span style="color: #333;">' + location.name + roomInfo + '</span>' +
                             '</div>' +

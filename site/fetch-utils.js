@@ -67,7 +67,10 @@ export async function apiFetch(url, options = {}) {
   }
 
   try {
-    return JSON.parse(responseBody);
+    const json = JSON.parse(responseBody);
+    json.ok = true;
+    json.json = () => json;
+    return json;
   } catch (e) {
     // If parsing fails, it might be a plain text response
     return responseBody;

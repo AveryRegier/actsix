@@ -1,102 +1,64 @@
 ---
 name: help-docs
 description: >
-  **WORKFLOW SKILL** — Maintain the help documentation system for the ActSix Deacon Care app.
-  USE FOR: adding new behavior docs for new features; updating existing behavior docs after UI changes;
-  adding a new page to the help system; verifying behavior file accuracy against site source code;
-  checking which roles have access to which features before writing help content.
-  ALWAYS: verify behavior file content against site/*-page.js AND src/api/ endpoint role checks before writing.
-  NEVER: mention features not available to the current user's role in a help file; add a behavior to
-  help-config.json for a role without first verifying the role is permitted in source code.
-  DO NOT USE FOR: general coding tasks; debugging runtime errors; adding new site features.
+  **WORKFLOW SKILL** — Maintain help docs for ActSix app.
+  USE FOR: add/update behavior docs; add new help page; verify doc accuracy vs source;
+  check role access before write.
+  ALWAYS: verify behavior vs `site/*-page.js` AND `src/api/` role checks.
+  NEVER: show features to wrong role; add behavior to `help-config.json` for role not allowed in code.
+  NOT FOR: general code; debug runtime errors; add site features.
 ---
 
-# Help Documentation Maintenance
+# Help Doc Maintenance
 
-## System Architecture
+## System Parts
 
-The help system uses **composable behavior files**: each user action has its own `.md` file under
-`site/help/behaviors/`. The file `site/help/help-config.json` is the **single source of truth**
-for which behaviors appear for each page and role combination.
-
-```
-site/
-  help.html             — Help viewer shell page
-  help-page.js          — Fetches config, filters by role, renders behaviors
-  help.css              — Help viewer styles
-  help/
-    help-config.json    — Page → behaviors → roles mapping
-    behaviors/          — One .md file per user action
-    images/             — Screenshots (see CAPTURE_GUIDE.md)
-    CAPTURE_GUIDE.md    — Screenshot capture instructions
-```
+Help system use **composable behavior files**: each user action has own `.md` file in
+`site/help/behaviors/`. File `site/help/help-config.json` is **truth**
+for what behaviors show for each page/role.
 
 `help-config.json` structure:
-```json
-{
-  "page-key": [
-    { "file": "behavior-name.md", "roles": ["deacon", "staff", "helper"] }
-  ]
-}
-```
-- `page-key` = HTML filename without `.html` (e.g., `members`, `household`, `login`)
-- `"*"` in `roles` = visible to all users, including unauthenticated (login page)
-- Role tokens: `"deacon"`, `"staff"`, `"helper"`, `"*"` (null/regular member only sees `"*"` behaviors)
+- `page-key`: HTML file name, no `.html` (e.g., `members`, `household`)
+- `"*"` in `roles`: show to all, even not logged in (login page)
+- Role tokens: `"deacon"`, `"staff"`, `"helper"`, `"*"` (regular member see `"*"` only)
 
----
+## Roles
 
-## Role System
-
-Roles are determined by `member.tags` in the database. Auth sets `req.role` from the JWT.
+Roles from `member.tags` in DB. Auth sets `req.role` from JWT.
 
 | Config token | Member tag | Notes |
 |---|---|---|
-| `"deacon"` | `deacon` | Full access including contact history and assignments |
-| `"staff"` | `staff` | Admin; **CANNOT** create/update deacon assignments |
-| `"helper"` | `helper` | H.E.L.P. program; **CAN** create assignments; **CANNOT** see contact history |
-| `"*"` | (any) | Always shown; used for login page and universal features |
+| `"deacon"` | `deacon` | Full access, contact history, assignments |
+| `"staff"` | `staff` | Admin; **NO** create/update deacon assignments |
+| `"helper"` | `helper` | H.E.L.P. program; **CAN** create assignments; **NO** see contact history |
+| `"*"` | (any) | Always show; for login page, universal features |
 
-**Verified constraints — do not change without re-checking source:**
+**Verified Rules — check source before change:**
 
-| Behavior | Roles | Source file to verify |
+| Behavior | Roles | Verify File |
 |---|---|---|
-| `assign-deacons-form.md` | `["deacon","helper"]` only | `src/api/assignments.js` – `verifyRole(c, ['deacon','helper'])` |
-| `view-contact-history.md` | `["deacon","staff"]` only | `src/api/contacts.js` – household contacts endpoint |
+| `assign-deacons-form.md` | `["deacon","helper"]` | `src/api/assignments.js` – `verifyRole(c, ['deacon','helper'])` |
+| `view-contact-history.md` | `["deacon","staff"]` | `src/api/contacts.js` – household contacts endpoint |
 | `set-member-tags.md` | `["deacon","staff","helper"]` | `src/api/members.js` – tag write check |
-| `view-members-list.md` | `["deacon","staff","helper"]` | `src/api/households.js` – requires authenticated role |
+| `view-members-list.md` | `["deacon","staff","helper"]` | `src/api/households.js` – need auth role |
 
 ---
 
-## Adding a New Behavior File
+## Add New Behavior File
 
-1. **Verify accuracy first** — before writing any step:
-   - Read `site/<page>-page.js` to see the actual UI flow and what buttons/fields exist
-   - Read `src/api/<resource>.js` and find all `verifyRole()` calls for this action
-   - Confirm the roles you plan to list are exactly those in `verifyRole()`
+1. **Check first**:
+   - Read `site/<page>-page.js` for UI flow, buttons, fields.
+   - Read `src/api/<resource>.js`, find all `verifyRole()` for this action.
+   - Confirm roles match `verifyRole()`.
 
-2. **Create the file** at `site/help/behaviors/<behavior-name>.md`:
-   ```markdown
-   ## Action Title
+2. **Create file** at `site/help/behaviors/<behavior-name>.md`.
 
-   Brief one-sentence description of what this action does.
+3. **Add to config** `site/help/help-config.json`. Add entry under page key. Order matters.
 
-   1. Navigate to the [Page Name] page.
-   2. Click the **Button Label** button.
-      ![Screenshot description](../images/page-action.png)
-   3. Fill in the fields...
-   4. Click **Save**.
-   ```
+4. **Add screenshot row** to `site/help/CAPTURE_GUIDE.md`.
 
-3. **Add to config** — open `site/help/help-config.json` and add an entry under the relevant page key:
-   ```json
-   { "file": "behavior-name.md", "roles": ["deacon", "staff"] }
-   ```
-   Place it in the order you want it to appear on the help page.
-
-4. **Add a screenshot row** to `site/help/CAPTURE_GUIDE.md`.
-
-5. **Generate the screenshot**: run `npm run help:screenshots`
-   (See `.github/skills/help-image-capture/SKILL.md` for the full screenshot workflow.)
+5. **Make screenshot**: `npm run help:screenshots`
+   (See `help-image-capture` skill for full workflow.)
 
 ---
 

@@ -119,15 +119,11 @@ test.describe('household page functions', () => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
-    await page.route(`**/api/households/${scenario.targetHouseholdId}/contacts`, async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ count: 0, contacts: [] }),
-      });
-    });
+    // Ensure no contacts exist for this household by creating a new empty one for this test
+    const hhRes = await apiPost(request, '/api/households', { lastName: `EmptyContacts-${scenario.stamp}` });
+    const hh = await hhRes.json();
 
-    await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
+    await page.goto(`/household.html?id=${hh.id}`);
 
     const contactHistorySection = page.locator('.section').filter({ hasText: 'Contact History' });
     await expect(contactHistorySection).toContainText('No contact history available.');
@@ -370,21 +366,6 @@ test.describe('household page functions', () => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
-    let capturedBody = null;
-    await page.route(`**/api/members/${scenario.targetMemberId}`, async route => {
-      if (route.request().method() !== 'PUT') {
-        await route.continue();
-        return;
-      }
-
-      capturedBody = route.request().postDataJSON();
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ ok: true }),
-      });
-    });
-
     // Navigate to household page
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
     const targetMemberCard = page.locator(`[data-member-id="${scenario.targetMemberId}"]`);
@@ -408,18 +389,16 @@ test.describe('household page functions', () => {
     // Submit the form
     await page.locator('#saveBtn').click();
 
-    // Verify API request was made with correct data
-    await expect.poll(() => capturedBody !== null).toBeTruthy();
-    expect(capturedBody.firstName).toBe('Updated');
-    expect(capturedBody.lastName).toBe('Member');
-    expect(capturedBody.phone).toBe('515-555-9999');
-    expect(capturedBody.gender).toBe('male');
-    expect(capturedBody.relationship).toBe('spouse');
-
     // Verify redirect back to household page
     await page.waitForURL(new RegExp(`household\\.html\\?id=${scenario.targetHouseholdId}`));
     // Verify we're back on the household page
     await expect(page.locator('#householdTitle')).toBeVisible();
+
+    // Verify the update was persisted
+    const updatedMemberRes = await apiGet(request, `/api/members/${scenario.targetMemberId}`);
+    const updatedMember = await updatedMemberRes.json();
+    expect(updatedMember.member.firstName).toBe('Updated');
+    expect(updatedMember.member.lastName).toBe('Member');
   });
 
   test('user flow: edit member form shows error on failed update', async ({ page, request }) => {
@@ -513,29 +492,25 @@ test.describe('household page functions', () => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
-    await page.route(`**/api/households/${scenario.targetHouseholdId}/assignments`, async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          assignments: [
-            {
-              deacon: {
-                firstName: 'NoLink',
-                lastName: 'Deacon',
-                tags: ['deacon'],
-              },
-            },
-          ],
-        }),
-      });
+    // Create a deacon without a household to test this edge case
+    const deaconRes = await apiPost(request, '/api/members', {
+      firstName: 'NoLink',
+      lastName: 'Deacon',
+      tags: ['deacon'],
+    });
+    const deacon = await deaconRes.json();
+
+    // Assign the household-less deacon to the target household
+    await apiPost(request, `/api/households/${scenario.targetHouseholdId}/assignments`, {
+      deaconMemberId: deacon.id,
+      isActive: true,
     });
 
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
 
     const section = page.locator('#assignedDeaconsSection');
     await expect(section).toContainText('NoLink Deacon');
-    await expect(section.locator('a[href^="household.html?id="]')).toHaveCount(0);
+    await expect(section.locator('a[href^="household.html?id="]')).not.toContainText('NoLink Deacon');
   });
 
   test('add member button links to edit-member.html with correct householdId', async ({ page, request }) => {

@@ -122,6 +122,7 @@ export default function registerMemberRoutes(app) {
   app.post('/api/members', async (c) => {
     try {
       const body = await c.req.json();
+      getLogger().info({ body, memberId: c.req.memberId, role: c.req.role }, 'POST /api/members request');
       let householdId = body.householdId;
       if (!householdId) {
         if (!verifyRole(c, memberAccessRoles)) {
@@ -192,6 +193,7 @@ export default function registerMemberRoutes(app) {
         }
       }
 
+      console.error('Building memberData object');
       const memberData = {
         ...body,
         householdId,
@@ -199,16 +201,22 @@ export default function registerMemberRoutes(app) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      console.error('memberData built, about to insert');
       // only other deacons can modify tags as they allow secure access to the site
       const role = c.req.role; // Assuming role is set in the request
       if(memberAccessRoles.includes(role)) {
         memberData.tags = body.tags || [];
       }
 
+      console.error('Calling safeCollectionInsert...');
       const result = await safeCollectionInsert('members', memberData);
+      console.error('Insert completed, result:', result);
       return c.json({ message: 'Member created successfully', id: result.insertedId, member: memberData });
     } catch (error) {
-      getLogger().error(error, 'Error creating member:');
+      console.error('=== CAUGHT ERROR in member creation ===');
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      getLogger().error({ error: error.message, stack: error.stack }, 'Error creating member:');
       return c.json({ error: 'Failed to create member', message: error.message }, 500);
     }
   });
@@ -221,49 +229,49 @@ export default function registerMemberRoutes(app) {
       const requiredFields = ['firstName', 'lastName', 'relationship', 'gender'];
       for (const field of requiredFields) {
         if (!body[field]) {
-          validationErrorResponse(c, `Missing required field: ${field}`);
+          return validationErrorResponse(c, `Missing required field: ${field}`);
         }
       }
 
       const validRelationships = ['head', 'spouse', 'child', 'other'];
       if (!validRelationships.includes(body.relationship)) {
-        validationErrorResponse(c, `Invalid relationship. Must be one of: ${validRelationships.join(', ')}`);
+        return validationErrorResponse(c, `Invalid relationship. Must be one of: ${validRelationships.join(', ')}`);
       }
 
       const validGenders = ['male', 'female'];
       if (!validGenders.includes(body.gender)) {
-        validationErrorResponse(c, `Invalid gender. Must be one of: ${validGenders.join(', ')}`);
+        return validationErrorResponse(c, `Invalid gender. Must be one of: ${validGenders.join(', ')}`);
       }
 
       if (body.tags && Array.isArray(body.tags)) {
         const validTags = tags.map(t => t.name);
         for (const tag of body.tags) {
           if (!validTags.includes(tag)) {
-            validationErrorResponse(c, `Invalid tag "${tag}". Must be one of: ${validTags.join(', ')}`);
+            return validationErrorResponse(c, `Invalid tag "${tag}". Must be one of: ${validTags.join(', ')}`);
           }
         }
       }
 
       if (body.age && body.birthDate) {
-        validationErrorResponse(c, 'Cannot provide both age and birthDate. Please provide only one.');
+        return validationErrorResponse(c, 'Cannot provide both age and birthDate. Please provide only one.');
       }
 
       if (body.age && (body.age < 0 || body.age > 150)) {
-        validationErrorResponse(c, 'Age must be between 0 and 150');
+        return validationErrorResponse(c, 'Age must be between 0 and 150');
       }
 
       // Validate temporaryAddress if provided
       if (body.temporaryAddress) {
         const tempAddressError = validateTemporaryAddress(body.temporaryAddress);
         if (tempAddressError) {
-          validationErrorResponse(c, tempAddressError);
+          return validationErrorResponse(c, tempAddressError);
         }
         const isClearingTemporaryAddress = body.temporaryAddress.isActive === false && !body.temporaryAddress.locationId;
         // Verify the location exists
         if (!isClearingTemporaryAddress) {
           const locations = await safeCollectionFind('common_locations', { _id: body.temporaryAddress.locationId });
           if (locations.length === 0) {
-            validationErrorResponse(c, 'Invalid locationId: location not found');
+            return validationErrorResponse(c, 'Invalid locationId: location not found');
           }
         }
       }
@@ -272,7 +280,7 @@ export default function registerMemberRoutes(app) {
       const existingMember = members.pop();
 
       if (!existingMember) {
-        validationErrorResponse(c, 'The requested member was not found', 404);
+        return validationErrorResponse(c, 'The requested member was not found', 404);
       }
 
       const updateData = {
@@ -302,8 +310,11 @@ export default function registerMemberRoutes(app) {
         { $set: updateData }
       );
 
-      if (result.modifiedCount === 0) {
-        validationErrorResponse(c, 'No changes were made', 400);
+      if (result.modifiedCount === 0 && result.matchedCount > 0) {
+        // No actual change, but the member was found. This is not an error.
+        // The client will redirect, so no need to send a different message.
+      } else if (result.modifiedCount === 0) {
+        return validationErrorResponse(c, 'No changes were made', 400);
       }
 
       return c.json({ message: 'Member updated successfully', member: updateData });

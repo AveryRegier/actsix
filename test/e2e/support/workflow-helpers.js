@@ -2,9 +2,17 @@ import { expect } from '@playwright/test';
 import { findLatestCodeForEmail, resetMailbox } from '../../harness/fake-mailbox.js';
 
 const API_KEY = 'test-generation-key';
+const baseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${Number(process.env.E2E_PORT || 3101)}`;
+
+function getFullUrl(path) {
+  if (path.startsWith('http')) {
+    return path;
+  }
+  return baseURL + path;
+}
 
 export async function apiPost(request, path, data) {
-  const res = await request.post(path, {
+  const res = await request.post(getFullUrl(path), {
     headers: {
       'content-type': 'application/json',
       'x-api-key': API_KEY,
@@ -15,7 +23,7 @@ export async function apiPost(request, path, data) {
 }
 
 export async function apiGet(request, path) {
-  return request.get(path, {
+  return request.get(getFullUrl(path), {
     headers: {
       'x-api-key': API_KEY,
     },
@@ -415,7 +423,8 @@ export async function loginAsEmail(page, email) {
     await dialog.accept();
   });
 
-  await page.goto('/email-login.html');
+  const baseURL = page.context().baseURL || process.env.E2E_BASE_URL || `http://127.0.0.1:${Number(process.env.E2E_PORT || 3101)}`;
+  await page.goto(baseURL + '/email-login.html');
   await page.getByLabel(/email address/i).fill(email);
   await page.getByRole('button', { name: /send validation code/i }).click();
 
@@ -429,17 +438,12 @@ export async function loginAsEmail(page, email) {
 
 async function waitForCode(email, timeoutMs = 10_000) {
   const start = Date.now();
-  console.log(`[waitForCode] Waiting for code for email: ${email}`);
   let pollCount = 0;
   while (Date.now() - start < timeoutMs) {
     pollCount++;
     const code = findLatestCodeForEmail(email);
     if (code) {
-      console.log(`[waitForCode] Found code after ${pollCount} polls: ${code}`);
       return code;
-    }
-    if (pollCount % 10 === 1) {
-      console.log(`[waitForCode] Poll ${pollCount}: No code found yet, elapsed: ${Date.now() - start}ms`);
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
