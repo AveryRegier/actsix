@@ -149,12 +149,12 @@ function showMessage(message, isError) {
 
 async function loadSchedulableEventTypes() {
   const response = await apiFetch('/api/events/types');
-  const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     showMessage(body.message || 'Failed to load event types.', true);
     return;
   }
 
+  const body = await response.json();
   const eventTypes = Array.isArray(body.eventTypes) ? body.eventTypes : [];
   if (eventTypes.length === 0) {
     eventTypeSelect.innerHTML = '<option value="">No event types available</option>';
@@ -199,12 +199,12 @@ form.addEventListener('submit', async (event) => {
     body: JSON.stringify(payload)
   });
 
-  const responseBody = await response.json().catch(() => ({}));
   if (!response.ok) {
     showMessage(responseBody.message || 'Failed to create event.', true);
     return;
   }
 
+  const responseBody = await response.json();
   const eventId = responseBody.id || responseBody.event?._id;
   const createdCount = Number(responseBody.count || payload.serviceTimes.length || 1);
   const autoCount = Number(responseBody.autoScheduledCount || 0);
