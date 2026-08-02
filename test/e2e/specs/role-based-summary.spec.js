@@ -58,13 +58,13 @@ async function seedRoleFilterScenario(request) {
       gender: 'male',
       email: `${memberLabel.toLowerCase()}-member-${stamp}@example.test`,
       phone: '515-555-1003',
-      tags: ['member'],
+      tags: ['member', 'helped'],
     });
     expect(memberRes.ok()).toBeTruthy();
     const member = await memberRes.json();
 
     const assignRes = await apiPost(request, `/api/households/${household.id}/assignments`, {
-      deaconMemberId: assigneeId,
+      deaconIds: [assigneeId],
     });
     expect(assignRes.ok()).toBeTruthy();
 

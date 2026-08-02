@@ -374,7 +374,11 @@ document.getElementById('memberForm').onsubmit = function(e) {
     })
     .catch(function(err) {
         console.error('Error saving member:', err);
-        document.getElementById('formError').textContent = 'Error saving member.';
+        var detailedMessage =
+            (err && err.cause && err.cause.message) ||
+            (err && err.message) ||
+            'Error saving member.';
+        document.getElementById('formError').textContent = detailedMessage;
         document.getElementById('formError').style.display = 'block';
     });
 };

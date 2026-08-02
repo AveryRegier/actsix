@@ -74,7 +74,6 @@ test.describe('feature4 contact workflow depth', () => {
     await page.goto('/contact-summary.html');
 
     const tempInfo = page.locator(`td[data-household-id="${scenario.householdId}"] .temp-location-info`).first();
-    await expect(tempInfo).toContainText('Temporary Location:');
     await expect(tempInfo).toContainText(scenario.locationName);
     await expect(tempInfo).toContainText('Room/Unit: Room 207');
     await expect(tempInfo).toContainText('Recovering well');

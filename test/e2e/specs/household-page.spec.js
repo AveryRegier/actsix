@@ -119,9 +119,22 @@ test.describe('household page functions', () => {
     const scenario = await seedWorkflowScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
-    // Ensure no contacts exist for this household by creating a new empty one for this test
+    // Create a household with a member but no contacts, so the API returns count=0.
     const hhRes = await apiPost(request, '/api/households', { lastName: `EmptyContacts-${scenario.stamp}` });
+    expect(hhRes.ok()).toBeTruthy();
     const hh = await hhRes.json();
+
+    const memberRes = await apiPost(request, '/api/members', {
+      householdId: hh.id,
+      firstName: 'NoContact',
+      lastName: `Member${scenario.stamp}`,
+      relationship: 'head',
+      gender: 'female',
+      email: `no-contact-${scenario.stamp}@example.test`,
+      phone: '515-555-0888',
+      tags: ['member', 'helped'],
+    });
+    expect(memberRes.ok()).toBeTruthy();
 
     await page.goto(`/household.html?id=${hh.id}`);
 
@@ -496,15 +509,39 @@ test.describe('household page functions', () => {
     const deaconRes = await apiPost(request, '/api/members', {
       firstName: 'NoLink',
       lastName: 'Deacon',
+      relationship: 'head',
+      gender: 'male',
       tags: ['deacon'],
     });
+    expect(deaconRes.ok()).toBeTruthy();
     const deacon = await deaconRes.json();
 
-    // Assign the household-less deacon to the target household
-    await apiPost(request, `/api/households/${scenario.targetHouseholdId}/assignments`, {
-      deaconMemberId: deacon.id,
-      isActive: true,
+    const clearHouseholdRes = await request.put(`/api/members/${deacon.id}`, {
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': 'test-generation-key',
+      },
+      data: {
+        firstName: 'NoLink',
+        lastName: 'Deacon',
+        relationship: 'head',
+        gender: 'male',
+        tags: ['deacon'],
+        householdId: null,
+      },
     });
+    expect(clearHouseholdRes.ok()).toBeTruthy();
+
+    // Assign the household-less deacon to the target household
+    const existingAssignmentsRes = await apiGet(request, `/api/households/${scenario.targetHouseholdId}/assignments`);
+    expect(existingAssignmentsRes.ok()).toBeTruthy();
+    const existingAssignmentsPayload = await existingAssignmentsRes.json();
+    const existingDeaconIds = (existingAssignmentsPayload.assignments || []).map((a) => a.deaconMemberId);
+
+    const assignRes = await apiPost(request, `/api/households/${scenario.targetHouseholdId}/assignments`, {
+      deaconIds: Array.from(new Set([...existingDeaconIds, deacon.id])),
+    });
+    expect(assignRes.ok()).toBeTruthy();
 
     await page.goto(`/household.html?id=${scenario.targetHouseholdId}`);
 

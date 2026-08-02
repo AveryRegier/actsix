@@ -105,8 +105,9 @@ test.describe('email-login inline behavior', () => {
     await expect(page.locator('#code')).toHaveValue('');
   });
 
-  test('change email button restores email form with email pre-filled', async ({ page }) => {
+  test('change email button restores email form with email pre-filled', async ({ page, request }) => {
     const email = 'change-email@example.test';
+    await createMemberWithEmail(request, email);
     await reachValidationForm(page, email);
 
     await page.getByRole('button', { name: /change email/i }).click();
@@ -116,6 +117,24 @@ test.describe('email-login inline behavior', () => {
     const emailFieldValue = await page.locator('#emailLoginForm [name="email"]').inputValue();
     expect(emailFieldValue).toBe(email);
     await expect(page.locator('#email')).toBeFocused();
+  });
+
+  test('unknown email keeps email form visible so user can correct typos', async ({ page }) => {
+    let alertMessage = '';
+    page.on('dialog', async (dialog) => {
+      alertMessage = dialog.message();
+      await dialog.accept();
+    });
+
+    await page.goto('/email-login.html');
+    await page.getByLabel(/email address/i).fill('not-in-system@example.test');
+    await page.getByRole('button', { name: /send validation code/i }).click();
+
+    await page.waitForTimeout(400);
+    expect(alertMessage).toMatch(/error sending login validation code/i);
+    await expect(page.locator('#emailLoginForm')).toBeVisible();
+    await expect(page.locator('#validationForm')).toBeHidden();
+    await expect(page.locator('#emailLoginForm [name="email"]')).toHaveValue('not-in-system@example.test');
   });
 
   test('submitting blank code shows alert', async ({ page }) => {
