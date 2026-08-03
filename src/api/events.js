@@ -818,13 +818,39 @@ function buildCalendarView(calendarSlot, eventDefinition, signups) {
   };
 }
 
-async function loadSignupsForCalendar(calendarId) {
-  const byCalendarId = await safeCollectionFind('event_signups', { calendarId });
-  return byCalendarId;
+async function loadSignupsForCalendar(calendarId, eventId = null) {
+  const normalizedCalendarId = toStringOrNull(calendarId);
+  const normalizedEventId = toStringOrNull(eventId);
+
+  const lookups = [
+    safeCollectionFind('event_signups', { calendarId })
+  ];
+
+  if (normalizedCalendarId && normalizedCalendarId !== calendarId) {
+    lookups.push(safeCollectionFind('event_signups', { calendarId: normalizedCalendarId }));
+  }
+
+  if (normalizedEventId) {
+    lookups.push(safeCollectionFind('event_signups', { eventId: normalizedEventId }));
+  }
+
+  const batches = await Promise.all(lookups);
+  const deduped = new Map();
+  for (const batch of batches) {
+    for (const signup of batch || []) {
+      if (signup?._id) {
+        deduped.set(signup._id, signup);
+      }
+    }
+  }
+
+  return Array.from(deduped.values());
 }
 
 async function rebuildAssignmentsForCalendar(calendarSlot, eventDefinition) {
-  const signups = await loadSignupsForCalendar(calendarSlot._id);
+  const normalizedCalendarId = toStringOrNull(calendarSlot?._id) || calendarSlot?._id;
+  const normalizedEventId = toStringOrNull(eventDefinition?._id) || eventDefinition?._id;
+  const signups = await loadSignupsForCalendar(normalizedCalendarId, normalizedEventId);
   const assignment = assignPositions(signups, eventDefinition.positions || []);
 
   const now = new Date().toISOString();
@@ -851,8 +877,8 @@ async function rebuildAssignmentsForCalendar(calendarSlot, eventDefinition) {
       { _id: signup._id },
       {
         $set: {
-          calendarId: calendarSlot._id,
-          eventId: eventDefinition._id,
+          calendarId: normalizedCalendarId,
+          eventId: normalizedEventId,
           eventType: eventDefinition.eventType,
           assignedPositionId: matched?.assignedPositionId || null,
           updatedAt: now
@@ -1224,11 +1250,7 @@ export default function registerEventRoutes(app) {
         return c.json({ error: 'Unauthorized access' }, 403);
       }
 
-      // Use positions from calendarSlot if available, otherwise use positions from eventDefinition
-      const event = {
-        ...loaded.calendarSlot,
-        positions: loaded.calendarSlot.positions || loaded.eventDefinition.positions || []
-      };
+      const event = await rebuildAssignmentsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
       const { candidates, assigneeRoles, quickAddAssigneeRole, allowQuickAddAssignee, requiredGender } = await loadAssignmentCandidates(loaded.eventDefinition.eventType, eventTypeConfigMap);
       
       const assignedMemberIds = new Set(event.positions.map(p => p.assignedMemberId).filter(Boolean));

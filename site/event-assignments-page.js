@@ -286,19 +286,24 @@ async function loadAssignmentModalData(context) {
     quickAddRoleLabel: quickAddRole,
     quickAddRequiredGender: requiredGender,
     onQuickAdd: async ({ fullName, gender }) => {
-      const response = await apiFetch(`/api/events/${encodeURIComponent(context.eventId)}/assignment-candidates`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName,
-          role: quickAddRole,
-          gender
-        })
-      });
+      let body = null;
+      try {
+        body = await apiFetch(`/api/events/${encodeURIComponent(context.eventId)}/assignment-candidates`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName,
+            role: quickAddRole,
+            gender
+          })
+        });
+      } catch (error) {
+        showMessage(error?.cause?.message || error.message || 'Failed to add member.', true);
+        return null;
+      }
 
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok || !body?.candidate?._id) {
-        showMessage(body.message || 'Failed to add member.', true);
+      if (!body?.candidate?._id) {
+        showMessage('Failed to add member.', true);
         return null;
       }
 
@@ -475,21 +480,21 @@ function renderAssignmentBlockWithPositions(event, positions, openPositions, can
   `;
 }
 async function saveSinglePositionAssignment(eventId, positionId, memberId) {
-  const response = await apiFetch(`/api/events/${encodeURIComponent(eventId)}/assignments`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      assignments: [
-        {
-          positionId,
-          memberId
-        }
-      ]
-    })
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    showMessage(body.message || 'Failed to save assignments.', true);
+  try {
+    await apiFetch(`/api/events/${encodeURIComponent(eventId)}/assignments`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        assignments: [
+          {
+            positionId,
+            memberId
+          }
+        ]
+      })
+    });
+  } catch (error) {
+    showMessage(error?.cause?.message || error.message || 'Failed to save assignments.', true);
     return;
   }
 
@@ -520,10 +525,11 @@ function wireAssignmentEditTriggers() {
 }
 
 async function loadAssignmentsForEvent(calendarEventId) {
-  const response = await apiFetch(`/api/events/${encodeURIComponent(calendarEventId)}/assignments`);
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    showMessage(body.message || 'Failed to load assignments.', true);
+  let body = null;
+  try {
+    body = await apiFetch(`/api/events/${encodeURIComponent(calendarEventId)}/assignments`);
+  } catch (error) {
+    showMessage(error?.cause?.message || error.message || 'Failed to load assignments.', true);
     return;
   }
 
