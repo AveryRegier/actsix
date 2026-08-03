@@ -1,8 +1,22 @@
 import { apiFetch } from './fetch-utils.js';
 import { getBestContactMethod, getContactedBy, getContactDateClass } from './contact-utils.js';
-import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.js';
 
 let summaryData = [];
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+async function loadResolvedLocation(locationId) {
+    const response = await apiFetch('api/common-locations/' + locationId);
+    const data = await response.json();
+    return data.location || null;
+}
 
 function hasHelperAssignment(item) {
     return (item.assignedDeacons || []).some(member => member.tags && member.tags.includes('helper'));
@@ -79,36 +93,40 @@ async function applyDefaultAssignmentFilter() {
     }
 }
 
-function renderSummary(items) {
+async function renderSummary(items) {
     const tableBody = document.getElementById('summaryTable').querySelector('tbody');
     const filteredItems = filterSummaryItems(items, document.getElementById('assignmentFilter')?.value || 'all');
 
     filteredItems.sort((a, b) => a.household.lastName.localeCompare(b.household.lastName));
 
+    const resolvedLocationsByHouseholdId = {};
+    await Promise.all(filteredItems.map(async item => {
+        if (item.household.members && item.household.members.length > 0) {
+            for (const member of item.household.members) {
+                if (member.temporaryAddress && member.temporaryAddress.isActive && member.temporaryAddress.locationId) {
+                    const location = await loadResolvedLocation(member.temporaryAddress.locationId);
+                    if (location) {
+                        resolvedLocationsByHouseholdId[item.household._id] = location;
+                    }
+                    break;
+                }
+            }
+        }
+    }));
+
     tableBody.innerHTML = filteredItems.map((item, idx) => {
         const currentHouseholdId = item.household._id;
         const householdName = item.household?.members?.map(m => m.firstName).join(' & ');
 
-        const phoneNumbers = getBestContactMethod(item.household);
+        const phoneNumbers = getBestContactMethod(item.household, resolvedLocationsByHouseholdId[currentHouseholdId]);
         const deacons = item.assignedDeacons?.map(d => `${d.firstName} ${d.lastName}`).join(', ') || "(Assign)";
         const lastContactDate = item.lastContact?.contactDate ? new Date(item.lastContact.contactDate) : null;
 
         const contactedBy = getContactedBy(item.lastContact);
         let contactDateClass = getContactDateClass(lastContactDate);
 
-        // Find any member with an active temporary location
-        let tempMember = null;
-        if (item.household.members && item.household.members.length > 0) {
-            for (const member of item.household.members) {
-                if (member.temporaryAddress && member.temporaryAddress.isActive && member.temporaryAddress.locationId) {
-                    tempMember = member;
-                    break;
-                }
-            }
-        }
-
         const rowClass = idx % 2 === 0 ? 'even' : 'odd';
-        const summaryContent = `${item.summary}`;
+        const summaryContent = escapeHtml(item.summary);
 
         return `
             <tr class="summary-row ${rowClass}" data-household-id="${currentHouseholdId}">
@@ -138,64 +156,11 @@ function renderSummary(items) {
                 </td>
                 <td class="last-contact-col notes-col" data-household-id="${currentHouseholdId}">
                     ${summaryContent}
-                    <div class="temp-location-info" style="margin-top: 8px;"></div>
                     <span class="cell-badge">Summary</span>
                 </td>
             </tr>
         `;
     }).join('');
-
-    // Now fetch and display temporary locations if any exist
-    const tempLocationFetches = [];
-    filteredItems.forEach(item => {
-        if (item.household.members && item.household.members.length > 0) {
-            for (const member of item.household.members) {
-                if (member.temporaryAddress && member.temporaryAddress.isActive && member.temporaryAddress.locationId) {
-                    tempLocationFetches.push({
-                        householdId: item.household._id,
-                        locationId: member.temporaryAddress.locationId,
-                        roomNumber: member.temporaryAddress.roomNumber,
-                        startDate: member.temporaryAddress.startDate,
-                        notes: member.temporaryAddress.notes
-                    });
-                    break;  // Only process first member with temp location per household
-                }
-            }
-        }
-    });
-
-    tempLocationFetches.forEach(fetchInfo => {
-        apiFetch('api/common-locations/' + fetchInfo.locationId)
-            .then(response => response.json())
-            .then(data => {
-                const location = data.location;
-                if (location && location.address) {
-                    const mapsUrl = formatAddressForMaps(location.address);
-                    const displayAddress = formatAddressForDisplay(location.address, false);
-                    const roomInfo = fetchInfo.roomNumber ? ' • Room/Unit: ' + fetchInfo.roomNumber : '';
-                    const selector = `td[data-household-id="${fetchInfo.householdId}"] .temp-location-info`;
-                    const locElement = document.querySelector(selector);
-                    if (locElement) {
-                        let html = '<div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px; margin-top: 10px;">' +
-                            '<div style="margin-top: 5px;">' +
-                            '<span style="color: #333;">' + location.name + roomInfo + '</span>' +
-                            '</div>' +
-                            '<div style="margin-top: 3px; font-size: 0.9em;">' +
-                            '<a href="' + mapsUrl + '" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">' + displayAddress + '</a>' +
-                            '</div>';
-                        if (fetchInfo.startDate) {
-                            html += '<div style="margin-top: 3px; font-size: 0.85em; color: #666;">Since: ' + new Date(fetchInfo.startDate).toLocaleDateString() + '</div>';
-                        }
-                        if (fetchInfo.notes) {
-                            html += '<div style="margin-top: 5px; font-size: 0.9em; font-style: italic; color: #555;">' + fetchInfo.notes + '</div>';
-                        }
-                        html += '</div>';
-                        locElement.innerHTML = html;
-                    }
-                }
-            })
-            .catch(err => console.error('Error fetching location:', err));
-    });
 }
 
 // Load reusable navigation bar
@@ -217,7 +182,7 @@ async function fetchSummary() {
     const data = await response.json();
     summaryData = data.summary || [];
     console.log('[contact-summary] summary rows loaded:', summaryData.length, 'current filter:', document.getElementById('assignmentFilter')?.value);
-    renderSummary(summaryData);
+    await renderSummary(summaryData);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

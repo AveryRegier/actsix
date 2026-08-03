@@ -1,28 +1,68 @@
 // Reusable contact utility functions for site pages
-export function getBestContactMethod(household) {
-    var phoneNumbers = "";
+function formatAddressLine(address) {
+    if (!address || !address.street) {
+        return '';
+    }
+    var cityStateZip = [address.city, address.state, address.zipCode].filter(Boolean).join(' ');
+    return address.street + (cityStateZip ? ', ' + cityStateZip : '');
+}
+
+function getActiveLocationMember(household) {
+    if (!household || !household.members || !household.members.length) {
+        return null;
+    }
+
+    for (var i = 0; i < household.members.length; i++) {
+        var member = household.members[i];
+        if (member.temporaryAddress && member.temporaryAddress.isActive && member.temporaryAddress.locationId) {
+            return member;
+        }
+    }
+
+    return null;
+}
+
+export function getBestContactMethod(household, resolvedLocation) {
+    var contactLines = [];
+    var activeLocationMember = getActiveLocationMember(household);
+    var hasLocation = Boolean(activeLocationMember && resolvedLocation && resolvedLocation.address && resolvedLocation.address.street);
+
     if (household && household.members && household.members.length) {
-        var filtered = [];
+        var hasMemberPhoneOrLocation = false;
         for (var i = 0; i < household.members.length; i++) {
-            if (household.members[i].phone) {
-                filtered.push(household.members[i]);
+            var member = household.members[i];
+            var isActiveLocationMember = activeLocationMember && member._id === activeLocationMember._id;
+
+            if (isActiveLocationMember && hasLocation) {
+                var locationLabel = resolvedLocation.name || 'Current Location';
+                contactLines.push((member.firstName ? member.firstName.charAt(0) : '') + ': ' + locationLabel);
+                contactLines.push(formatAddressLine(resolvedLocation.address));
+                hasMemberPhoneOrLocation = true;
+                continue;
+            }
+
+            if (member.phone) {
+                var initial = member.firstName ? member.firstName.charAt(0) : '';
+                contactLines.push(initial + ': ' + member.phone);
+                hasMemberPhoneOrLocation = true;
             }
         }
-        var mapped = [];
-        for (var j = 0; j < filtered.length; j++) {
-            var m = filtered[j];
-            var initial = m.firstName ? m.firstName.charAt(0) : '';
-            mapped.push(initial + ': ' + m.phone);
+
+        if (!hasMemberPhoneOrLocation && hasLocation) {
+            contactLines.push((activeLocationMember && activeLocationMember.firstName ? activeLocationMember.firstName.charAt(0) : '') + ': ' + (resolvedLocation.name || 'Current Location'));
+            contactLines.push(formatAddressLine(resolvedLocation.address));
         }
-        phoneNumbers = mapped.join('<br>');
     }
+
     if (household && household.primaryPhone) {
-        phoneNumbers += (phoneNumbers ? "<br>" : "") + 'P: ' + household.primaryPhone;
+        contactLines.push('P: ' + household.primaryPhone);
     }
-    if (!phoneNumbers && household && household.address && household.address.street) {
-        phoneNumbers = household.address.street + '<br>' + household.address.city;
+
+    if (!contactLines.length && household && household.address && household.address.street) {
+        contactLines.push(household.address.street + '<br>' + household.address.city);
     }
-    return phoneNumbers || "(Contact)";
+
+    return contactLines.join('<br>') || '(Contact)';
 }
 
 export function getContactedBy(lastContact) {

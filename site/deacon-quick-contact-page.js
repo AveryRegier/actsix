@@ -9,6 +9,60 @@ import { getContactedBy } from './contact-utils.js';
 import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.js';
 import { apiFetch } from './fetch-utils.js';
 
+function getActiveLocationMember(item) {
+	var members = item.members || [];
+	for (var i = 0; i < members.length; i++) {
+		var member = members[i];
+		if (member.temporaryAddress && member.temporaryAddress.isActive && member.temporaryAddress.locationId) {
+			return member;
+		}
+	}
+	return null;
+}
+
+function buildClickableContact(item, resolvedLocation) {
+	var members = item.members || [];
+	var parts = [];
+	var activeLocationMember = getActiveLocationMember(item);
+
+	for (var i = 0; i < members.length; i++) {
+		var m = members[i];
+		var isActiveLocationMember = activeLocationMember && m._id === activeLocationMember._id;
+		if (isActiveLocationMember && resolvedLocation && resolvedLocation.address && resolvedLocation.address.street) {
+			var initial = m.firstName ? m.firstName.charAt(0) : '';
+			var mapsUrl = formatAddressForMaps(resolvedLocation.address);
+			parts.push('<span>' + initial + ': ' + (resolvedLocation.name || 'Current Location') + '</span>');
+			parts.push('<a href="' + mapsUrl + '" target="_blank" rel="noopener noreferrer">' + formatAddressForDisplay(resolvedLocation.address) + '</a>');
+			continue;
+		}
+		if (m.phone) {
+			var phoneInitial = m.firstName ? m.firstName.charAt(0) : '';
+			parts.push('<a href="tel:' + encodeURIComponent(m.phone) + '">' + phoneInitial + ': ' + m.phone + '</a>');
+		}
+	}
+
+	if (item.primaryPhone) {
+		parts.push('<a href="tel:' + encodeURIComponent(item.primaryPhone) + '">P: ' + item.primaryPhone + '</a>');
+	}
+
+	if (!parts.length && item.address && item.address.street) {
+		var url = formatAddressForMaps(item.address);
+		var displayAddress = formatAddressForDisplay(item.address);
+		return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + displayAddress + '</a>';
+	}
+
+	return parts.join('<br>') || '(Contact)';
+}
+
+function escapeHtml(value) {
+	return String(value || '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
 // Consolidated DOMContentLoaded listener
 document.addEventListener('DOMContentLoaded', function() {
 	// Load reusable navigation bar
@@ -71,53 +125,41 @@ document.addEventListener('DOMContentLoaded', function() {
 		.then(function(qcRes) {
 			return qcRes.json();
 		})
-		.then(function(qcData) {
+		.then(async function(qcData) {
 			var quickContacts = qcData.quickContacts || [];
 
 			// Render two-line rows using returned data. Use CSS classes defined in site.css.
 			var tbody = document.querySelector('#quickContactsTable tbody');
 
-			// Build clickable contact HTML for phone/address on the deacon quick page only.
-			function buildClickableContact(item) {
-				var members = item.members || [];
-				var parts = [];
-				// member phones first
-				for (var i = 0; i < members.length; i++) {
-					var m = members[i];
-					if (m.phone) {
-						var initial = m.firstName ? m.firstName.charAt(0) : '';
-						parts.push({label: initial + ': ', value: m.phone});
-					}
-				}
-				// household primary phone
-				if (item.primaryPhone) parts.push({label: 'P: ', value: item.primaryPhone});
-				if (parts.length) {
-					var html = [];
-					for (var j = 0; j < parts.length; j++) {
-						var p = parts[j];
-						html.push('<a href="tel:' + encodeURIComponent(p.value) + '">' + p.label + p.value + '</a>');
-					}
-					return html.join('<br>');
-				}
-				// fallback to address link
-				if (item.address && item.address.street) {
-					var url = formatAddressForMaps(item.address);
-					var displayAddress = formatAddressForDisplay(item.address);
-					return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + displayAddress + '</a>';
-				}
-				return '(Contact)';
-			}
-
 			var rowsHtml = [];
-			var tempLocationFetches = [];  // Track location fetches
+			var tempLocationFetches = [];
 			for (var idx = 0; idx < quickContacts.length; idx++) {
 				var item = quickContacts[idx];
 				var householdLink = 'household.html?id=' + item.householdId;
 				var contactLink = 'record-contact.html?householdId=' + item.householdId + '&deaconMemberId=' + encodeURIComponent(deaconMemberId || '');
 				var lastDate = item.lastContact && item.lastContact.contactDate ? new Date(item.lastContact.contactDate).toLocaleDateString() : '(needed)';
 
-				// compute clickable best contact locally (tel: links and maps)
-				var bestContactHtml = buildClickableContact(item);
+				// Queue location fetch if member has current facility address
+				var tempMember = null;
+				if (item.members && item.members.length > 0) {
+					for (var mi = 0; mi < item.members.length; mi++) {
+						var mem = item.members[mi];
+						if (mem.temporaryAddress && mem.temporaryAddress.isActive && mem.temporaryAddress.locationId) {
+							tempMember = mem;
+							break;
+						}
+					}
+				}
+
+				if (tempMember) {
+					tempLocationFetches.push({
+						householdId: item.householdId,
+						locationId: tempMember.temporaryAddress.locationId,
+						roomNumber: tempMember.temporaryAddress.roomNumber,
+						startDate: tempMember.temporaryAddress.startDate,
+						notes: tempMember.temporaryAddress.notes
+					});
+				}
 
 				// display label: prefer the specific member(s) from lastContact.memberId
 				var contactTargetName = '';
@@ -155,19 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				}
 
 				var contactedBy = getContactedBy(item.lastContact);
-				var summary = (item.lastContact && item.lastContact.summary) || item.summary || '';
-
-				// Store temporary location info for later fetching (after DOM is ready)
-				var tempMember = null;
-				if (item.members && item.members.length > 0) {
-					for (var mi = 0; mi < item.members.length; mi++) {
-						var mem = item.members[mi];
-						if (mem.temporaryAddress && mem.temporaryAddress.isActive && mem.temporaryAddress.locationId) {
-							tempMember = mem;
-							break;  // Only process first member with temp location
-						}
-					}
-				}
+				var summary = escapeHtml((item.lastContact && item.lastContact.summary) || item.summary || '');
 
 				var rowClass = idx % 2 === 0 ? 'even' : 'odd';
 
@@ -177,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					'<a class="member-link" href="' + householdLink + '">' + displayLabel + '</a>' +
 					'</td>' +
 					'<td class="summary-badge-col contact-col">' +
-					'<div class="contact-cell">' + bestContactHtml + '</div>' +
+					'<div class="contact-cell" data-household-id="' + item.householdId + '">Loading contact method...</div>' +
 					'</td>' +
 					'<td class="summary-badge-col action-col">' +
 					'<a href="' + contactLink + '" class="btn record-btn" role="button" aria-label="Record contact for ' + displayLabel + '" title="Record contact for ' + displayLabel + '">Record</a>' +
@@ -185,59 +215,32 @@ document.addEventListener('DOMContentLoaded', function() {
 					'</tr>' +
 					'<tr class="summary-row ' + rowClass + ' second-row" data-household-id="' + item.householdId + '">' +
 					'<td class="last-contact-col howwhen-col">' + (contactedBy ? contactedBy + ' on ' + lastDate : lastDate) + '</td>' +
-					'<td class="notes-col" colspan="2">' + summary + '<div class="temp-location-info" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;"></div></td>' +
+					'<td class="notes-col" colspan="2">' + summary + '</td>' +
 					'</tr>'
 				);
-
-				// Queue location fetch if member has temp address
-				if (tempMember) {
-					tempLocationFetches.push({
-						householdId: item.householdId,
-						locationId: tempMember.temporaryAddress.locationId,
-						roomNumber: tempMember.temporaryAddress.roomNumber,
-						startDate: tempMember.temporaryAddress.startDate,
-						notes: tempMember.temporaryAddress.notes
-					});
-				}
 			}
-			tbody.innerHTML = rowsHtml.join('');
-
-			// Now fetch all location details after DOM is rendered
-			tempLocationFetches.forEach(function(fetchInfo) {
-				apiFetch('api/common-locations/' + fetchInfo.locationId)
+			var tempLocationByHouseholdId = {};
+			await Promise.all(tempLocationFetches.map(function(fetchInfo) {
+				return apiFetch('api/common-locations/' + fetchInfo.locationId)
 					.then(function(res) {
 						return res.json();
 					})
 					.then(function(data) {
-						var location = data.location;
-						if (location && location.address) {
-							var mapsUrl = formatAddressForMaps(location.address);
-							var displayAddress = formatAddressForDisplay(location.address, false);
-							var roomInfo = fetchInfo.roomNumber ? ' • Room/Unit: ' + fetchInfo.roomNumber : '';
-							var selector = 'tr[data-household-id="' + fetchInfo.householdId + '"] .temp-location-info';
-							var locElement = document.querySelector(selector);
-							if (locElement) {
-								var html = '<div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px; margin-top: 10px;">' +
-									'<strong style="color: #856404;">Temporary Location:</strong>' +
-									'<div style="margin-top: 5px;">' +
-									'<span style="color: #333;">' + location.name + roomInfo + '</span>' +
-									'</div>' +
-									'<div style="margin-top: 3px; font-size: 0.9em;">' +
-									'<a href="' + mapsUrl + '" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: none;">' + displayAddress + '</a>' +
-									'</div>';
-								if (fetchInfo.startDate) {
-									html += '<div style="margin-top: 3px; font-size: 0.85em; color: #666;">Since: ' + new Date(fetchInfo.startDate).toLocaleDateString() + '</div>';
-								}
-								if (fetchInfo.notes) {
-									html += '<div style="margin-top: 5px; font-size: 0.9em; font-style: italic; color: #555;">' + fetchInfo.notes + '</div>';
-								}
-								html += '</div>';
-								locElement.innerHTML = html;
-							}
+						if (data.location) {
+							tempLocationByHouseholdId[fetchInfo.householdId] = data.location;
 						}
 					})
 					.catch(function(err) { console.error('Error fetching location:', err); });
-			});
+			}));
+
+			tbody.innerHTML = rowsHtml.join('');
+			for (var r = 0; r < quickContacts.length; r++) {
+				var contactItem = quickContacts[r];
+				var contactCell = document.querySelector('div.contact-cell[data-household-id="' + contactItem.householdId + '"]');
+				if (contactCell) {
+					contactCell.innerHTML = buildClickableContact(contactItem, tempLocationByHouseholdId[contactItem.householdId]);
+				}
+			}
 		})
 		.catch(function(error) {
 			console.error('Error loading quick contacts:', error);

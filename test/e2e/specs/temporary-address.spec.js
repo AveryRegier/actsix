@@ -35,7 +35,7 @@ test.describe('feature2 temporary address member workflow', () => {
 
     const memberCard = page.locator(`[data-member-id="${scenario.memberId}"]`);
     const tempInfo = memberCard.locator('.temp-location-info');
-    await expect(tempInfo).toContainText('Temporary Location:');
+    await expect(tempInfo).toContainText('Current Location:');
     await expect(tempInfo).toContainText(scenario.locationName);
     await expect(tempInfo).toContainText(roomNumber);
     await expect(tempInfo).toContainText(notes);
@@ -74,7 +74,7 @@ test.describe('feature2 temporary address member workflow', () => {
 
     const memberCard = page.locator(`[data-member-id="${scenario.memberId}"]`);
     await expect(memberCard.locator('.temp-location-info')).toHaveCount(0);
-    await expect(memberCard).not.toContainText('Temporary Location:');
+    await expect(memberCard).not.toContainText('Current Location:');
     await expect(memberCard).not.toContainText(scenario.locationName);
   });
 });

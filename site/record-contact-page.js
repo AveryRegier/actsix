@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const container = document.querySelector('.temp-location-info-container');
                         if (container) {
                             let html = '<div class="form-group"><div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px;">' +
-                                '<strong style="color: #856404;">Temporary Location:</strong>' +
+                                '<strong style="color: #856404;">Current Location:</strong>' +
                                 '<div style="margin-top: 5px;">' +
                                 '<span style="color: #333;">' + location.name + roomInfo + '</span>' +
                                 '</div>' +

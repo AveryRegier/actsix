@@ -177,7 +177,7 @@ test.describe('phase4 action workflows', () => {
     await expect(page.locator('#quickContactsTable .contact-cell').first()).toContainText(/(^|\s)(P:|T:)/);
   });
 
-  test('deacon quick contact renders temporary location details', async ({ page, request }) => {
+  test('deacon quick contact uses current location as the contact method', async ({ page, request }) => {
     const scenario = await seedTemporaryAddressScenario(request, {
       withTemporaryAddress: true,
       notes: 'Temporary location note',
@@ -185,10 +185,10 @@ test.describe('phase4 action workflows', () => {
     await loginAsEmail(page, scenario.deaconEmail);
 
     await page.goto(`/deacon-quick-contact.html?deaconMemberId=${scenario.deaconMemberId}`);
-    const tempInfo = page.locator('.temp-location-info').first();
+    const tempInfo = page.locator(`#quickContactsTable .contact-cell`).first();
 
-    await expect(tempInfo).toContainText('Temporary Location:');
     await expect(tempInfo).toContainText(scenario.locationName);
-    await expect(tempInfo).toContainText('Temporary location note');
+    await expect(tempInfo).toContainText('111 Care Way');
+    await expect(tempInfo).not.toContainText('Temporary location note');
   });
 });

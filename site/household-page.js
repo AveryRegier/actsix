@@ -264,7 +264,7 @@ function displayMembers(members) {
                         if (tempLocationElement) {
                             tempLocationElement.innerHTML = `
                                 <div class="temp-location-card">
-                                    <strong class="temp-location-label">Temporary Location:</strong>
+                                    <strong class="temp-location-label">Current Location:</strong>
                                     <div class="temp-location-row">
                                         <span class="temp-location-name">${location.name}${member.temporaryAddress.roomNumber ? ' • Room/Unit: ' + member.temporaryAddress.roomNumber : ''}</span>
                                     </div>

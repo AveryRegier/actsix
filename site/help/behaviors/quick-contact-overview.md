@@ -10,7 +10,7 @@ The page lists each household assigned to you with:
 - **Primary phone number** — tap on a phone to call directly from a mobile device
 - **Address** — with a link to open directions in a maps app
 - **Last contact date** — when you last recorded contact with this household
-- **Assigned members** — the members in the household, including any active temporary locations
+- **Assigned members** — the members in the household, including any active current locations
 
 ![Deacon quick contact household list](../images/quick-contact-list.png)
 

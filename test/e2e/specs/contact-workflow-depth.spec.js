@@ -62,7 +62,7 @@ test.describe('feature4 contact workflow depth', () => {
     await expect(summaryRow).toContainText(/Spoke at church/i);
   });
 
-  test('contact-summary renders temporary location details in summary rows', async ({ page, request }) => {
+  test('contact-summary uses current location as the make contact method', async ({ page, request }) => {
     const scenario = await seedTemporaryAddressScenario(request, {
       withTemporaryAddress: true,
       roomNumber: 'Room 207',
@@ -73,9 +73,14 @@ test.describe('feature4 contact workflow depth', () => {
 
     await page.goto('/contact-summary.html');
 
-    const tempInfo = page.locator(`td[data-household-id="${scenario.householdId}"] .temp-location-info`).first();
-    await expect(tempInfo).toContainText(scenario.locationName);
-    await expect(tempInfo).toContainText('Room/Unit: Room 207');
-    await expect(tempInfo).toContainText('Recovering well');
+    const contactCell = page.locator(`tr[data-household-id="${scenario.householdId}"] td.summary-badge-col`).nth(2);
+    await expect(contactCell).toContainText(scenario.locationName);
+    await expect(contactCell).toContainText('111 Care Way');
+
+    const notesCell = page.locator(`tr[data-household-id="${scenario.householdId}"] td.notes-col`).first();
+    await expect(notesCell).toContainText('No contact logged');
+    await expect(notesCell).not.toContainText(scenario.locationName);
+    await expect(notesCell).not.toContainText('111 Care Way');
+    await expect(notesCell).not.toContainText('Recovering well');
   });
 });
