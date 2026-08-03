@@ -12,7 +12,11 @@ test.describe('members screenshots', () => {
     await page.waitForLoadState('networkidle');
 
     const rows = page.locator('#memberTableBody tr');
-    await expect(rows).toHaveCount(4);
+    await expect.poll(async () => rows.count()).toBeGreaterThan(0);
+    await expect(page.locator('#memberTableBody')).toContainText(DEMO.deaconLastName);
+    await expect(page.locator('#memberTableBody')).toContainText(DEMO.staffLastName);
+    await expect(page.locator('#memberTableBody')).toContainText(DEMO.helperLastName);
+    await expect(page.locator('#memberTableBody')).toContainText(DEMO.memberLastName);
 
     await takeHelpScreenshot(page, 'members-list.png');
   });

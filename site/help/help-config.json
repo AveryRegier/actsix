@@ -15,7 +15,9 @@
     { "file": "schedule-event.md", "roles": ["deacon", "staff"] }
   ],
   "event-assignments": [
-    { "file": "event-assignments.md", "roles": ["*"] }
+    { "file": "event-assignments.md", "roles": ["deacon", "staff"] },
+    { "file": "change-event-assignment.md", "roles": ["deacon", "staff"] },
+    { "file": "quick-add-usher-assignment.md", "roles": ["deacon", "staff"] }
   ],
   "members": [
     { "file": "view-members-list.md",    "roles": ["deacon", "staff", "helper"] },

@@ -9,7 +9,9 @@ Use the Event Assignments page to review who is filled, what is still open, and 
 3. Look at the status badge and the open-positions callout.
    - The badge shows how many positions are filled.
    - The callout lists the positions that still need to be assigned.
-4. If the page shows assignment controls for your role, click an open position or an assigned name to change the assignment.
+4. Review the table for priority, position ID, label, notes, and current assignment.
 5. Click **Print** to print the assignment sheet.
+
+For editing assignments or adding new assignment candidates, see the Event Assignments help sections on changing assignments and quick-add.
 
 ![Event Assignments page with open positions and assignment controls](../images/event-assignments-event.png)

@@ -6,7 +6,10 @@ function getNextSundayDate() {
   const day = date.getDay();
   const daysUntilSunday = day === 0 ? 7 : 7 - day;
   date.setDate(date.getDate() + daysUntilSunday);
-  return date.toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const dayOfMonth = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${dayOfMonth}`;
 }
 
 async function seedSchedulableEventType(page, eventType, title) {
@@ -43,8 +46,10 @@ test.describe('event schedule help screenshots', () => {
     await page.waitForLoadState('networkidle');
 
     await page.selectOption('#eventType', eventType);
-    await page.locator('#serviceDate').fill(serviceDate);
-    await page.locator('#serviceDate').dispatchEvent('change');
+    await page.locator('#serviceDate').evaluate((el, value) => {
+      el.value = value;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, serviceDate);
 
     const eventTypeSelect = page.locator('#eventType');
     const addButton = page.locator('#addServiceTimeBtn');
