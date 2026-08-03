@@ -32,6 +32,8 @@ The **Members Contacted** section lists the members who were part of this contac
 - Check or uncheck members as needed.
 - At least one member must be selected.
 
+If a member has a current location, the household address area shows that facility address so you can contact the member there.
+
 ### Selecting Who Made the Contact (Contacted by)
 
 The **Contacted by** section lists who participated in making the contact.

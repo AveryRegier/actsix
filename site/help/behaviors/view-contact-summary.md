@@ -7,10 +7,12 @@ The Contact Summary Report gives an overview of all household assignments and re
 The report table shows one row per household with:
 
 - **Name** — household last name and the primary contact's first name
-- **Make Contact** — the assigned deacon or H.E.L.P. worker responsible
+- **Make Contact** — the best contact method for the household. If a member is currently in a facility, the current location and address appear first, followed by any household or spouse phone numbers.
 - **Deacons** — all deacons or helpers assigned to the household
 - **Last Contact — When** — the date of the most recent recorded contact
 - **Last Contact — Who & How** — who made the contact and the contact type
+
+The Notes column shows only the latest contact summary. It does not display the current location box.
 
 ![Contact summary report table](../images/contact-summary-table.png)
 

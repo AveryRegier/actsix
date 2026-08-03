@@ -12,6 +12,8 @@ The page lists each household assigned to you with:
 - **Last contact date** — when you last recorded contact with this household
 - **Assigned members** — the members in the household, including any active current locations
 
+If a member is currently at a facility, the contact cell shows that current location and its address first. The spouse or other household phone numbers still remain listed after it.
+
 ![Deacon quick contact household list](../images/quick-contact-list.png)
 
 ### Recording a Contact from Quick Contact

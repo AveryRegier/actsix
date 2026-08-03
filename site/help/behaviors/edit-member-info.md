@@ -17,6 +17,8 @@ The form shows the following fields:
 - **Gender** — Male or Female
 - **Relationship** — the member's role in the household (e.g., Head, Spouse, Child, Other)
 
+The Current Location section lets you record a common location or facility when the member is away from home.
+
 ![Edit member basic info form](../images/edit-member-info.png)
 
 ### Saving Changes

@@ -10,6 +10,8 @@ The page displays:
 - **Household Members** — a list of all members in the household with their name, phone, and email
 - **Deacon Assignments** — the deacons currently assigned to care for this household
 
+If a member is staying at a current location, that location appears on the member card and is used in the contact pages as the preferred contact point.
+
 ![Household detail page](../images/household-view.png)
 
 ### Navigating from the Household Page
