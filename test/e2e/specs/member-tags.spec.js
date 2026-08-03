@@ -1,12 +1,18 @@
 import { test, expect } from '../support/browser-coverage.js';
 import { apiGet, loginAsEmail, seedMemberTagsScenario } from '../support/workflow-helpers.js';
 
+const baseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${Number(process.env.E2E_PORT || 3101)}`;
+
+function appUrl(path) {
+  return `${baseURL}${path}`;
+}
+
 test.describe('feature1 member tags and deceased filtering', () => {
   test('members table sorts by first name when clicking the header', async ({ page, request }) => {
     const scenario = await seedMemberTagsScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
-    await page.goto('/members.html');
+    await page.goto(appUrl('/members.html'));
     await expect(page.locator('#memberTableBody')).toBeVisible();
 
     await expect.poll(async () => page.locator('#memberTableBody tr').count()).toBeGreaterThan(1);
@@ -30,7 +36,7 @@ test.describe('feature1 member tags and deceased filtering', () => {
     const scenario = await seedMemberTagsScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
-    await page.goto('/members.html');
+    await page.goto(appUrl('/members.html'));
 
     await expect(page.getByText(new RegExp(`Editable${scenario.stamp}`))).toBeVisible();
     await expect(page.getByText(new RegExp(`Widow${scenario.stamp}`))).toBeVisible();
@@ -54,7 +60,7 @@ test.describe('feature1 member tags and deceased filtering', () => {
     const scenario = await seedMemberTagsScenario(request);
     await loginAsEmail(page, scenario.deaconEmail);
 
-    await page.goto(`/edit-member.html?memberId=${scenario.editableMemberId}&householdId=${scenario.visibleHouseholdId}`);
+    await page.goto(appUrl(`/edit-member.html?memberId=${scenario.editableMemberId}&householdId=${scenario.visibleHouseholdId}`));
 
     const shutInTag = page.locator('input[name="tags"][value="shut-in"]');
     const longTermNeedsTag = page.locator('input[name="tags"][value="long-term-needs"]');
@@ -74,11 +80,12 @@ test.describe('feature1 member tags and deceased filtering', () => {
     expect(payload.member.tags).toEqual(expect.arrayContaining(['member', 'long-term-needs']));
     expect(payload.member.tags).not.toContain('shut-in');
 
-    await page.goto('/members.html');
+    await page.goto(appUrl('/members.html'));
     const tagFilter = page.locator('#tagFilter');
     await tagFilter.selectOption('long-term-needs');
-    await expect(page.getByText(new RegExp(`Editable${scenario.stamp}`))).toBeVisible();
-    await expect(page.getByText('long-term-needs')).toBeVisible();
+    const editedMemberRow = page.locator('#memberTableBody tr').filter({ hasText: new RegExp(`Editable${scenario.stamp}`) }).first();
+    await expect(editedMemberRow).toBeVisible();
+    await expect(editedMemberRow.locator('.status-badge', { hasText: 'long-term-needs' })).toHaveCount(1);
 
     await tagFilter.selectOption('shut-in');
     await expect(page.getByText(new RegExp(`Editable${scenario.stamp}`))).toHaveCount(0);

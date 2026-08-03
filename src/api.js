@@ -261,7 +261,10 @@ export function createApp() {
     }
 
     const html = renderRoleAwareSignUpsPage(role)
-    c.header('Cache-Control', 'public, max-age=300')
+    // Role-aware content must not be shared across users.
+    c.header('Cache-Control', 'private, no-store, max-age=0')
+    c.header('Pragma', 'no-cache')
+    c.header('Vary', 'Cookie')
     c.header('Last-Modified', deploymentTime)
     return c.html(html)
   })

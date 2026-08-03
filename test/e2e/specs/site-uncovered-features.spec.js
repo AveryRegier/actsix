@@ -1,6 +1,12 @@
 import { test, expect } from '../support/browser-coverage.js';
 import { loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
 
+const baseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${Number(process.env.E2E_PORT || 3101)}`;
+
+function appUrl(path) {
+  return `${baseURL}${path}`;
+}
+
 test.describe('site uncovered feature coverage', () => {
   test.describe('mobile navigation behavior', () => {
     test.use({ viewport: { width: 390, height: 844 } });
@@ -9,7 +15,7 @@ test.describe('site uncovered feature coverage', () => {
       const scenario = await seedWorkflowScenario(request);
       await loginAsEmail(page, scenario.deaconEmail);
 
-      await page.goto('/members.html');
+      await page.goto(appUrl('/members.html'));
       const menu = page.locator('#navMobileMenu');
       const menuButton = page.locator('.nav-menu-btn');
 
@@ -27,7 +33,9 @@ test.describe('site uncovered feature coverage', () => {
       const scenario = await seedWorkflowScenario(request);
       await loginAsEmail(page, scenario.deaconEmail);
 
-      await page.goto('/members.html');
+      await page.goto(appUrl('/members.html'));
+      await expect(page.locator('.nav-content .members-link')).toHaveCount(1);
+      await expect(page.locator('#navMobileMenu .members-link')).toHaveCount(1);
 
       await page.evaluate(() => {
         if (typeof window.hideCurrentPageNavLinks === 'function') {
@@ -55,7 +63,7 @@ test.describe('site uncovered feature coverage', () => {
       const scenario = await seedWorkflowScenario(request);
       await loginAsEmail(page, scenario.deaconEmail);
 
-      await page.goto('/contact-summary.html');
+      await page.goto(appUrl('/contact-summary.html'));
       await expect(page.locator('#summaryTable')).toBeVisible();
 
       await page.evaluate(() => {
@@ -76,7 +84,7 @@ test.describe('site uncovered feature coverage', () => {
       const scenario = await seedWorkflowScenario(request);
       await loginAsEmail(page, scenario.deaconEmail);
 
-      await page.goto('/contact-summary.html');
+      await page.goto(appUrl('/contact-summary.html'));
       await expect(page.locator('#summaryTable')).toBeVisible();
       await expect(page.locator('#site-nav-container .site-nav')).toBeVisible();
 
@@ -99,7 +107,7 @@ test.describe('site uncovered feature coverage', () => {
       const scenario = await seedWorkflowScenario(request);
       await loginAsEmail(page, scenario.deaconEmail);
 
-      await page.goto('/members.html');
+      await page.goto(appUrl('/members.html'));
 
       await page.evaluate(async () => {
         await fetch('/signout', { method: 'GET', credentials: 'include' });
