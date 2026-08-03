@@ -1,37 +1,58 @@
 import { apiFetch } from './fetch-utils.js';
-const pageMessage = document.getElementById('pageMessage');
-const eventsList = document.getElementById('eventsList');
-const canViewAssignments = window.__CAN_VIEW_ASSIGNMENTS__ === true;
+var pageMessage = document.getElementById('pageMessage');
+var eventsList = document.getElementById('eventsList');
+var canViewAssignments = window.__CAN_VIEW_ASSIGNMENTS__ === true;
+var currentMemberId = null;
 
-let currentMemberId = null;
+// Polyfill for older iOS Safari browsers.
+if (!Array.from) {
+  Array.from = function(arrayLike) {
+    return Array.prototype.slice.call(arrayLike);
+  };
+}
 
-document.addEventListener('DOMContentLoaded', async () => {
-  await loadNav();
-  currentMemberId = localStorage.getItem('memberId');
-
-  await loadMemberAssignments();
+document.addEventListener('DOMContentLoaded', function() {
+  loadNav().then(function() {
+    currentMemberId = localStorage.getItem('memberId');
+    return loadMemberAssignments();
+  }).catch(function(error) {
+    showMessage('Failed to load page. ' + error.message, true);
+  });
 });
 
-async function loadNav() {
-  const navContainer = document.getElementById('site-nav-container');
+function loadNav() {
+  var navContainer = document.getElementById('site-nav-container');
   if (!navContainer) {
-    return;
+    return Promise.resolve();
   }
 
-  const navResp = await fetch('site-nav.html');
-  if (!navResp.ok) {
-    return;
-  }
-
-  navContainer.innerHTML = await navResp.text();
-  const script = document.createElement('script');
-  script.src = 'site-nav.js';
-  document.body.appendChild(script);
+  return fetch('site-nav.html')
+    .then(function(navResp) {
+      if (!navResp.ok) {
+        return '';
+      }
+      return navResp.text();
+    })
+    .then(function(navHtml) {
+      if (!navHtml) {
+        return;
+      }
+      navContainer.innerHTML = navHtml;
+      var script = document.createElement('script');
+      script.src = 'site-nav.js';
+      document.body.appendChild(script);
+    })
+    .catch(function(error) {
+      console.error('Error loading navigation:', error);
+    });
 }
 
 function showMessage(message, isError) {
+  if (!pageMessage) {
+    return;
+  }
   pageMessage.style.display = 'block';
-  pageMessage.className = `api-status ${isError ? 'disconnected' : 'connected'}`;
+  pageMessage.className = 'api-status ' + (isError ? 'disconnected' : 'connected');
   pageMessage.textContent = message;
 }
 
@@ -49,8 +70,8 @@ function formatDateHeading(dateValue) {
     return 'Unknown Date';
   }
 
-  const parsed = new Date(`${dateValue}T12:00:00`);
-  if (Number.isNaN(parsed.getTime())) {
+  var parsed = new Date(dateValue + 'T12:00:00');
+  if (isNaN(parsed.getTime())) {
     return dateValue;
   }
 
@@ -63,12 +84,12 @@ function formatDateHeading(dateValue) {
 }
 
 function formatEventActivityTitle(event) {
-  const title = String(event?.title || '').trim();
-  const serviceDate = String(event?.serviceDate || '').trim();
-  const serviceTime = String(event?.serviceTime || '').trim();
-  const prefix = serviceDate && serviceTime ? `${serviceDate} ${serviceTime} ` : '';
+  var title = String((event && event.title) || '').trim();
+  var serviceDate = String((event && event.serviceDate) || '').trim();
+  var serviceTime = String((event && event.serviceTime) || '').trim();
+  var prefix = serviceDate && serviceTime ? (serviceDate + ' ' + serviceTime + ' ') : '';
 
-  if (prefix && title.startsWith(prefix)) {
+  if (prefix && title.indexOf(prefix) === 0) {
     return title.slice(prefix.length).trim();
   }
 
@@ -76,20 +97,25 @@ function formatEventActivityTitle(event) {
     return title;
   }
 
-  return String(event?.eventType || 'Event')
-    .split('-')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+  var eventType = String((event && event.eventType) || 'Event');
+  var parts = eventType.split('-');
+  for (var i = 0; i < parts.length; i++) {
+    if (!parts[i]) {
+      continue;
+    }
+    parts[i] = parts[i].charAt(0).toUpperCase() + parts[i].slice(1);
+  }
+  return parts.join(' ');
 }
 
 function getStatusColors(status) {
-  const color = status?.color || 'red';
-  const backgroundByColor = {
+  var color = (status && status.color) || 'red';
+  var backgroundByColor = {
     red: '#fde7e7',
     yellow: '#fff5d6',
     green: '#e2f5e7'
   };
-  const textByColor = {
+  var textByColor = {
     red: '#9f1c1c',
     yellow: '#8a6500',
     green: '#136f2d'
@@ -102,14 +128,18 @@ function getStatusColors(status) {
 }
 
 function renderFilledBadge(status, filledCount, totalPositions) {
-  const colors = getStatusColors(status);
-
-  return `<span class="status-badge" style="background:${colors.background}; color:${colors.text};">Filled: ${filledCount}/${totalPositions}</span>`;
+  var colors = getStatusColors(status);
+  return '<span class="status-badge" style="background:' + colors.background + '; color:' + colors.text + ';">Filled: ' + filledCount + '/' + totalPositions + '</span>';
 }
 
 function getSignupForMember(eventDetails) {
-  const signups = Array.isArray(eventDetails?.signups) ? eventDetails.signups : [];
-  return signups.find(signup => signup.memberId === currentMemberId) || null;
+  var signups = Array.isArray(eventDetails && eventDetails.signups) ? eventDetails.signups : [];
+  for (var i = 0; i < signups.length; i++) {
+    if (signups[i] && signups[i].memberId === currentMemberId) {
+      return signups[i];
+    }
+  }
+  return null;
 }
 
 function buildAssignmentText(signup) {
@@ -120,7 +150,7 @@ function buildAssignmentText(signup) {
     return 'Marked unavailable';
   }
   if (signup.assignedPositionId) {
-    return `Assigned to ${signup.assignedPositionId}`;
+    return 'Assigned to ' + signup.assignedPositionId;
   }
   return 'Available';
 }
@@ -146,151 +176,174 @@ function getMemberStatusColors(signup) {
   };
 }
 
-async function loadExistingEvents() {
-  const response = await apiFetch('/api/events');
-  if (!response.ok) {
-    eventsList.innerHTML = '<div style="color:#b30000;">Could not load scheduled events.</div>';
-    return;
-  }
+function loadExistingEvents() {
+  return apiFetch('/api/events')
+    .then(function(response) {
+      if (!response.ok) {
+        eventsList.innerHTML = '<div style="color:#b30000;">Could not load scheduled events.</div>';
+        return null;
+      }
+      return response.json();
+    })
+    .then(function(body) {
+      if (!body) {
+        return;
+      }
 
-  const body = await response.json();
-  const events = body.events || [];
+      var events = body.events || [];
+      if (!events.length) {
+        eventsList.innerHTML = '<div style="color:#666;">No upcoming events scheduled yet.</div>';
+        return;
+      }
 
-  if (!events.length) {
-    eventsList.innerHTML = '<div style="color:#666;">No upcoming events scheduled yet.</div>';
-    return;
-  }
+      var detailPromises = events.map(function(event) {
+        return apiFetch('/api/events/' + encodeURIComponent(event._id))
+          .then(function(detailResponse) {
+            if (!detailResponse.ok) {
+              return { event: event, signups: [] };
+            }
+            return detailResponse.json();
+          })
+          .catch(function() {
+            return { event: event, signups: [] };
+          });
+      });
 
-  const eventDetails = await Promise.all(events.map(async event => {
-    const detailResponse = await apiFetch(`/api/events/${encodeURIComponent(event._id)}`);
-    if (!detailResponse.ok) {
-      return { event, signups: [] };
-    }
-    const detailBody = await detailResponse.json();
-    return detailBody;
-  }));
-
-  renderEvents(eventDetails);
+      return Promise.all(detailPromises).then(function(eventDetails) {
+        renderEvents(eventDetails);
+      });
+    });
 }
 
-async function loadMemberAssignments() {
-  try {
-    const data = await apiFetch('/api/member/assignments');
-    if (!data || data.length === 0) {
-      eventsList.innerHTML = '<div style="color:#666;">No upcoming events scheduled yet.</div>';
-      return;
-    }
+function loadMemberAssignments() {
+  return apiFetch('/api/member/assignments')
+    .then(function(data) {
+      var rows = Array.isArray(data)
+        ? data
+        : (Array.isArray(data && data.assignments) ? data.assignments : []);
 
-    // Transform the new API response into the format expected by the renderer
-    // The new endpoint returns: [{ event, definition, signup }]
-    // The renderer expects: { event, signups: [...] }
-    const eventDetails = data.map(context => ({
-      event: context.event,
-      signups: context.signup ? [context.signup] : []
-    }));
+      if (!rows.length) {
+        eventsList.innerHTML = '<div style="color:#666;">No upcoming events scheduled yet.</div>';
+        return;
+      }
 
-    renderEvents(eventDetails);
-  } catch (error) {
-    showMessage('Failed to load your assignments. ' + error.message, true);
-  }
+      var eventDetails = rows.map(function(context) {
+        return {
+          event: context.event,
+          signups: context.signup ? [context.signup] : []
+        };
+      });
+
+      renderEvents(eventDetails);
+    })
+    .catch(function(error) {
+      showMessage('Failed to load your assignments. ' + error.message, true);
+    });
 }
 
 function renderEvents(eventDetails) {
-  const byDate = new Map();
-  for (const detail of eventDetails) {
-    const event = detail.event || detail;
-    const dateKey = String(event?.serviceDate || '').trim() || 'unknown-date';
-    if (!byDate.has(dateKey)) {
-      byDate.set(dateKey, []);
+  var byDate = {};
+  for (var i = 0; i < eventDetails.length; i++) {
+    var detail = eventDetails[i];
+    var event = detail.event || detail;
+    var dateKey = String((event && event.serviceDate) || '').trim() || 'unknown-date';
+    if (!byDate[dateKey]) {
+      byDate[dateKey] = [];
     }
-    byDate.get(dateKey).push(detail);
+    byDate[dateKey].push(detail);
   }
 
-  const sortedDateKeys = Array.from(byDate.keys()).sort((a, b) => a.localeCompare(b));
-  const groupedMarkup = sortedDateKeys.map(dateKey => {
-    const groupedEvents = byDate.get(dateKey) || [];
-    groupedEvents.sort((a, b) => {
-      const eventA = a.event || a;
-      const eventB = b.event || b;
+  var sortedDateKeys = Object.keys(byDate).sort();
+  var groupedMarkupParts = [];
+
+  for (var d = 0; d < sortedDateKeys.length; d++) {
+    var dateKey = sortedDateKeys[d];
+    var groupedEvents = byDate[dateKey] || [];
+    groupedEvents.sort(function(a, b) {
+      var eventA = a.event || a;
+      var eventB = b.event || b;
       return String(eventA.serviceTime || '').localeCompare(String(eventB.serviceTime || ''));
     });
 
-    const cardsMarkup = groupedEvents.map(detail => {
-      const event = detail.event || detail;
-      const signup = getSignupForMember(detail);
-      const filledCount = event.status?.filledCount || 0;
-      const totalPositions = event.status?.totalPositions || event.neededCount || 0;
-      const availableActive = signup && signup.isAvailable;
-      const unavailableActive = signup && signup.isAvailable === false;
-      const availabilityActions = [
-        !availableActive
-          ? `<button type="button" class="btn signup-action-btn" data-event-id="${escapeHtml(event._id)}" data-available="true">Available</button>`
-          : '',
-        !unavailableActive
-          ? `<button type="button" class="btn signup-action-btn" data-event-id="${escapeHtml(event._id)}" data-available="false">Unavailable</button>`
-          : ''
-      ].filter(Boolean).join('');
+    var cardMarkupParts = [];
+    for (var e = 0; e < groupedEvents.length; e++) {
+      var groupedDetail = groupedEvents[e];
+      var groupedEvent = groupedDetail.event || groupedDetail;
+      var signup = getSignupForMember(groupedDetail);
+      var filledCount = (groupedEvent.status && groupedEvent.status.filledCount) || 0;
+      var totalPositions = (groupedEvent.status && groupedEvent.status.totalPositions) || groupedEvent.neededCount || 0;
+      var availableActive = signup && signup.isAvailable;
+      var unavailableActive = signup && signup.isAvailable === false;
+      var availabilityActions = '';
 
-      const activityTitle = formatEventActivityTitle(event);
-      const memberStatus = getMemberStatusColors(signup);
+      if (!availableActive) {
+        availabilityActions += '<button type="button" class="btn signup-action-btn" data-event-id="' + escapeHtml(groupedEvent._id) + '" data-available="true">Available</button>';
+      }
+      if (!unavailableActive) {
+        availabilityActions += '<button type="button" class="btn signup-action-btn" data-event-id="' + escapeHtml(groupedEvent._id) + '" data-available="false">Unavailable</button>';
+      }
 
-      return `
-        <div style="border:1px solid #ddd; border-radius:10px; padding:14px; background:#fff;">
-          <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
-            <div>
-              <div style="font-weight:600; font-size:1.05em;">${escapeHtml(event.serviceTime || '')} - ${escapeHtml(activityTitle)}</div>
-            </div>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
-            ${renderFilledBadge(event.status, filledCount, totalPositions)}
-            <span class="status-badge" style="background:${memberStatus.background}; color:${memberStatus.text};">Your status: ${escapeHtml(buildAssignmentText(signup))}</span>
-          </div>
-          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px;">
-            ${availabilityActions}
-          </div>
-        </div>
-      `;
-    }).join('');
+      var activityTitle = formatEventActivityTitle(groupedEvent);
+      var memberStatus = getMemberStatusColors(signup);
+      cardMarkupParts.push(
+        '<div class="signups-event-card" style="border:1px solid #ddd; border-radius:10px; padding:14px; background:#fff;">' +
+          '<div class="signups-event-header" style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">' +
+            '<div>' +
+              '<div class="signups-event-title" style="font-weight:600; font-size:1.05em;">' + escapeHtml(groupedEvent.serviceTime || '') + ' - ' + escapeHtml(activityTitle) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="signups-event-badges" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">' +
+            renderFilledBadge(groupedEvent.status, filledCount, totalPositions) +
+            '<span class="status-badge" style="background:' + memberStatus.background + '; color:' + memberStatus.text + ';">Your status: ' + escapeHtml(buildAssignmentText(signup)) + '</span>' +
+          '</div>' +
+          '<div class="signups-event-actions" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px;">' +
+            availabilityActions +
+          '</div>' +
+        '</div>'
+      );
+    }
 
-    const dateAssignmentsLink = canViewAssignments && dateKey !== 'unknown-date'
-      ? `<a href="/event-assignments.html?serviceDate=${encodeURIComponent(dateKey)}" class="btn" style="text-decoration:none; display:inline-flex; align-items:center;">Assignments</a>`
-      : '';
+    var dateAssignmentsLink = '';
+    if (canViewAssignments && dateKey !== 'unknown-date') {
+      dateAssignmentsLink = '<a href="/event-assignments.html?serviceDate=' + encodeURIComponent(dateKey) + '" class="btn signups-date-assignments" style="text-decoration:none; display:inline-flex; align-items:center;">Assignments</a>';
+    }
 
-    return `
-      <section style="border:1px solid #d7dce3; border-radius:12px; padding:14px; background:#f7f9fc;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-          <h3 style="margin:0;">${escapeHtml(formatDateHeading(dateKey === 'unknown-date' ? '' : dateKey))}</h3>
-          ${dateAssignmentsLink}
-        </div>
-        <div style="display:grid; gap:12px;">
-          ${cardsMarkup}
-        </div>
-      </section>
-    `;
-  }).join('');
+    groupedMarkupParts.push(
+      '<section class="signups-date-group" style="border:1px solid #d7dce3; border-radius:12px; padding:14px; background:#f7f9fc;">' +
+        '<div class="signups-date-header" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">' +
+          '<h3 class="signups-date-title" style="margin:0;">' + escapeHtml(formatDateHeading(dateKey === 'unknown-date' ? '' : dateKey)) + '</h3>' +
+          dateAssignmentsLink +
+        '</div>' +
+        '<div class="signups-date-cards" style="display:grid; gap:12px;">' +
+          cardMarkupParts.join('') +
+        '</div>' +
+      '</section>'
+    );
+  }
 
-  eventsList.innerHTML = groupedMarkup;
+  eventsList.innerHTML = groupedMarkupParts.join('');
 
-  Array.from(document.querySelectorAll('.signup-action-btn')).forEach(button => {
-    button.addEventListener('click', async () => {
-      const eventId = button.dataset.eventId;
-      const isAvailable = button.dataset.available === 'true';
-      await updateAvailability(eventId, isAvailable);
+  var buttons = document.querySelectorAll('.signup-action-btn');
+  for (var b = 0; b < buttons.length; b++) {
+    buttons[b].addEventListener('click', function() {
+      var eventId = this.getAttribute('data-event-id');
+      var isAvailable = this.getAttribute('data-available') === 'true';
+      updateAvailability(eventId, isAvailable);
     });
-  });
+  }
 }
 
-async function updateAvailability(eventId, isAvailable) {
-  try {
-    await apiFetch(`/api/events/${encodeURIComponent(eventId)}/signup`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isAvailable })
+function updateAvailability(eventId, isAvailable) {
+  return apiFetch('/api/events/' + encodeURIComponent(eventId) + '/signup', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isAvailable: isAvailable })
+  })
+    .then(function() {
+      showMessage('Availability updated.', false);
+      return loadMemberAssignments();
+    })
+    .catch(function(error) {
+      showMessage(error.message || 'Failed to update availability.', true);
     });
-
-    showMessage('Availability updated.', false);
-    await loadMemberAssignments();
-  } catch (error) {
-    showMessage(error.message || 'Failed to update availability.', true);
-  }
 }

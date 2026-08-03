@@ -947,3 +947,82 @@ th {
 	text-align: center;
 	margin-bottom: 20px;
 }
+
+/* sign-ups.html extracted styles */
+.signups-content {
+	margin-top: 8px;
+}
+
+.signups-section-title {
+	margin-bottom: 8px;
+}
+
+.signups-section-subtitle {
+	color: #666;
+	margin-top: 0;
+	margin-bottom: 10px;
+}
+
+.signups-event-title {
+	word-break: break-word;
+}
+
+.signups-date-assignments {
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+}
+
+.signup-action-btn {
+	min-height: 44px;
+	padding: 10px 14px;
+	white-space: nowrap;
+	line-height: 1.2;
+}
+
+@media (max-width: 700px) {
+	.signups-date-group {
+		padding: 10px !important;
+	}
+
+	.signups-date-header {
+		align-items: stretch !important;
+	}
+
+	.signups-date-title {
+		font-size: 1.05em;
+		line-height: 1.3;
+	}
+
+	.signups-date-assignments {
+		width: 100%;
+		justify-content: center;
+	}
+
+	.signups-event-card {
+		padding: 10px !important;
+	}
+
+	.signups-event-title {
+		font-size: 1em !important;
+	}
+
+	.signups-event-badges {
+		gap: 6px !important;
+	}
+
+	.signups-event-badges .status-badge {
+		width: 100%;
+		justify-content: center;
+	}
+
+	.signups-event-actions {
+		gap: 8px !important;
+	}
+
+	.signups-event-actions .signup-action-btn {
+		flex: 1 1 100%;
+		width: 100%;
+		text-align: center;
+	}
+}
