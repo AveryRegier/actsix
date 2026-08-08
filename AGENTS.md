@@ -19,6 +19,12 @@ This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get sta
 - Use `verifyRole(c, ['deacon','staff'])` for authorization
 - Register routes: `export default function register*Routes(app)`
 
+## E2E Guardrails
+
+- E2E specs in `test/e2e/specs/` must drive browser/site flows only.
+- No direct API calls from E2E specs: disallow `page.request.*`, raw Playwright `request` HTTP calls, and helper wrappers around those calls.
+- If only part of a spec is non-compliant, fix only those tests/lines. Do not delete entire spec files unless the user explicitly requests full-file removal.
+
 ## Quick Reference
 
 ```bash

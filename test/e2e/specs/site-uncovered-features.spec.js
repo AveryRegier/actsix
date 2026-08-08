@@ -1,5 +1,5 @@
 import { test, expect } from '../support/browser-coverage.js';
-import { loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
+import { authenticateAsRole } from '../support/site-session-helpers.js';
 
 const baseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${Number(process.env.E2E_PORT || 3101)}`;
 
@@ -11,9 +11,8 @@ test.describe('site uncovered feature coverage', () => {
   test.describe('mobile navigation behavior', () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test('mobile menu button toggles the menu open and closed', async ({ page, request }) => {
-      const scenario = await seedWorkflowScenario(request);
-      await loginAsEmail(page, scenario.deaconEmail);
+    test('mobile menu button toggles the menu open and closed', async ({ page }) => {
+      await authenticateAsRole(page, 'deacon');
 
       await page.goto(appUrl('/members.html'));
       const menu = page.locator('#navMobileMenu');
@@ -29,9 +28,8 @@ test.describe('site uncovered feature coverage', () => {
       await expect(menu).not.toHaveClass(/\bopen\b/);
     });
 
-    test('current page links can be hidden for the active page', async ({ page, request }) => {
-      const scenario = await seedWorkflowScenario(request);
-      await loginAsEmail(page, scenario.deaconEmail);
+    test('current page links can be hidden for the active page', async ({ page }) => {
+      await authenticateAsRole(page, 'deacon');
 
       await page.goto(appUrl('/members.html'));
       await expect(page.locator('.nav-content .members-link')).toHaveCount(1);
@@ -59,9 +57,8 @@ test.describe('site uncovered feature coverage', () => {
   });
 
   test.describe('print and redirect behavior', () => {
-    test('contact summary print mode injects and removes print colgroup', async ({ page, request }) => {
-      const scenario = await seedWorkflowScenario(request);
-      await loginAsEmail(page, scenario.deaconEmail);
+    test('contact summary print mode injects and removes print colgroup', async ({ page }) => {
+      await authenticateAsRole(page, 'deacon');
 
       await page.goto(appUrl('/contact-summary.html'));
       await expect(page.locator('#summaryTable')).toBeVisible();
@@ -80,9 +77,8 @@ test.describe('site uncovered feature coverage', () => {
       await expect(page.locator('#print-colgroup')).toHaveCount(0);
     });
 
-    test('print media hides nav chrome and shows print-only summary header', async ({ page, request }) => {
-      const scenario = await seedWorkflowScenario(request);
-      await loginAsEmail(page, scenario.deaconEmail);
+    test('print media hides nav chrome and shows print-only summary header', async ({ page }) => {
+      await authenticateAsRole(page, 'deacon');
 
       await page.goto(appUrl('/contact-summary.html'));
       await expect(page.locator('#summaryTable')).toBeVisible();
@@ -103,9 +99,8 @@ test.describe('site uncovered feature coverage', () => {
       expect(printStyles.printOnlyDisplay).toBe('table-cell');
     });
 
-    test('fetch redirect handler navigates browser after signout redirect response', async ({ page, request }) => {
-      const scenario = await seedWorkflowScenario(request);
-      await loginAsEmail(page, scenario.deaconEmail);
+    test('fetch redirect handler navigates browser after signout redirect response', async ({ page }) => {
+      await authenticateAsRole(page, 'deacon');
 
       await page.goto(appUrl('/members.html'));
 

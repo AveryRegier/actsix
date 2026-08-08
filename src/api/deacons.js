@@ -3,6 +3,12 @@ import { safeCollectionFind } from '../util/helpers.js';
 import { verifyRole } from '../auth/auth.js';
 
 export default function registerDeaconRoutes(app) {
+  /**
+   * @route GET /api/deacons
+   * @description List deacons and optionally include extra role-tagged members with ?add=...
+   * @usedByPage site/assign-deacons-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/deacons', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -21,6 +27,12 @@ export default function registerDeaconRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/participants
+   * @description Build participant list for UI pickers (role-tagged members plus caller household members).
+    * @usedByPage site/record-contact-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/participants', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -70,7 +82,12 @@ export default function registerDeaconRoutes(app) {
     }
   });
 
-  // Bulk quick contacts for a deacon: assignments + household + members + last contact
+  /**
+   * @route GET /api/deacons/:deaconMemberId/quickContacts
+   * @description Build quick-contact data for one deacon across assigned households.
+   * @usedByPage site/deacon-quick-contact-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/deacons/:deaconMemberId/quickContacts', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);

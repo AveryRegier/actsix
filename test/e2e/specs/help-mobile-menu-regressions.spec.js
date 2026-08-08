@@ -1,10 +1,9 @@
 import { test, expect } from '../support/browser-coverage.js';
-import { loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
+import { authenticateAsRole } from '../support/site-session-helpers.js';
 
 test.describe('help/mobile menu regressions', () => {
-  test('home page hamburger menu opens and closes on mobile', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('home page hamburger menu opens and closes on mobile', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
@@ -22,9 +21,8 @@ test.describe('help/mobile menu regressions', () => {
     await expect(mobileMenu).not.toHaveClass(/open/);
   });
 
-  test('browser back from help closes menu and menu can re-open on home page', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('browser back from help closes menu and menu can re-open on home page', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');

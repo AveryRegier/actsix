@@ -1,5 +1,5 @@
 import { test, expect } from '../support/browser-coverage.js';
-import { loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
+import { authenticateAsRole } from '../support/site-session-helpers.js';
 
 test.describe('help links', () => {
   test('login page includes pre-auth help link', async ({ page }) => {
@@ -10,9 +10,8 @@ test.describe('help links', () => {
     await expect(helpLink).toHaveAttribute('href', '/help.html?page=login');
   });
 
-  test('members nav includes page-specific help link', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('members nav includes page-specific help link', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/members.html');
 
@@ -21,9 +20,8 @@ test.describe('help links', () => {
     await expect(helpLink).toHaveAttribute('href', /\/help\.html\?page=members$/);
   });
 
-  test('clicking members help nav opens members help page', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('clicking members help nav opens members help page', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/members.html');
 
@@ -32,9 +30,8 @@ test.describe('help links', () => {
     await expect(page.locator('#help-content')).toBeVisible();
   });
 
-  test('contact summary nav includes correct help link', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('contact summary nav includes correct help link', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/contact-summary.html');
 
@@ -43,9 +40,8 @@ test.describe('help links', () => {
     await expect(helpLink).toHaveAttribute('href', /\/help\.html\?page=contact-summary$/);
   });
 
-  test('help page nav help link points to help index', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('help page nav help link points to help index', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/help.html?page=members');
 

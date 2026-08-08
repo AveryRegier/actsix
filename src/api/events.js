@@ -654,11 +654,6 @@ async function getOrCreateEventDefinition(eventType, requestedPositions = null, 
   };
 }
 
-function canManageOtherSignups(role, eventType, eventTypeConfigMap = null) {
-  const config = getEventTypeConfig(eventType, eventTypeConfigMap);
-  return Boolean(config && config.assignmentRoles.includes(role));
-}
-
 function getAssigneeRolesForEventType(eventType, eventTypeConfigMap = null) {
   const config = getEventTypeConfig(eventType, eventTypeConfigMap);
   const configured = normalizeRoleList(config?.assigneeRoles);
@@ -928,6 +923,12 @@ async function loadCalendarAndDefinition(calendarId, eventTypeConfigMap = null) 
 }
 
 export default function registerEventRoutes(app) {
+  /**
+   * @route POST /api/events/types
+   * @description Create or update an event-type configuration document.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.post('/api/events/types', async (c) => {
     if (!verifyRole(c, ['staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -963,6 +964,12 @@ export default function registerEventRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/events/types
+   * @description List schedulable event types visible to the caller role.
+   * @usedByPage site/event-schedule-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/events/types', async (c) => {
     const role = c.req.role || null;
     const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
@@ -977,6 +984,12 @@ export default function registerEventRoutes(app) {
     return c.json({ eventTypes, count: eventTypes.length });
   });
 
+  /**
+   * @route GET /api/events
+   * @description List scheduled calendar events, optionally filtered by eventType and serviceDate.
+   * @usedByPage site/event-schedule-page.js, site/sign-ups-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/events', async (c) => {
     const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
     const eventType = toStringOrNull(c.req.query('eventType'));
@@ -1049,6 +1062,12 @@ export default function registerEventRoutes(app) {
     }
   });
 
+  /**
+   * @route POST /api/events
+   * @description Create one or more scheduled event slots and auto-schedule configured dependencies.
+   * @usedByPage site/event-schedule-page.js
+   * @usedByScript None found.
+   */
   app.post('/api/events', async (c) => {
     try {
       const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
@@ -1120,6 +1139,12 @@ export default function registerEventRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/events/:eventId
+   * @description Get full event detail (calendar slot plus computed signup/assignment state).
+   * @usedByPage site/sign-ups-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/events/:eventId', async (c) => {
     try {
       const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
@@ -1146,91 +1171,12 @@ export default function registerEventRoutes(app) {
     }
   });
 
-  app.post('/api/events/:eventId/signups', async (c) => {
-    try {
-      const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
-      const calendarId = c.req.param('eventId');
-      const loaded = await loadCalendarAndDefinition(calendarId, eventTypeConfigMap);
-      if (!loaded) {
-        return c.json({ error: 'Event not found' }, 404);
-      }
-
-      const config = getEventTypeConfig(loaded.eventDefinition.eventType, eventTypeConfigMap);
-      if (!config || !verifyRole(c, config.allowedRoles)) {
-        return c.json({ error: 'Unauthorized access' }, 403);
-      }
-
-      const body = await c.req.json();
-      const requestedMemberId = toStringOrNull(body.memberId);
-      const memberId = requestedMemberId && canManageOtherSignups(c.req.role, loaded.eventDefinition.eventType, eventTypeConfigMap) ? requestedMemberId : c.req.memberId;
-      if (!memberId) {
-        return c.json({ error: 'Validation failed', message: 'memberId is required' }, 400);
-      }
-
-      const requestedPositionId = toStringOrNull(body.positionId);
-      if (requestedPositionId) {
-        const requestedPosition = (loaded.eventDefinition.positions || []).find(position => position.positionId === requestedPositionId);
-        if (!requestedPosition) {
-          return c.json({ error: 'Validation failed', message: `Unknown positionId: ${requestedPositionId}` }, 400);
-        }
-
-        if (requestedPosition.allowSelfSignup === false) {
-          return c.json({ error: 'Validation failed', message: `Position ${requestedPositionId} is assigned by event leadership` }, 400);
-        }
-      }
-
-      const isAvailable = normalizeBoolean(body.isAvailable, true);
-      const now = new Date().toISOString();
-
-      let existing = await safeCollectionFindOne('event_signups', { calendarId, memberId });
-      if (!existing) {
-        existing = await safeCollectionFindOne('event_signups', { eventId: calendarId, memberId });
-      }
-
-      if (existing) {
-        await safeCollectionUpdate(
-          'event_signups',
-          { _id: existing._id },
-          {
-            $set: {
-              calendarId,
-              eventId: loaded.eventDefinition._id,
-              eventType: loaded.eventDefinition.eventType,
-              positionId: requestedPositionId,
-              isAvailable,
-              assignmentOptOut: false,
-              unavailableReason: toStringOrNull(body.unavailableReason),
-              updatedAt: now
-            }
-          }
-        );
-      } else {
-        await safeCollectionInsert('event_signups', {
-          calendarId,
-          eventId: loaded.eventDefinition._id,
-          eventType: loaded.eventDefinition.eventType,
-          memberId,
-          positionId: requestedPositionId,
-          isAvailable,
-          assignmentOptOut: false,
-          unavailableReason: toStringOrNull(body.unavailableReason),
-          assignedPositionId: null,
-          createdAt: now,
-          updatedAt: now
-        });
-      }
-
-      const updatedEvent = await rebuildAssignmentsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
-      return c.json({
-        message: 'Event signup saved',
-        event: updatedEvent
-      });
-    } catch (error) {
-      getLogger().error(error, 'Error saving event signup:');
-      return c.json({ error: 'Failed to save event signup', message: error.message }, 500);
-    }
-  });
-
+  /**
+   * @route GET /api/events/:eventId/assignments
+   * @description Get assignment board view for one event, including candidates and manage flags.
+   * @usedByPage site/event-assignments-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/events/:eventId/assignments', async (c) => {
     try {
       const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
@@ -1292,6 +1238,12 @@ export default function registerEventRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/member/assignments
+   * @description Return the current member upcoming events with signup state attached.
+   * @usedByPage site/sign-ups-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/member/assignments', async (c) => {
     try {
       // Corrected role validation as per the new plan
@@ -1343,6 +1295,12 @@ export default function registerEventRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/event-assignments
+   * @description Return assignment snapshots for all events on a specific serviceDate.
+   * @usedByPage site/event-assignments-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/event-assignments', async (c) => {
     try {
       verifyRole(c, ['deacon', 'staff', 'elder', 'usher', 'helper']);
@@ -1430,6 +1388,12 @@ export default function registerEventRoutes(app) {
     }
   });
 
+  /**
+   * @route PUT /api/events/:eventId/assignments
+   * @description Save leadership assignments for event positions.
+   * @usedByPage site/event-assignments-page.js
+   * @usedByScript None found.
+   */
   app.put('/api/events/:eventId/assignments', async (c) => {
     try {
       const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
@@ -1624,6 +1588,12 @@ export default function registerEventRoutes(app) {
     }
   });
 
+  /**
+   * @route PUT /api/events/:eventId/signup
+   * @description Toggle current member availability for one event.
+   * @usedByPage site/sign-ups-page.js
+   * @usedByScript None found.
+   */
   app.put('/api/events/:eventId/signup', async (c) => {
     try {
       verifyRole(c, ['deacon', 'staff', 'elder', 'usher']);
@@ -1689,6 +1659,12 @@ export default function registerEventRoutes(app) {
     }
   });
 
+  /**
+   * @route POST /api/events/:eventId/assignment-candidates
+   * @description Quick-create an assignment candidate member and household for this event type.
+   * @usedByPage site/event-assignments-page.js
+   * @usedByScript None found.
+   */
   app.post('/api/events/:eventId/assignment-candidates', async (c) => {
     try {
       const eventTypeConfigMap = await getEventTypeConfigMapFromDb();

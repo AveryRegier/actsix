@@ -1,200 +1,451 @@
-# Deacon Care System API Usage Examples
+# ActSix API Reference
 
-This document provides examples of how to use the Deacon Care System API with sengo integration.
+This document describes what each API endpoint is used for and the input/output forms it supports.
 
-## Environment Setup
+## Conventions
 
-Make sure you have the following environment variables set:
+- Base path: `/api`
+- Content type: JSON unless noted
+- Path params are shown as `:paramName`
+- Common error forms:
+  - `{ "error": "..." }`
+  - `{ "error": "...", "message": "..." }`
 
-```bash
-export AWS_REGION=us-east-1
-export S3_BUCKET=deacon-care-system
-# AWS credentials will be handled by Lambda execution role in production
-```
+## Health
 
-## API Examples
+### `GET /api`
+- Use: API health/status ping.
+- Input:
+  - None.
+- Output (200):
+  - `{ message, status, timestamp }`
 
-### Creating a Household
+## Members
 
-```bash
-curl -X POST http://localhost:3000/api/households \
-  -H "Content-Type: application/json" \
-  -d '{
-    "lastName": "Smith",
-    "address": {
-      "street": "123 Main St",
-      "city": "Springfield",
-      "state": "IL",
-      "zipCode": "62701"
-    },
-    "primaryPhone": "(555) 123-4567",
-    "notes": "Elderly couple, regular check-ins scheduled"
-  }'
-```
+### `GET /api/members`
+- Use: List all non-deceased members.
+- Input:
+  - None.
+- Output (200):
+  - `{ members: Member[], count: number }`
 
-### Creating a Member
+### `GET /api/households/:householdId/members`
+- Use: List members for one household.
+- Input:
+  - Path: `householdId`.
+- Output (200):
+  - `{ members: Member[], count: number }`
 
-```bash
-curl -X POST http://localhost:3000/api/members \
-  -H "Content-Type: application/json" \
-  -d '{
-    "firstName": "John",
-    "lastName": "Smith",
-    "householdId": "household-id-here",
-    "phone": "(555) 123-4567",
-    "email": "john.smith@example.com",
-    "relationship": "head",
-    "status": "active"
-  }'
-```
+### `GET /api/members/:id`
+- Use: Get one member.
+- Input:
+  - Path: `id`.
+- Output:
+  - 200: `{ member: Member }`
+  - 404: `{ error: "Member not found", message }`
 
-### Creating a Deacon
+### `POST /api/members`
+- Use: Create a member (and optionally create a household when `householdId` is omitted).
+- Input (JSON body):
+  - Required: `firstName`, `lastName`, `relationship`, `gender`.
+  - Optional: `householdId`, `tags`, `age`, `birthDate`, `temporaryAddress`, other member fields.
+  - Validation rules include:
+    - `relationship` in `head|spouse|child|other`
+    - `gender` in `male|female`
+    - cannot provide both `age` and `birthDate`
+    - `temporaryAddress` requires valid location/date fields when provided
+- Output:
+  - 200: `{ message, id, member }`
+  - 400: validation error form
 
-```bash
-curl -X POST http://localhost:3000/api/deacons \
-  -H "Content-Type: application/json" \
-  -d '{
-    "firstName": "Pastor",
-    "lastName": "Johnson",
-    "email": "pastor.johnson@church.org",
-    "phone": "(555) 987-6543",
-    "isActive": true
-  }'
-```
+### `PUT /api/members/:id`
+- Use: Update an existing member.
+- Input:
+  - Path: `id`.
+  - JSON body: full member update payload; same main validation rules as create.
+- Output:
+  - 200: `{ message, member }`
+  - 400/404: validation/not found error form
 
-### Creating an Assignment
+### `PUT /api/members/:id/temporary-address`
+- Use: Set or replace a member's temporary address.
+- Input:
+  - Path: `id`.
+  - JSON body: `{ temporaryAddress }` where `temporaryAddress` includes:
+    - `locationId`, `startDate`, optional `endDate`, `roomNumber`, `notes`, `isActive`
+- Output:
+  - 200: `{ message, member }`
+  - 400/404: error form
 
-```bash
-curl -X POST http://localhost:3000/api/assignments \
-  -H "Content-Type: application/json" \
-  -d '{
-    "deaconId": "deacon-id-here",
-    "householdId": "household-id-here",
-    "isActive": true,
-    "notes": "Primary assignment for this household"
-  }'
-```
+### `DELETE /api/members/:id/temporary-address`
+- Use: Clear a member's temporary address.
+- Input:
+  - Path: `id`.
+- Output:
+  - 200: `{ message, member }`
+  - 404: missing member or no temporary address
 
-### Logging a Contact
+### `GET /api/members/:id/temporary-address-history`
+- Use: Return current temporary address plus placeholder history array.
+- Input:
+  - Path: `id`.
+- Output (200):
+  - `{ memberId, currentTemporaryAddress, history }`
 
-```bash
-curl -X POST http://localhost:3000/api/contacts \
-  -H "Content-Type: application/json" \
-  -d '{
-    "memberId": "member-id-here",
-    "deaconId": "deacon-id-here",
-    "contactType": "phone",
-    "summary": "Called to check on health status",
-    "contactDate": "2025-07-14T10:30:00.000Z",
-    "followUpRequired": true,
-    "notes": "Member is recovering well from surgery"
-  }'
-```
+### `GET /api/temporary-locations/active`
+- Use: List members currently marked with active temporary addresses, enriched with location info.
+- Input:
+  - None.
+- Output (200):
+  - `{ members: ActiveTemporaryLocationMember[], count: number }`
 
-### Getting All Collections
+### `GET /api/tags`
+- Use: Get valid member tag catalog.
+- Input:
+  - None.
+- Output (200):
+  - `{ tags: TagDefinition[] }`
 
-```bash
-# Get all households
-curl http://localhost:3000/api/households
+## Households
 
-# Get all members
-curl http://localhost:3000/api/members
+### `GET /api/households`
+- Use: List households.
+- Input:
+  - None.
+- Output (200):
+  - `{ households: Household[], count: number }`
 
-# Get all deacons
-curl http://localhost:3000/api/deacons
+### `GET /api/households/:householdId`
+- Use: Get one household.
+- Input:
+  - Path: `householdId`.
+- Output:
+  - 200: `Household` (raw object, not wrapped)
+  - not found branch may return `{ error: "Household not found" }`
 
-# Get all assignments
-curl http://localhost:3000/api/assignments
+### `POST /api/households`
+- Use: Create household.
+- Input (JSON body):
+  - Required: `lastName`
+  - Optional: `address`, `primaryPhone`, `email`, `notes`, other household fields
+- Output:
+  - 200: `{ message, id, household }`
+  - 400: validation error form
 
-# Get all contact logs
-curl http://localhost:3000/api/contacts
-```
+### `PATCH /api/households/:householdId`
+- Use: Update household profile fields.
+- Input:
+  - Path: `householdId`
+  - JSON body: requires `lastName`; supports `address`, `primaryPhone`, `email`, `notes`
+- Output:
+  - 200: `{ message, householdId }`
+  - 400: validation or no-change form
 
-### Getting Related Data
+## Deacons And Participants
 
-```bash
-# Get all members of a specific household
-curl http://localhost:3000/api/households/household-id-here/members
+### `GET /api/deacons`
+- Use: List members tagged as deacons, with optional extra role tags.
+- Input:
+  - Query: `add` (comma-separated tags, for example `elder,staff`)
+- Output (200):
+  - `{ deacons: Member[], count: number }`
 
-# Get all contacts for a specific member
-curl http://localhost:3000/api/members/member-id-here/contacts
+### `GET /api/participants`
+- Use: List event/contact participants from role-tagged members and caller household members.
+- Input:
+  - None.
+- Output (200):
+  - `{ participants: Participant[], count: number }`
 
-# Get all assignments for a specific deacon
-curl http://localhost:3000/api/deacons/deacon-id-here/assignments
-```
+### `GET /api/deacons/:deaconMemberId/quickContacts`
+- Use: Fast household contact summary for one deacon's active assignments.
+- Input:
+  - Path: `deaconMemberId`
+- Output (200):
+  - `{ quickContacts: QuickContact[] }`
 
-## Data Storage
+## Assignments
 
-All data is stored in AWS S3 using the sengo library, which provides:
-- **Document-based storage**: Similar to MongoDB but using S3
-- **Searchable documents**: Full-text search capabilities
-- **Cost-effective**: S3 storage is much cheaper than traditional databases
-- **Scalable**: Handles concurrent access for monthly deacon meetings
+### `GET /api/assignments`
+- Use: List assignment records.
+- Input:
+  - None.
+- Output (200):
+  - `{ assignments: Assignment[], count: number }`
 
-## Collections Structure
+### `POST /api/assignments`
+- Use: Create one deacon-household assignment.
+- Input (JSON body):
+  - Required: `deaconMemberId`, `householdId`
+  - Optional: `isActive` (defaults true), plus passthrough fields
+- Output:
+  - 200: `{ message, id, assignment }`
+  - 400: validation error form
 
-The API uses the following collections:
+### `GET /api/deacons/:deaconMemberId/assignments`
+- Use: List assignments for one deacon.
+- Input:
+  - Path: `deaconMemberId`
+- Output (200):
+  - `{ deaconMemberId, assignments: Assignment[], count: number }`
 
-- **households**: Family units with shared addresses and contact information
-- **members**: Individual church members who belong to households
-- **deacons**: Deacons who provide care to assigned households
-- **assignments**: Active assignments mapping deacons to households
-- **contacts**: Log of all deacon interactions with members
+### `GET /api/households/:householdId/assignments`
+- Use: Get active assignments for a household, enriched with deacon member info.
+- Input:
+  - Path: `householdId`
+- Output (200):
+  - `{ householdId, assignments: AssignmentWithDeacon[], count: number }`
 
-## Field Validation
+### `POST /api/households/:householdId/assignments`
+- Use: Replace active assignment set for a household.
+- Input:
+  - Path: `householdId`
+  - JSON body: `{ deaconIds: string[] }`
+- Output:
+  - 200: `{ message, assignments }`
 
-The API enforces the following validation rules:
+## Contacts And Reports
 
-### Households
-- `lastName` (required): Primary household surname
-- `address` (required): Complete address object with street, city, state, zipCode
-- `primaryPhone` (required): Main contact number
+### `GET /api/contacts`
+- Use: List all contact log entries.
+- Input:
+  - None.
+- Output (200):
+  - `{ contacts: Contact[], count: number }`
 
-### Members
-- `firstName` (required): Member's first name
-- `lastName` (required): Member's last name
-- `householdId` (required): Reference to household
-- `relationship` (required): One of 'head', 'spouse', 'child', 'other'
-- `status` (optional): One of 'active', 'inactive', 'deceased', 'moved' (defaults to 'active')
+### `GET /api/contacts/needs`
+- Use: Return members/contacts needing follow-up (stale or flagged), filtered to assigned households.
+- Input:
+  - None.
+- Output (200):
+  - `{ contacts: ContactNeed[], count: number }`
 
-### Deacons
-- `firstName` (required): Deacon's first name
-- `lastName` (required): Deacon's last name
-- `email` (required): Email address
-- `phone` (required): Phone number
-- `isActive` (optional): Boolean, defaults to true
+### `GET /api/contacts/:contactId`
+- Use: Fetch one contact log.
+- Input:
+  - Path: `contactId`
+- Output:
+  - 200: `{ contact }`
+  - 404: `{ error: "Contact not found" }`
 
-### Assignments
-- `deaconId` (required): Reference to deacon
-- `householdId` (required): Reference to household
-- `isActive` (optional): Boolean, defaults to true
+### `POST /api/contacts`
+- Use: Create contact log.
+- Input (JSON body):
+  - Required: `memberId`, `deaconId`, `contactType`, `summary`, `contactDate`
+  - `memberId` and `deaconId` may be single value or array; normalized to arrays
+  - `contactType` must be one of `phone|visit|church|text|voicemail|note`
+  - Optional: `followUpRequired`
+- Output:
+  - 200: `{ message, id, contact }`
+  - 400: validation error form
 
-### Contacts
-- `memberId` (required): Reference to member contacted
-- `deaconId` (required): Reference to deacon making contact
-- `contactType` (required): One of 'phone', 'visit', 'email', 'text'
-- `summary` (required): Brief contact summary
-- `contactDate` (required): When contact was made
-- `followUpRequired` (optional): Boolean, defaults to false
+### `PATCH /api/contacts/:contactId`
+- Use: Update a contact log.
+- Input:
+  - Path: `contactId`
+  - JSON body: same shape/rules as create
+- Output:
+  - 200: `{ message, id, contact }`
+  - 400/404: validation/not found
 
-## Error Handling
+### `GET /api/households/:householdId/contacts`
+- Use: List all contacts touching members in one household, newest first.
+- Input:
+  - Path: `householdId`
+- Output:
+  - 200: `{ contacts: ContactWithContactedBy[], count: number }`
+  - 404: household missing or no members
 
-All endpoints include proper error handling:
-- 400: Bad Request (invalid data)
-- 404: Not Found (endpoint doesn't exist)
-- 500: Internal Server Error (database/system errors)
+### `OPTIONS /api/reports/summary`
+- Use: Lightweight cache freshness check for report summary.
+- Input:
+  - Optional header: `If-Modified-Since`
+- Output:
+  - 304: unchanged
+  - 200: cache exists and has `Last-Modified`
+  - 404: no cache available
 
-## Local Development
+### `GET /api/reports/summary`
+- Use: Return household-level contact summary report (from cache or regenerated).
+- Input:
+  - Optional header: `If-Modified-Since`
+- Output:
+  - 200: `{ summary: SummaryItem[] }`
+  - 304: unchanged
 
-1. Start the development server:
-   ```bash
-   npm run dev
-   ```
+## Common Locations
 
-2. The server will run on `http://localhost:3000`
+### `GET /api/common-locations`
+- Use: List active common locations (hospital, nursing home, etc.).
+- Input:
+  - None.
+- Output (200):
+  - `{ locations: CommonLocation[], count: number }`
 
-3. Test endpoints using curl, Postman, or any HTTP client
+### `GET /api/common-locations/:id`
+- Use: Get one location by id.
+- Input:
+  - Path: `id`
+- Output:
+  - 200: `{ location }`
+  - 404: not found or soft-deleted
 
-## Production Deployment
+### `POST /api/common-locations`
+- Use: Create location.
+- Input (JSON body):
+  - Required: `name`, `type`, `address`
+  - `type` must be `hospital|nursing_home|assisted_living|rehab`
+  - `address` requires `street`, `city`, 2-letter `state`, `zipCode`
+  - Optional: `phone`, `website`, `visitingHours`
+- Output:
+  - 201: `{ success: true, locationId, location }`
+  - 400: validation error form
 
-The `lambda.js` file is ready for AWS Lambda deployment with proper sengo integration for S3 storage.
+### `PUT /api/common-locations/:id`
+- Use: Update location.
+- Input:
+  - Path: `id`
+  - JSON body: partial fields from create payload
+- Output:
+  - 200: `{ success: true, location }`
+
+### `DELETE /api/common-locations/:id`
+- Use: Soft-delete a location (`isActive = false`).
+- Input:
+  - Path: `id`
+- Output:
+  - 200: `{ success: true }`
+  - 400: already deleted or still used by members
+
+## Events
+
+### `POST /api/events/types`
+- Use: Create or update event-type configuration.
+- Input (JSON body):
+  - Required: `eventType`
+  - Optional configurable fields:
+    - `title`
+    - `allowedRoles: string[]`
+    - `assignmentRoles: string[]`
+    - `assigneeRoles: string[]`
+    - `quickAddAssigneeRole`
+    - `allowQuickAddAssignee`
+    - `requiredGender` (`male|female`)
+    - `defaultPositions: PositionDefinition[]`
+    - `scheduleDependencies: { eventType, offsetMinutes, uniquePer }[]`
+    - `isActive`, `isSchedulable`
+- Output:
+  - 200: `{ message: "Event type saved", eventType }`
+
+### `GET /api/events/types`
+- Use: List schedulable event types for caller role.
+- Input:
+  - None.
+- Output (200):
+  - `{ eventTypes: { eventType, title, defaultPositionCount }[], count }`
+
+### `GET /api/events`
+- Use: List scheduled calendar events visible to caller.
+- Input:
+  - Query:
+    - Optional `eventType`
+    - Optional `serviceDate` (`YYYY-MM-DD`)
+- Output:
+  - 200: `{ events: EventView[], count }`
+  - 400: invalid `eventType`
+  - 403: role cannot view requested type
+
+### `POST /api/events`
+- Use: Schedule one or more event slots.
+- Input (JSON body):
+  - Required:
+    - `eventType`
+    - `serviceDate` (`YYYY-MM-DD`)
+    - One of:
+      - `serviceTime` (`HH:mm`)
+      - `serviceTimes` (`HH:mm[]`)
+  - Optional: `title`, `positions`, `eventSubtype`
+- Output:
+  - 200:
+    - `{ message, id, event, events, autoScheduledEvents, count, autoScheduledCount }`
+  - 400: validation/duplicate
+
+### `GET /api/events/:eventId`
+- Use: Get event details plus signups for one calendar slot.
+- Input:
+  - Path: `eventId`
+- Output:
+  - 200: `{ event: EventView, signups: EventSignup[], signupCount }`
+  - 404: event not found
+
+### `GET /api/events/:eventId/assignments`
+- Use: Get assignment board for one event (positions, candidates, management flags).
+- Input:
+  - Path: `eventId`
+- Output (200):
+  - `{ event, canManageAssignments, assignmentCandidates, assigneeRoles, quickAddAssigneeRole, allowQuickAddAssignee, requiredGender, openPositions, filledPositions }`
+
+### `GET /api/member/assignments`
+- Use: Get future events with the current member's signup record for each event.
+- Input:
+  - None.
+- Output:
+  - 200: `Array<{ event, definition, signup }>`
+  - 401: unauthorized when member context missing
+
+### `GET /api/event-assignments`
+- Use: Return event assignment snapshot for one service date.
+- Input:
+  - Query: required `serviceDate` (`YYYY-MM-DD`)
+- Output:
+  - 200: `Array<{ event, positions, filledPositions, openPositions, status, eventType }>`
+  - 400: missing query
+
+### `PUT /api/events/:eventId/assignments`
+- Use: Save leadership assignments for event positions.
+- Input:
+  - Path: `eventId`
+  - JSON body:
+    - `assignments: Array<{ positionId: string, memberId: string | null }>`
+- Output:
+  - 200: `{ message, event, canManageAssignments, assignmentCandidates, assigneeRoles, quickAddAssigneeRole, allowQuickAddAssignee, requiredGender, openPositions, filledPositions }`
+  - 400: invalid position/member
+
+### `PUT /api/events/:eventId/signup`
+- Use: Simple self availability toggle endpoint for current member.
+- Primary use: sign-ups page "Available/Unavailable" buttons.
+- Input:
+  - Path: `eventId`
+  - JSON body: `{ isAvailable: boolean }`
+- Output:
+  - 200: `{ message: "Availability updated successfully" }`
+  - 400: invalid `isAvailable`
+
+### `POST /api/events/:eventId/assignment-candidates`
+- Use: Quick-add a new member candidate (and household) for assignments.
+- Input:
+  - Path: `eventId`
+  - JSON body:
+    - Name via either:
+      - `firstName` and `lastName`, or
+      - `fullName` (must include first and last)
+    - Optional: `role`, `gender`
+- Output:
+  - 200: `{ message: "Assignment candidate created", candidate }`
+  - 400: missing name/gender or quick-add disabled
+
+## Core Shape Notes
+
+- `Member` typically includes identity/contact plus: `_id`, `householdId`, `tags`, `gender`, `relationship`, `createdAt`, `updatedAt`.
+- `Household` typically includes `_id`, `lastName`, `address`, contact fields, timestamps.
+- `EventView` includes:
+  - `_id`, `calendarId`, `eventId`, `eventType`, `title`
+  - `serviceDate`, `serviceTime`
+  - `positions: Position[]`
+  - `status` (color and fill counts)
+  - `neededCount`, `criticalPositionIds`, timestamps
+- `Position` includes:
+  - `positionId`, `label`, `note`, `priority`, `isCritical`, `allowSelfSignup`, `assignedMemberId`
+- `EventSignup` includes:
+  - `_id`, `calendarId`, `eventId`, `eventType`, `memberId`
+  - `positionId`, `assignedPositionId`, `isAvailable`, `assignmentOptOut`, `unavailableReason`, timestamps

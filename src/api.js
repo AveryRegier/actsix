@@ -216,7 +216,12 @@ export function createApp() {
   // Form routes (must be after auth middleware)
   registerContactFormRoutes(app)
 
-  // API Health check endpoint
+  /**
+   * @route GET /api
+   * @description Health/status endpoint for the API service.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.get('/api', (c) => {
     addContext('routeType', 'health');
     return c.json({

@@ -4,11 +4,13 @@ Workflow for run, debug, fix Playwright E2E tests.
 
 ## Rules
 
-1.  **No API Mocking**: E2E tests in `test/e2e/specs/` **no mock** API. Must run against live, data-seed server. True end-to-end check. Enforced by `.github/copilot-instructions.md`.
-2.  **Use Simulators**:
+1.  **Site-Only Spec Rule**: E2E tests in `test/e2e/specs/` must exercise the site through browser interactions. Do not use `page.request.*`, Playwright `request` HTTP setup/assertions, or helper wrappers that call APIs directly.
+2.  **No API Mocking in Specs**: E2E tests in `test/e2e/specs/` **no mock** API. Must run against live, data-seed server. True end-to-end check. Enforced by `.github/copilot-instructions.md`.
+3.  **Use Simulators**:
     *   **Data**: Seed test data with `s3Simulator` via helpers in `test/e2e/support/workflow-helpers.js`. Test state must be predictable.
     *   **Email**: `fake-mailbox` catch and check emails (e.g., login codes).
-3.  **Isolate & Verify**: Failed test? Run alone to speed up debug. Verify fix on single test, then run full suite.
+4.  **Non-Destructive Compliance**: If policy violation exists in one test, rewrite/remove only that test logic. Do not delete entire spec files unless explicitly requested.
+5.  **Isolate & Verify**: Failed test? Run alone to speed up debug. Verify fix on single test, then run full suite.
 
 ## Workflow: Run/Debug
 
@@ -29,7 +31,7 @@ For one fail, trace is best tool. Copy `npx playwright show-trace ...` from outp
 From error, trace, video, find cause:
 *   **Timeout on `waitForURL`**: Server error. Form post or API call fail, so no redirect. Check server logs, `src/api/` endpoint.
 *   **`expect(locator).toContainText(...)` fail**: UI not show right content. Client-side render bug in `site/*.js` or bad data from API.
-*   **`expect(response).toBeOK()` fail**: API call in test setup fail. Check `src/api/` endpoint, check request payload.
+*   **Forbidden direct API setup/assertions**: Move the scenario to browser-driven setup or to approved non-spec seeding paths. Keep the spec itself site-driven.
 
 ### 4. Isolate Test
 

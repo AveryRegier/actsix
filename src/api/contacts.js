@@ -74,6 +74,12 @@ function normalizeContactPayload(body) {
 }
 
 export default function registerContactRoutes(app) {
+  /**
+   * @route GET /api/contacts
+   * @description List all contact logs.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.get('/api/contacts', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -87,6 +93,12 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/contacts/needs
+   * @description List members needing follow-up based on recency and follow-up flags.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.get('/api/contacts/needs', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -118,6 +130,12 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/contacts/:contactId
+   * @description Fetch one contact log by id.
+    * @usedByPage site/record-contact-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/contacts/:contactId', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -137,6 +155,12 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  /**
+   * @route POST /api/contacts
+   * @description Create a contact log entry.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.post('/api/contacts', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -161,6 +185,12 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  /**
+   * @route PATCH /api/contacts/:contactId
+   * @description Update an existing contact log entry.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.patch('/api/contacts/:contactId', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -203,6 +233,12 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/households/:householdId/contacts
+   * @description List household contact history across all household members.
+   * @usedByPage site/household-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/households/:householdId/contacts', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'elder', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -229,6 +265,12 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  /**
+   * @route OPTIONS /api/reports/summary
+   * @description Cache freshness probe for If-Modified-Since/Last-Modified report flow.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.options('/api/reports/summary', async (c) => {
     try {
       const cacheDoc = await getCache('reports_summary');
@@ -252,6 +294,12 @@ export default function registerContactRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/reports/summary
+   * @description Return cached or regenerated household summary report.
+   * @usedByPage site/contact-summary-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/reports/summary', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'elder', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);

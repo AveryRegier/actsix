@@ -71,6 +71,12 @@ function validateTemporaryAddress(temporaryAddress) {
 
 const memberAccessRoles = ['deacon', 'staff', 'helper', 'admin'];
 export default function registerMemberRoutes(app) {
+  /**
+   * @route GET /api/members
+   * @description List all active (non-deceased) members.
+   * @usedByPage site/members-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/members', async (c) => {
     try {
       let members = await safeCollectionFind('members');
@@ -82,6 +88,12 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/households/:householdId/members
+   * @description List members for one household; non-privileged users are restricted to their own household.
+    * @usedByPage site/household-page.js, site/record-contact-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/households/:householdId/members', async (c) => {
     let householdId = c.req.param('householdId');
     if (!verifyRole(c, memberAccessRoles)) {
@@ -99,6 +111,12 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/members/:id
+   * @description Fetch one member profile by id with role/self access checks.
+   * @usedByPage site/contact-summary-page.js, site/edit-member-page.js, site/help-page.js, site/household-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/members/:id', async (c) => {
     try {
       const memberId = c.req.param('id');
@@ -119,6 +137,12 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  /**
+   * @route POST /api/members
+   * @description Create a member; creates a household first when householdId is omitted.
+   * @usedByPage site/edit-member-page.js
+   * @usedByScript None found.
+   */
   app.post('/api/members', async (c) => {
     try {
       const body = await c.req.json();
@@ -221,6 +245,12 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  /**
+   * @route PUT /api/members/:id
+   * @description Update an existing member with validation for role, tag, address, and date constraints.
+   * @usedByPage site/edit-member-page.js
+   * @usedByScript None found.
+   */
   app.put('/api/members/:id', async (c) => {
     try {
       const memberId = c.req.param('id');
@@ -323,6 +353,12 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  /**
+   * @route PUT /api/members/:id/temporary-address
+   * @description Set or replace a member temporary address.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.put('/api/members/:id/temporary-address', async (c) => {
     try {
       const memberId = c.req.param('id');
@@ -382,6 +418,12 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  /**
+   * @route DELETE /api/members/:id/temporary-address
+   * @description Clear a member temporary address.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.delete('/api/members/:id/temporary-address', async (c) => {
     try {
       const memberId = c.req.param('id');
@@ -418,6 +460,12 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/members/:id/temporary-address-history
+   * @description Return current temporary address plus placeholder history array.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.get('/api/members/:id/temporary-address-history', async (c) => {
     try {
       const memberId = c.req.param('id');
@@ -443,6 +491,12 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/temporary-locations/active
+   * @description List members currently marked at active temporary locations with location details.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.get('/api/temporary-locations/active', async (c) => {
     try {
       // Get all members with active temporary addresses
@@ -479,6 +533,12 @@ export default function registerMemberRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/tags
+   * @description Return valid member tags for UI validation and selection.
+   * @usedByPage site/edit-member-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/tags', async (c) => {
     return c.json({ tags });
   })

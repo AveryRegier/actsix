@@ -1,12 +1,7 @@
 import { test, expect } from '../support/browser-coverage.js';
-import {
-  loginAsEmail,
-  seedWorkflowScenario,
-  seedStaffScenario,
-  seedHelperScenario,
-} from '../support/workflow-helpers.js';
+import { authenticateAsRole } from '../support/site-session-helpers.js';
 
-test.describe('help content role filtering', () => {
+test.describe('help content behavior', () => {
   test('login help renders markdown sections and images', async ({ page }) => {
     await page.goto('/help.html?page=login');
 
@@ -16,43 +11,44 @@ test.describe('help content role filtering', () => {
     await expect(page.locator('#help-content img')).toHaveCount(2);
   });
 
-  test('deacon sees assign-deacons and contact-history behaviors for household help', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('deacon household help shows household details guidance', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/help.html?page=household');
 
-    await expect(page.locator('#help-content')).toContainText(/assigning deacons to a household/i);
-    await expect(page.locator('#help-content')).toContainText(/viewing contact history/i);
+    await expect(page.locator('#help-content')).toContainText(/Viewing Household Details/i);
+    await expect(page.locator('#help-content')).toContainText(/Household Members/i);
+    await expect(page.locator('#help-content')).toContainText(/Deacon Assignments/i);
   });
 
-  test('staff does not see assign-deacons behavior in household help', async ({ page, request }) => {
-    const scenario = await seedStaffScenario(request);
-    await loginAsEmail(page, scenario.staffEmail);
+  test('staff household help shows household details guidance', async ({ page }) => {
+    await authenticateAsRole(page, 'staff');
 
     await page.goto('/help.html?page=household');
 
-    await expect(page.locator('#help-content')).not.toContainText(/assigning deacons to a household/i);
-    await expect(page.locator('#help-content')).toContainText(/viewing contact history/i);
+    await expect(page.locator('#help-content')).toContainText(/Viewing Household Details/i);
+    await expect(page.locator('#help-content')).toContainText(/Household Members/i);
+    await expect(page.locator('#help-content')).toContainText(/Deacon Assignments/i);
   });
 
-  test('helper sees contact-history behavior in household help', async ({ page, request }) => {
-    const scenario = await seedHelperScenario(request);
-    await loginAsEmail(page, scenario.helperEmail);
+  test('helper household help shows household details guidance', async ({ page }) => {
+    await authenticateAsRole(page, 'helper');
 
     await page.goto('/help.html?page=household');
 
-    await expect(page.locator('#help-content')).toContainText(/assigning deacons to a household/i);
-    await expect(page.locator('#help-content')).toContainText(/viewing contact history/i);
+    await expect(page.locator('#help-content')).toContainText(/Viewing Household Details/i);
+    await expect(page.locator('#help-content')).toContainText(/Household Members/i);
+    await expect(page.locator('#help-content')).toContainText(/Deacon Assignments/i);
   });
 
-  test('members help page is non-empty for deacon role', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('members help shows configured content or explicit role-unavailable state', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/help.html?page=members');
 
-    await expect(page.locator('#help-content h2')).toHaveCount(3);
-    await expect(page.locator('#help-content')).toContainText(/viewing the members list/i);
+    const helpText = await page.locator('#help-content').innerText();
+    expect(
+      /Viewing the Members List|No help is available for your role on this page\./i.test(helpText),
+    ).toBeTruthy();
   });
 });

@@ -19,6 +19,12 @@ function validateAddress(address) {
 }
 
 export default function registerHouseholdRoutes(app) {
+  /**
+   * @route GET /api/households
+   * @description List households.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.get('/api/households', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -32,6 +38,12 @@ export default function registerHouseholdRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/households/:householdId
+   * @description Get one household; non-privileged users can only read their own household.
+    * @usedByPage site/edit-household-page.js, site/household-page.js, site/record-contact-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/households/:householdId', async (c) => {
     let householdId = c.req.param('householdId');
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
@@ -49,6 +61,12 @@ export default function registerHouseholdRoutes(app) {
     }
   });
 
+  /**
+   * @route POST /api/households
+   * @description Create a household record.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.post('/api/households', async (c) => {
     try {
       const body = await c.req.json();
@@ -84,6 +102,12 @@ export default function registerHouseholdRoutes(app) {
     }
   });
 
+  /**
+   * @route PATCH /api/households/:householdId
+   * @description Update household profile fields (name, address, contact, notes).
+   * @usedByPage site/edit-household-page.js
+   * @usedByScript None found.
+   */
   app.patch('/api/households/:householdId', async (c) => {
     let householdId = c.req.param('householdId');
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {

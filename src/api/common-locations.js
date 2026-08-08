@@ -122,9 +122,10 @@ function validateLocationData(data, isUpdate = false) {
 
 export default function registerCommonLocationRoutes(app) {
   /**
-   * GET /api/common-locations
-   * List all active common locations
-   * Auth: All authenticated users (deacon, staff, member)
+   * @route GET /api/common-locations
+   * @description List all active common locations.
+   * @usedByPage site/edit-member-page.js
+   * @usedByScript None found.
    */
   app.get('/api/common-locations', async (c) => {
     try {
@@ -148,9 +149,10 @@ export default function registerCommonLocationRoutes(app) {
   });
 
   /**
-   * GET /api/common-locations/:id
-   * Get specific location details
-   * Auth: All authenticated users
+   * @route GET /api/common-locations/:id
+   * @description Get specific location details.
+   * @usedByPage site/contact-summary-page.js, site/deacon-quick-contact-page.js, site/household-page.js, site/record-contact-page.js
+   * @usedByScript None found.
    */
   app.get('/api/common-locations/:id', async (c) => {
     try {
@@ -176,9 +178,10 @@ export default function registerCommonLocationRoutes(app) {
   });
 
   /**
-   * POST /api/common-locations
-   * Add new common location
-   * Auth: Staff only
+   * @route POST /api/common-locations
+   * @description Add a new common location.
+   * @usedByPage None found.
+   * @usedByScript None found.
    */
   app.post('/api/common-locations', async (c) => {
     if (!verifyRole(c, ['staff', 'deacon', 'helper'])) {
@@ -229,9 +232,10 @@ export default function registerCommonLocationRoutes(app) {
   });
 
   /**
-   * PUT /api/common-locations/:id
-   * Update existing location
-   * Auth: Staff only
+   * @route PUT /api/common-locations/:id
+   * @description Update an existing location.
+   * @usedByPage None found.
+   * @usedByScript None found.
    */
   app.put('/api/common-locations/:id', async (c) => {
     if (!verifyRole(c, ['staff', 'deacon', 'helper'])) {
@@ -291,9 +295,10 @@ export default function registerCommonLocationRoutes(app) {
   });
 
   /**
-   * DELETE /api/common-locations/:id
-   * Soft delete location (set isActive = false)
-   * Auth: Staff only
+   * @route DELETE /api/common-locations/:id
+   * @description Soft-delete a location by setting isActive to false.
+   * @usedByPage None found.
+   * @usedByScript None found.
    */
   app.delete('/api/common-locations/:id', async (c) => {
     if (!verifyRole(c, ['staff', 'deacon', 'helper'])) {

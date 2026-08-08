@@ -3,6 +3,12 @@ import { safeCollectionFind, safeCollectionInsert, safeCollectionUpdate } from '
 import { verifyRole } from '../auth/auth.js';
 
 export default function registerAssignmentRoutes(app) {
+  /**
+   * @route GET /api/assignments
+   * @description List all assignment records.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.get('/api/assignments', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -16,6 +22,12 @@ export default function registerAssignmentRoutes(app) {
     }
   });
 
+  /**
+   * @route POST /api/assignments
+   * @description Create a single deacon-household assignment.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.post('/api/assignments', async (c) => {
     if (!verifyRole(c, ['deacon', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -44,6 +56,12 @@ export default function registerAssignmentRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/deacons/:deaconMemberId/assignments
+   * @description List assignments for one deacon. Short ids fall back to the logged-in member id.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
   app.get('/api/deacons/:deaconMemberId/assignments', async (c) => {
     if (!verifyRole(c, ['deacon', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -61,6 +79,12 @@ export default function registerAssignmentRoutes(app) {
     }
   });
 
+  /**
+   * @route GET /api/households/:householdId/assignments
+   * @description List active assignments for one household and attach deacon details.
+    * @usedByPage site/assign-deacons-page.js, site/household-page.js, site/record-contact-page.js
+   * @usedByScript None found.
+   */
   app.get('/api/households/:householdId/assignments', async (c) => {
     if (!verifyRole(c, ['deacon', 'staff', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);
@@ -82,6 +106,12 @@ export default function registerAssignmentRoutes(app) {
     }
   });
 
+  /**
+   * @route POST /api/households/:householdId/assignments
+   * @description Replace active assignment set for a household using the deaconIds array.
+   * @usedByPage site/assign-deacons-page.js
+   * @usedByScript None found.
+   */
   app.post('/api/households/:householdId/assignments', async (c) => {
     if (!verifyRole(c, ['deacon', 'helper'])) {
       return c.json({ error: 'Unauthorized access' }, 403);

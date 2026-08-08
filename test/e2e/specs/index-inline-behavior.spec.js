@@ -1,10 +1,9 @@
 import { test, expect } from '../support/browser-coverage.js';
-import { loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
+import { authenticateAsRole } from '../support/site-session-helpers.js';
 
 test.describe('index inline behavior characterization', () => {
-  test('index loads nav markup and reports connected api status', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('index loads nav markup and reports connected api status', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/index.html');
 

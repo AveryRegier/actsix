@@ -1,10 +1,9 @@
 import { test, expect } from '../support/browser-coverage.js';
-import { loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
+import { authenticateAsRole } from '../support/site-session-helpers.js';
 
 test.describe('site nav user flows', () => {
-  test('menu button toggles the mobile nav menu', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('menu button toggles the mobile nav menu', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
     await page.setViewportSize({ width: 390, height: 844 });
 
     await page.goto('/members.html');
@@ -19,9 +18,8 @@ test.describe('site nav user flows', () => {
     await expect(mobileMenu).not.toHaveClass(/open/);
   });
 
-  test('goBack falls back to index page when no referrer exists', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('goBack falls back to index page when no referrer exists', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/members.html');
     await page.evaluate(() => {
@@ -33,9 +31,8 @@ test.describe('site nav user flows', () => {
     await expect(page).toHaveURL(/(?:\/|index\.html)$/);
   });
 
-  test('addNavLink appends custom links to desktop and mobile nav extras', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('addNavLink appends custom links to desktop and mobile nav extras', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/members.html');
     await page.evaluate(() => {

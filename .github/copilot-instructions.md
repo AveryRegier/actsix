@@ -29,6 +29,8 @@ Read from Muninn before risky work, or when uncertain about:
 ## E2E Testing
 
 - **NEVER mock API calls in E2E tests** (`test/e2e/specs/`). Tests must hit a live, data-seeded server.
+- **NEVER perform direct API calls in E2E specs** (`test/e2e/specs/`): no `page.request.*`, no injected `request` fixture HTTP setup/assertions, and no helper wrappers around direct API requests.
+- If a test violates policy, do a **surgical edit**: remove or rewrite only the violating tests/lines. **Do not delete whole spec files** unless explicitly requested.
 - Use `s3Simulator` and its seeding utilities (`seedWorkflowScenario`, `seedDemoData`) for test setup.
 - API mocking (`page.route()`) is ONLY for screenshot tests (`test/e2e/screenshots/`).
 

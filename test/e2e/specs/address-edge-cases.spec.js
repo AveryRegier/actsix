@@ -1,5 +1,5 @@
 import { test, expect } from '../support/browser-coverage.js';
-import { loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
+import { authenticateAsRole, getKnownHouseholdId } from '../support/site-session-helpers.js';
 
 async function findZipDataCandidates(page) {
   return page.evaluate(async () => {
@@ -43,11 +43,11 @@ async function findZipDataCandidates(page) {
 }
 
 test.describe('address utility edge cases', () => {
-  test('street full-address parsing supports ZIP+4 and fills split fields', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('street full-address parsing supports ZIP+4 and fills split fields', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
+    const householdId = getKnownHouseholdId('deacon');
 
-    await page.goto(`/edit-household.html?householdId=${scenario.targetHouseholdId}`);
+    await page.goto(`/edit-household.html?householdId=${householdId}`);
     await expect(page.locator('#edit-household-form')).toBeVisible();
 
     await page.locator('#addressStreet').fill('123 Main St, Des Moines, Iowa 50322-4931');
@@ -58,11 +58,11 @@ test.describe('address utility edge cases', () => {
     await expect(page.locator('#addressZipCode')).toHaveValue('50322-4931');
   });
 
-  test('zip blur corrects invalid city and city blur fills zip for single-zip city', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('zip blur corrects invalid city and city blur fills zip for single-zip city', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
+    const householdId = getKnownHouseholdId('deacon');
 
-    await page.goto(`/edit-household.html?householdId=${scenario.targetHouseholdId}`);
+    await page.goto(`/edit-household.html?householdId=${householdId}`);
     await expect(page.locator('#edit-household-form')).toBeVisible();
 
     const candidates = await findZipDataCandidates(page);

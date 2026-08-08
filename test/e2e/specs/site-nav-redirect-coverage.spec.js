@@ -1,10 +1,9 @@
 import { test, expect } from '../support/browser-coverage.js';
-import { loginAsEmail, seedWorkflowScenario } from '../support/workflow-helpers.js';
+import { authenticateAsRole } from '../support/site-session-helpers.js';
 
 test.describe('site-nav and redirect coverage', () => {
-  test('site-nav hides current page links and tracks post submits', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('site-nav hides current page links and tracks post submits', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/members.html');
     await expect(page.locator('#navMobileMenu')).toHaveCount(1);
@@ -54,9 +53,8 @@ test.describe('site-nav and redirect coverage', () => {
 
   });
 
-  test('redirect-handler follows redirected fetch responses', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('redirect-handler follows redirected fetch responses', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
     await page.goto('/members.html');
 
     const redirected = await page.evaluate(async () => {
@@ -78,9 +76,8 @@ test.describe('site-nav and redirect coverage', () => {
     expect(redirected).toBeTruthy();
   });
 
-  test('members page signout link redirects back to login', async ({ page, request }) => {
-    const scenario = await seedWorkflowScenario(request);
-    await loginAsEmail(page, scenario.deaconEmail);
+  test('members page signout link redirects back to login', async ({ page }) => {
+    await authenticateAsRole(page, 'deacon');
 
     await page.goto('/members.html');
     await page.locator('a.signout-link').first().click();

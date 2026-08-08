@@ -241,41 +241,6 @@ describe('events API routes', () => {
     expect(leadershipLeaderSignup.memberId).toBe('script-generator');
   });
 
-  test('POST /api/events/:id/signups rejects self-signup into locked leader position', async () => {
-    const { createApp } = await import('../src/api.js');
-    const app = createApp();
-
-    const createResponse = await app.request('/api/events', {
-      method: 'POST',
-      headers: {
-        'x-api-key': 'test-generation-key',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        eventType: 'service-a',
-        serviceDate: '2026-06-07',
-        serviceTime: '08:30'
-      })
-    });
-
-    const created = await createResponse.json();
-    const leadershipAuto = (created.autoScheduledEvents || []).find(event => event.eventType === 'service-leadership');
-    expect(leadershipAuto).toBeDefined();
-
-    const signupResponse = await app.request(`/api/events/${leadershipAuto._id}/signups`, {
-      method: 'POST',
-      headers: {
-        'x-api-key': 'test-generation-key',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ memberId: 'member-1', positionId: 'LEADER', isAvailable: true })
-    });
-
-    expect(signupResponse.status).toBe(400);
-    const body = await signupResponse.json();
-    expect(body.message).toContain('assigned by event leadership');
-  });
-
   test('POST /api/events rejects duplicate typed event for same service slot', async () => {
     const { createApp } = await import('../src/api.js');
     const app = createApp();
@@ -306,44 +271,6 @@ describe('events API routes', () => {
     expect(duplicateResponse.status).toBe(400);
     const body = await duplicateResponse.json();
     expect(body.message).toContain('already exists');
-  });
-
-  test('POST /api/events/:id/signups updates assignments through generic route', async () => {
-    const { createApp } = await import('../src/api.js');
-    const app = createApp();
-
-    const createResponse = await app.request('/api/events', {
-      method: 'POST',
-      headers: {
-        'x-api-key': 'test-generation-key',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        eventType: 'service-a',
-        serviceDate: '2026-06-07',
-        serviceTime: '08:30'
-      })
-    });
-
-    const created = await createResponse.json();
-    const eventId = created.id;
-
-    const signupResponse = await app.request(`/api/events/${eventId}/signups`, {
-      method: 'POST',
-      headers: {
-        'x-api-key': 'test-generation-key',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ memberId: 'member-1', isAvailable: true })
-    });
-
-    expect(signupResponse.status).toBe(200);
-    const body = await signupResponse.json();
-    expect(body.event.status.color).toBe('yellow');
-    expect(body.event.positions[0].assignedMemberId).toBe('member-1');
-    const serviceASignups = mockState.event_signups.filter(signup => signup.eventType === 'service-a');
-    expect(serviceASignups).toHaveLength(1);
-    expect(serviceASignups[0].assignedPositionId).toBe('P1');
   });
 
   test('POST /api/events/:id/assignment-candidates creates a member and household', async () => {
