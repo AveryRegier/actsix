@@ -1,5 +1,5 @@
 import { getLogger } from '../util/logger.js';
-import { safeCollectionFind, safeCollectionFindOne, safeCollectionInsert, safeCollectionUpdate } from '../util/helpers.js';
+import { safeCollectionFind, safeCollectionFindOne, safeCollectionInsert, safeCollectionUpdate, safeCollectionCount } from '../util/helpers.js';
 import { verifyRole } from '../auth/auth.js';
 
 
@@ -594,7 +594,7 @@ async function autoScheduleDependencies({
     });
 
     if (!createdSlot.skipped && createdSlot.calendarSlot) {
-      created.push(buildCalendarView(createdSlot.calendarSlot, targetDefinition, []));
+      created.push(await buildCalendarView(createdSlot.calendarSlot, targetDefinition));
     }
   }
 
@@ -762,9 +762,15 @@ async function memberHasLeadershipAccessOnServiceDate(memberId, serviceDate, eve
       continue;
     }
 
-    const signups = await loadSignupsForCalendar(loaded.calendarSlot._id);
-    const assignment = assignPositions(signups, loaded.eventDefinition.positions || []);
-    if (assignment.positions.some(position => isLeadershipAssignmentPosition(position) && position.assignedMemberId === memberId)) {
+    const lockedPositionIds = normalizeEventPositions(loaded.eventDefinition.positions || [])
+      .filter(position => isLeadershipAssignmentPosition(position))
+      .map(position => position.positionId);
+    if (lockedPositionIds.length === 0) {
+      continue;
+    }
+
+    const memberSignup = await safeCollectionFindOne('event_signups', { calendarId: slot._id, memberId });
+    if (memberSignup?.assignedPositionId && lockedPositionIds.includes(memberSignup.assignedPositionId)) {
       return true;
     }
   }
@@ -790,10 +796,26 @@ async function canManageAssignments(c, loaded, eventTypeConfigMap = null) {
   return memberHasLeadershipAccessOnServiceDate(memberId, loaded?.calendarSlot?.serviceDate, eventTypeConfigMap);
 }
 
-function buildCalendarView(calendarSlot, eventDefinition, signups) {
-  const assignment = assignPositions(signups, eventDefinition.positions || []);
-  const neededCount = assignment.positions.length;
-  const criticalPositionIds = assignment.positions.filter(position => position.isCritical).map(position => position.positionId);
+async function getAssignedMembersByPosition(calendarId) {
+  const assignedSignups = await safeCollectionFind('event_signups', { calendarId, assignedPositionId: { $ne: null } });
+  const byPosition = new Map();
+  for (const signup of assignedSignups) {
+    if (signup?.assignedPositionId) {
+      byPosition.set(signup.assignedPositionId, signup.memberId);
+    }
+  }
+  return byPosition;
+}
+
+async function buildCalendarView(calendarSlot, eventDefinition) {
+  const normalizedPositions = normalizeDefinitionPositions(eventDefinition.positions || []);
+  const assignedByPosition = await getAssignedMembersByPosition(calendarSlot._id);
+  const positions = normalizedPositions.map(position => ({
+    ...position,
+    assignedMemberId: assignedByPosition.get(position.positionId) || null
+  }));
+  const status = deriveEventStatusFromPositions(positions);
+  const criticalPositionIds = positions.filter(position => position.isCritical).map(position => position.positionId);
 
   return {
     _id: calendarSlot._id,
@@ -804,13 +826,180 @@ function buildCalendarView(calendarSlot, eventDefinition, signups) {
     title: toStringOrNull(calendarSlot.title) || buildDefaultTitle(eventDefinition.eventType, calendarSlot.serviceDate, calendarSlot.serviceTime),
     serviceDate: calendarSlot.serviceDate,
     serviceTime: calendarSlot.serviceTime,
-    positions: assignment.positions,
-    neededCount,
+    positions,
+    neededCount: positions.length,
     criticalPositionIds,
-    status: assignment.status,
+    status,
     createdAt: calendarSlot.createdAt,
     updatedAt: calendarSlot.updatedAt
   };
+}
+
+// Lightweight status derived purely from the calendar doc's own counts, using
+// indexed countDocuments lookups instead of loading and re-assigning every signup.
+async function getEventStatusFromCalendarDoc(calendarDoc) {
+  const criticalPositionIds = Array.isArray(calendarDoc?.criticalPositionIds) ? calendarDoc.criticalPositionIds : [];
+  const totalPositions = calendarDoc?.neededCount || 0;
+  const criticalTotal = criticalPositionIds.length;
+  const calendarId = calendarDoc._id;
+
+  const [filledCount, criticalFilledCount] = await Promise.all([
+    safeCollectionCount('event_signups', { calendarId, assignedPositionId: { $ne: null } }),
+    criticalTotal > 0
+      ? safeCollectionCount('event_signups', { calendarId, assignedPositionId: { $in: criticalPositionIds } })
+      : Promise.resolve(0)
+  ]);
+
+  let color = 'green';
+  if (criticalFilledCount < criticalTotal) {
+    color = 'red';
+  } else if (filledCount < totalPositions) {
+    color = 'yellow';
+  }
+
+  return {
+    color,
+    totalPositions,
+    filledCount,
+    openCount: totalPositions - filledCount,
+    criticalTotal,
+    criticalFilledCount,
+    criticalOpenCount: criticalTotal - criticalFilledCount,
+    allCriticalFilled: criticalFilledCount === criticalTotal,
+    allFilled: filledCount === totalPositions
+  };
+}
+
+async function findOpenPositionId(calendarId, positions, preferredPositionId = null) {
+  const occupiable = normalizeEventPositions(positions).filter(position => position.allowSelfSignup !== false);
+  if (occupiable.length === 0) {
+    return null;
+  }
+
+  const occupied = await getAssignedMembersByPosition(calendarId);
+
+  if (preferredPositionId && occupiable.some(position => position.positionId === preferredPositionId) && !occupied.has(preferredPositionId)) {
+    return preferredPositionId;
+  }
+
+  const next = occupiable.find(position => !occupied.has(position.positionId));
+  return next ? next.positionId : null;
+}
+
+async function findMemberSignup(calendarId, memberId) {
+  let signup = await safeCollectionFindOne('event_signups', { calendarId, memberId });
+  if (!signup) {
+    signup = await safeCollectionFindOne('event_signups', { eventId: calendarId, memberId });
+  }
+  return signup;
+}
+
+// Sign a member up as available and, if a position is open, grab it directly.
+// Does not touch any other member's signup - no reassignment loop.
+async function markMemberAvailable(loaded, memberId, { requestedPositionId = null, unavailableReason = null } = {}) {
+  const calendarId = loaded.calendarSlot._id;
+  const positions = loaded.eventDefinition.positions || [];
+  const signup = await findMemberSignup(calendarId, memberId);
+
+  const alreadyHoldsValidPosition = signup?.assignedPositionId
+    && normalizeEventPositions(positions).some(position => position.positionId === signup.assignedPositionId);
+
+  const assignedPositionId = alreadyHoldsValidPosition
+    ? signup.assignedPositionId
+    : await findOpenPositionId(calendarId, positions, requestedPositionId);
+
+  const now = new Date().toISOString();
+  const fields = {
+    calendarId,
+    eventId: loaded.eventDefinition._id,
+    eventType: loaded.eventDefinition.eventType,
+    memberId,
+    positionId: requestedPositionId,
+    isAvailable: true,
+    unavailableReason,
+    assignedPositionId,
+    updatedAt: now
+  };
+
+  if (signup) {
+    await safeCollectionUpdate('event_signups', { _id: signup._id }, { $set: fields });
+  } else {
+    await safeCollectionInsert('event_signups', { ...fields, createdAt: now });
+  }
+
+  return assignedPositionId;
+}
+
+// Mark a member unavailable and free only their own position - no loop over other signups.
+async function markMemberUnavailable(loaded, memberId, unavailableReason = null) {
+  const calendarId = loaded.calendarSlot._id;
+  const signup = await findMemberSignup(calendarId, memberId);
+  const now = new Date().toISOString();
+  const fields = {
+    calendarId,
+    eventId: loaded.eventDefinition._id,
+    eventType: loaded.eventDefinition.eventType,
+    isAvailable: false,
+    assignedPositionId: null,
+    unavailableReason,
+    updatedAt: now
+  };
+
+  if (signup) {
+    await safeCollectionUpdate('event_signups', { _id: signup._id }, { $set: fields });
+  } else {
+    await safeCollectionInsert('event_signups', {
+      ...fields,
+      memberId,
+      positionId: null,
+      createdAt: now
+    });
+  }
+}
+
+// Free whichever single signup currently holds this position; returns their memberId, if any.
+async function clearPositionOccupant(calendarId, positionId) {
+  const occupant = await safeCollectionFindOne('event_signups', { calendarId, assignedPositionId: positionId });
+  if (!occupant) {
+    return null;
+  }
+
+  await safeCollectionUpdate(
+    'event_signups',
+    { _id: occupant._id },
+    { $set: { assignedPositionId: null, updatedAt: new Date().toISOString() } }
+  );
+  return occupant.memberId;
+}
+
+// Directly place one member into a position. Frees whoever previously held that position
+// (they become unassigned, not reassigned elsewhere) and moves the member off any other
+// position they held. No loop over the rest of the roster.
+async function assignMemberToPosition(loaded, memberId, positionId) {
+  const calendarId = loaded.calendarSlot._id;
+  const now = new Date().toISOString();
+
+  const previousOccupantId = await clearPositionOccupant(calendarId, positionId);
+
+  const signup = await findMemberSignup(calendarId, memberId);
+  const fields = {
+    calendarId,
+    eventId: loaded.eventDefinition._id,
+    eventType: loaded.eventDefinition.eventType,
+    memberId,
+    isAvailable: true,
+    unavailableReason: null,
+    assignedPositionId: positionId,
+    updatedAt: now
+  };
+
+  if (signup) {
+    await safeCollectionUpdate('event_signups', { _id: signup._id }, { $set: fields });
+  } else {
+    await safeCollectionInsert('event_signups', { ...fields, positionId: null, createdAt: now });
+  }
+
+  return previousOccupantId;
 }
 
 async function loadSignupsForCalendar(calendarId, eventId = null) {
@@ -840,57 +1029,6 @@ async function loadSignupsForCalendar(calendarId, eventId = null) {
   }
 
   return Array.from(deduped.values());
-}
-
-async function rebuildAssignmentsForCalendar(calendarSlot, eventDefinition) {
-  const normalizedCalendarId = toStringOrNull(calendarSlot?._id) || calendarSlot?._id;
-  const normalizedEventId = toStringOrNull(eventDefinition?._id) || eventDefinition?._id;
-  const signups = await loadSignupsForCalendar(normalizedCalendarId, normalizedEventId);
-  const assignment = assignPositions(signups, eventDefinition.positions || []);
-
-  const now = new Date().toISOString();
-  const neededCount = assignment.positions.length;
-  const criticalPositionIds = assignment.positions.filter(position => position.isCritical).map(position => position.positionId);
-
-  await safeCollectionUpdate(
-    'event_calendar',
-    { _id: calendarSlot._id },
-    {
-      $set: {
-        status: assignment.status,
-        neededCount,
-        criticalPositionIds,
-        updatedAt: now
-      }
-    }
-  );
-
-  for (const signup of signups) {
-    const matched = assignment.updatedSignups.find(updatedSignup => updatedSignup._id === signup._id);
-    await safeCollectionUpdate(
-      'event_signups',
-      { _id: signup._id },
-      {
-        $set: {
-          calendarId: normalizedCalendarId,
-          eventId: normalizedEventId,
-          eventType: eventDefinition.eventType,
-          assignedPositionId: matched?.assignedPositionId || null,
-          updatedAt: now
-        }
-      }
-    );
-  }
-
-  const updatedCalendar = {
-    ...calendarSlot,
-    status: assignment.status,
-    neededCount,
-    criticalPositionIds,
-    updatedAt: now
-  };
-
-  return buildCalendarView(updatedCalendar, eventDefinition, signups);
 }
 
 async function loadCalendarAndDefinition(calendarId, eventTypeConfigMap = null) {
@@ -1050,8 +1188,7 @@ export default function registerEventRoutes(app) {
         }
 
         const eventDefinition = eventDefinitionsByType.get(slotEventType);
-        const signups = await loadSignupsForCalendar(calendarSlot, eventDefinition);
-        return buildCalendarView(calendarSlot, eventDefinition, signups);
+        return buildCalendarView(calendarSlot, eventDefinition);
       }));
 
       const filteredEvents = decorated.filter(Boolean);
@@ -1112,7 +1249,7 @@ export default function registerEventRoutes(app) {
           return c.json({ error: 'Validation failed', message: createdSlot.error }, 400);
         }
 
-        const eventView = buildCalendarView(createdSlot.calendarSlot, eventDefinition, []);
+        const eventView = await buildCalendarView(createdSlot.calendarSlot, eventDefinition);
         createdEvents.push(eventView);
 
         const autoScheduled = await autoScheduleDependencies({
@@ -1161,7 +1298,7 @@ export default function registerEventRoutes(app) {
 
       const signups = await loadSignupsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
       return c.json({
-        event: buildCalendarView(loaded.calendarSlot, loaded.eventDefinition, signups),
+        event: await buildCalendarView(loaded.calendarSlot, loaded.eventDefinition),
         signups,
         signupCount: signups.length
       });
@@ -1196,7 +1333,7 @@ export default function registerEventRoutes(app) {
         return c.json({ error: 'Unauthorized access' }, 403);
       }
 
-      const event = await rebuildAssignmentsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
+      const event = await buildCalendarView(loaded.calendarSlot, loaded.eventDefinition);
       const { candidates, assigneeRoles, quickAddAssigneeRole, allowQuickAddAssignee, requiredGender } = await loadAssignmentCandidates(loaded.eventDefinition.eventType, eventTypeConfigMap);
       
       const assignedMemberIds = new Set(event.positions.map(p => p.assignedMemberId).filter(Boolean));
@@ -1274,7 +1411,11 @@ export default function registerEventRoutes(app) {
       const definitionsByEventType = new Map(eventTypeConfigs.map(def => [def.eventType, def]));
       const signupsByCalendarId = new Map(memberSignups.map(s => [s.calendarId, s]));
 
-      // 3. Combine the data
+      // 3. Get filled-position status for each event using indexed counts only - no reassignment loop.
+      const statusPairs = await Promise.all(futureEvents.map(async event => [event._id, await getEventStatusFromCalendarDoc(event)]));
+      const statusByEventId = new Map(statusPairs);
+
+      // 4. Combine the data
       const results = [];
       for (const event of futureEvents) {
         const definition = definitionsByEventType.get(event.eventType);
@@ -1282,7 +1423,7 @@ export default function registerEventRoutes(app) {
 
         // Each event becomes an entry, enhanced with signup info
         results.push({
-          event,
+          event: { ...event, status: statusByEventId.get(event._id) },
           definition,
           signup: signup || null // Include the member's signup if it exists
         });
@@ -1317,55 +1458,50 @@ export default function registerEventRoutes(app) {
         return c.json([]);
       }
 
-      // 2. Get all event types needed for this date
+      // 2. Get event type config (titles) and each event's real position definition
+      const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
       const eventTypeNames = [...new Set(events.map(e => e.eventType).filter(Boolean))];
-      const eventTypes = await safeCollectionFind('event_types', { eventType: { $in: eventTypeNames } });
-      const typeMap = new Map(eventTypes.map(t => [t.eventType, t]));
-
-      // 3. Load signups for all events (needed for assignPositions)
-      const eventIds = events.map(e => e._id);
-      const allSignups = await safeCollectionFind('event_signups', { calendarId: { $in: eventIds } });
-      const signupsByEvent = new Map();
-      for (const signup of allSignups || []) {
-        if (!signupsByEvent.has(signup.calendarId)) {
-          signupsByEvent.set(signup.calendarId, []);
-        }
-        signupsByEvent.get(signup.calendarId).push(signup);
+      const definitionsByType = new Map();
+      for (const eventType of eventTypeNames) {
+        definitionsByType.set(eventType, await getOrCreateEventDefinition(eventType, null, eventTypeConfigMap));
       }
 
-      // 4. Assign members to positions for each event
+      // 3. Fetch only the already-assigned signups per event - a single indexed lookup each,
+      // no full-roster load and no reassignment loop.
+      const assignedByCalendarId = new Map();
+      await Promise.all(events.map(async event => {
+        assignedByCalendarId.set(event._id, await getAssignedMembersByPosition(event._id));
+      }));
+
       const assignedIds = new Set();
-      const positionsByEvent = new Map();
-      const statusByEvent = new Map();
-      for (const event of events) {
-        const positions = event.positions || typeMap.get(event.eventType)?.defaultPositions || [];
-        const signups = signupsByEvent.get(event._id) || [];
-        const result = assignPositions(signups, positions);
-        positionsByEvent.set(event._id, result.positions);
-        statusByEvent.set(event._id, result.status);
-        result.positions.forEach(p => {
-          if (p.assignedMemberId) {
-            assignedIds.add(p.assignedMemberId);
-          }
-        });
+      for (const assignedByPosition of assignedByCalendarId.values()) {
+        for (const memberId of assignedByPosition.values()) {
+          assignedIds.add(memberId);
+        }
       }
 
-      // 5. Get all assigned members for enrichment
+      // 4. Get all assigned members for enrichment
       const members = assignedIds.size > 0
         ? await safeCollectionFind('members', { _id: { $in: [...assignedIds] } })
         : [];
       const memberMap = new Map(members.map(m => [m._id, m]));
 
-      // 6. Combine all data and format for frontend
+      // 5. Combine all data and format for frontend
       const results = events.map(event => {
-        const eventType = typeMap.get(event.eventType);
-        const positions = positionsByEvent.get(event._id) || [];
+        const definition = definitionsByType.get(event.eventType);
+        const eventTypeConfig = eventTypeConfigMap[event.eventType];
+        const assignedByPosition = assignedByCalendarId.get(event._id) || new Map();
+        const normalizedPositions = normalizeDefinitionPositions(definition?.positions || []);
 
         // Enrich positions with member details
-        const enrichedPositions = positions.map(pos => ({
-          ...pos,
-          assignedMember: pos.assignedMemberId ? memberMap.get(pos.assignedMemberId) : null
-        }));
+        const enrichedPositions = normalizedPositions.map(position => {
+          const assignedMemberId = assignedByPosition.get(position.positionId) || null;
+          return {
+            ...position,
+            assignedMemberId,
+            assignedMember: assignedMemberId ? memberMap.get(assignedMemberId) || null : null
+          };
+        });
 
         // Separate filled and open positions
         const filledPositions = enrichedPositions.filter(p => p.assignedMemberId);
@@ -1376,8 +1512,8 @@ export default function registerEventRoutes(app) {
           positions: enrichedPositions,
           filledPositions,
           openPositions,
-          status: statusByEvent.get(event._id) || {},
-          eventType: eventType ? eventType.title : event.eventType
+          status: deriveEventStatusFromPositions(enrichedPositions),
+          eventType: eventTypeConfig ? eventTypeConfig.title : event.eventType
         };
       });
 
@@ -1435,7 +1571,7 @@ export default function registerEventRoutes(app) {
         assignmentByPosition.set(positionId, memberId || null);
       }
 
-      const now = new Date().toISOString();
+      // Each update only touches the specific position (and whoever it bumps) - no roster-wide loop.
       for (const position of normalizedPositions) {
         if (!assignmentByPosition.has(position.positionId)) {
           continue;
@@ -1443,104 +1579,14 @@ export default function registerEventRoutes(app) {
 
         const memberId = assignmentByPosition.get(position.positionId);
         if (!memberId) {
-          const signupsByCalendar = await safeCollectionFind('event_signups', {
-            calendarId,
-            assignedPositionId: position.positionId
-          });
-          const signupsByLegacyEventId = await safeCollectionFind('event_signups', {
-            eventId: calendarId,
-            assignedPositionId: position.positionId
-          });
-
-          const dedupedSignups = new Map();
-          [...signupsByCalendar, ...signupsByLegacyEventId].forEach(signup => {
-            if (signup?._id) {
-              dedupedSignups.set(signup._id, signup);
-            }
-          });
-
-          const signups = Array.from(dedupedSignups.values());
-          for (const signup of signups) {
-            await safeCollectionUpdate(
-              'event_signups',
-              { _id: signup._id },
-              {
-                $set: {
-                  calendarId,
-                  eventId: loaded.eventDefinition._id,
-                  eventType: loaded.eventDefinition.eventType,
-                  isAvailable: true,
-                  assignedPositionId: null,
-                  assignmentOptOut: true,
-                  updatedAt: now
-                }
-              }
-            );
-          }
+          await clearPositionOccupant(calendarId, position.positionId);
           continue;
         }
 
-        let signup = await safeCollectionFindOne('event_signups', { calendarId, memberId });
-        if (!signup) {
-          signup = await safeCollectionFindOne('event_signups', { eventId: calendarId, memberId });
-        }
-
-        if (signup) {
-          await safeCollectionUpdate(
-            'event_signups',
-            { _id: signup._id },
-            {
-              $set: {
-                calendarId,
-                eventId: loaded.eventDefinition._id,
-                eventType: loaded.eventDefinition.eventType,
-                isAvailable: true,
-                assignmentOptOut: false,
-                unavailableReason: null,
-                assignedPositionId: position.positionId,
-                updatedAt: now
-              }
-            }
-          );
-        } else {
-          await safeCollectionInsert('event_signups', {
-            calendarId,
-            eventId: loaded.eventDefinition._id,
-            eventType: loaded.eventDefinition.eventType,
-            memberId,
-            positionId: null,
-            isAvailable: true,
-            assignmentOptOut: false,
-            unavailableReason: null,
-            assignedPositionId: position.positionId,
-            createdAt: now,
-            updatedAt: now
-          });
-        }
-
-        const otherAssigned = await safeCollectionFind('event_signups', {
-          calendarId,
-          assignedPositionId: position.positionId
-        });
-        for (const other of otherAssigned) {
-          if (other.memberId === memberId) {
-            continue;
-          }
-          await safeCollectionUpdate(
-            'event_signups',
-            { _id: other._id },
-            {
-              $set: {
-                assignedPositionId: null,
-                  assignmentOptOut: true,
-                updatedAt: now
-              }
-            }
-          );
-        }
+        await assignMemberToPosition(loaded, memberId, position.positionId);
       }
 
-      const event = await rebuildAssignmentsForCalendar(loaded.calendarSlot, loaded.eventDefinition);
+      const event = await buildCalendarView(loaded.calendarSlot, loaded.eventDefinition);
 
       const memberById = new Map();
       async function getMemberById(memberId) {
@@ -1609,47 +1655,18 @@ export default function registerEventRoutes(app) {
         return c.json({ error: 'isAvailable must be a boolean' }, 400);
       }
 
-      // Find the event to get eventId and eventType
-      const event = await safeCollectionFindOne('event_calendar', { _id: calendarId });
-      if (!event) {
+      const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
+      const loaded = await loadCalendarAndDefinition(calendarId, eventTypeConfigMap);
+      if (!loaded) {
         return c.json({ error: 'Event not found' }, 404);
       }
 
-      // Find or create signup record for this member
-      let signup = await safeCollectionFindOne('event_signups', {
-        calendarId,
-        memberId
-      });
-
-      const now = new Date().toISOString();
-
-      if (signup) {
-        // Update existing signup
-        await safeCollectionUpdate(
-          'event_signups',
-          { _id: signup._id },
-          {
-            $set: {
-              isAvailable,
-              updatedAt: now
-            }
-          }
-        );
+      // Available -> grab the next open position directly. Unavailable -> free only this member's
+      // own position. Neither path touches any other signup, so there is no roster-wide loop.
+      if (isAvailable) {
+        await markMemberAvailable(loaded, memberId);
       } else {
-        // Create new signup
-        await safeCollectionInsert('event_signups', {
-          calendarId,
-          eventId: event._id,
-          eventType: event.eventType,
-          memberId,
-          positionId: null,
-          isAvailable,
-          assignmentOptOut: false,
-          unavailableReason: null,
-          assignedPositionId: null,
-          createdAt: now,
-          updatedAt: now
-        });
+        await markMemberUnavailable(loaded, memberId);
       }
 
       return c.json({ message: 'Availability updated successfully' });

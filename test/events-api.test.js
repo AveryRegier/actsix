@@ -34,6 +34,9 @@ function matchesQuery(doc, query = {}) {
       }
       return value.$in.includes(docValue);
     }
+    if (value && typeof value === 'object' && '$ne' in value) {
+      return doc[key] !== value.$ne;
+    }
     return doc[key] === value;
   });
 }
@@ -47,6 +50,10 @@ vi.mock('../src/util/helpers.js', () => ({
     const docs = mockState[collectionName] || [];
     const match = docs.find(doc => matchesQuery(doc, query));
     return match ? clone(match) : null;
+  }),
+  safeCollectionCount: vi.fn(async (collectionName, query = {}) => {
+    const docs = mockState[collectionName] || [];
+    return docs.filter(doc => matchesQuery(doc, query)).length;
   }),
   safeCollectionInsert: vi.fn(async (collectionName, data) => {
     const nextId = `${collectionName}-${mockState.counters[collectionName] || 1}`;

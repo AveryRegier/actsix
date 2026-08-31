@@ -23,6 +23,17 @@ export async function safeCollectionFindOne(collectionName, query = {}, options 
   }
 }
 
+export async function safeCollectionCount(collectionName, query = {}, options = {}) {
+  try {
+    const collection = db.collection(collectionName);
+    const result = await collection.countDocuments(query, options);
+    return result || 0;
+  } catch (error) {
+    getLogger().error(error, `Error counting collection ${collectionName}:`);
+    return 0;
+  }
+}
+
 export async function safeCollectionInsert(collectionName, data, options = {}) {
   const maxRetries = 3;
   let attempts = 0;
