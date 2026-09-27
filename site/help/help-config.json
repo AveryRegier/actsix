@@ -20,9 +20,10 @@
     { "file": "quick-add-usher-assignment.md", "roles": ["deacon", "staff"] }
   ],
   "members": [
-    { "file": "view-members-list.md",    "roles": ["deacon", "staff", "helper"] },
-    { "file": "filter-members-by-tag.md","roles": ["deacon", "staff", "helper"] },
-    { "file": "add-member.md",           "roles": ["deacon", "staff", "helper"] }
+    { "file": "view-members-list.md",       "roles": ["deacon", "staff", "helper"] },
+    { "file": "filter-members-by-tag.md",   "roles": ["deacon", "staff", "helper"] },
+    { "file": "add-member.md",              "roles": ["deacon", "staff", "helper"] },
+    { "file": "email-filtered-members.md",  "roles": ["deacon", "staff", "helper"] }
   ],
   "household": [
     { "file": "view-household.md",       "roles": ["*"] },

@@ -186,22 +186,28 @@ function wireInteractions() {
 
   const emailBtn = document.getElementById('emailFilteredBtn');
   if (emailBtn) {
-    emailBtn.addEventListener('click', emailFilteredMembers);
+    emailBtn.addEventListener('click', (event) => {
+      if (emailBtn.getAttribute('href') === '#') {
+        event.preventDefault();
+        window.alert('None of the currently filtered members have an email address on file.');
+      }
+    });
   }
 }
 
-function emailFilteredMembers() {
+function updateEmailFilteredLink() {
+  const emailBtn = document.getElementById('emailFilteredBtn');
+  if (!emailBtn) {
+    return;
+  }
+
   const recipients = filteredMembersCache
     .filter((member) => member.email)
     .map((member) => `"${member.firstName} ${member.lastName}" <${member.email}>`);
 
-  if (!recipients.length) {
-    window.alert('None of the currently filtered members have an email address on file.');
-    return;
-  }
-
-  const mailtoUrl = `mailto:?to=${encodeURIComponent(recipients.join(', '))}`;
-  window.location.href = mailtoUrl;
+  emailBtn.href = recipients.length
+    ? `mailto:?to=${encodeURIComponent(recipients.join(', '))}`
+    : '#';
 }
 
 async function renderMemberTable() {
@@ -213,6 +219,8 @@ async function renderMemberTable() {
   const tbody = document.getElementById('memberTableBody');
   if (!membersCache.length) {
     tbody.innerHTML = '<tr><td colspan="3">No members found.</td></tr>';
+    filteredMembersCache = [];
+    updateEmailFilteredLink();
     return;
   }
 
@@ -239,6 +247,7 @@ async function renderMemberTable() {
   });
 
   filteredMembersCache = filteredMembers;
+  updateEmailFilteredLink();
 
   tbody.innerHTML = '';
   if (!filteredMembers.length) {

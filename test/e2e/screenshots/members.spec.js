@@ -47,4 +47,17 @@ test.describe('members screenshots', () => {
     await highlightElement(page, addBtn.first(), 'orange');
     await takeHelpScreenshot(page, 'members-add-button.png');
   });
+
+  test('capture email filtered members button', async ({ page, request }) => {
+    await seedDemoData(request);
+    await loginAsEmail(page, DEMO.deaconEmail);
+
+    await page.goto('/members.html');
+    await page.waitForLoadState('networkidle');
+
+    const emailBtn = page.locator('#emailFilteredBtn');
+    await expect(emailBtn).toBeVisible();
+    await highlightElement(page, emailBtn, 'orange');
+    await takeHelpScreenshot(page, 'members-email-filtered-button.png');
+  });
 });

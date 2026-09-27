@@ -37,6 +37,7 @@ Do not finish capture work if any output category is non-empty (`missing-desktop
 | members-list.png | test/e2e/screenshots/members.spec.js | Members table list | None |
 | members-filter-tags.png | test/e2e/screenshots/members.spec.js | Members page tag filter | Filter dropdown |
 | members-add-button.png | test/e2e/screenshots/members.spec.js | Members page add member CTA | Add New Member button |
+| members-email-filtered-button.png | test/e2e/screenshots/members.spec.js | Members page email filtered members CTA | Email Filtered Members button |
 | household-view.png | test/e2e/screenshots/household.spec.js | Household detail page | None |
 | household-edit-button.png | test/e2e/screenshots/household.spec.js | Household page edit household CTA | Edit household button |
 | household-edit-form.png | test/e2e/screenshots/household.spec.js | Edit household form | None |

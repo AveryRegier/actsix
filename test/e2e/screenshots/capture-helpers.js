@@ -54,6 +54,32 @@ export async function seedDemoData(request) {
   // Ensure images directory exists
   await fs.mkdir(imagesDir, { recursive: true });
 
+  // Idempotent guard: within a single server session, seed only once and reuse the
+  // same IDs on subsequent calls (multiple screenshot tests share one webServer).
+  const existingMembersRes = await apiCall(request, 'GET', '/api/members');
+  const existingMembers = (await existingMembersRes.json()).members || [];
+  const existingDeacon = existingMembers.find((m) => m.email === DEMO.deaconEmail);
+  if (existingDeacon) {
+    const staff = existingMembers.find((m) => m.email === DEMO.staffEmail);
+    const helper = existingMembers.find((m) => m.email === DEMO.helperEmail);
+    const member = existingMembers.find((m) => m.email === DEMO.memberEmail);
+    const locationsRes = await apiCall(request, 'GET', '/api/common-locations');
+    const locations = (await locationsRes.json()).locations || [];
+    const location = locations.find((l) => l.name === DEMO.locationName);
+
+    return {
+      deaconId: existingDeacon._id,
+      deaconHHId: existingDeacon.householdId,
+      staffId: staff?._id,
+      staffHHId: staff?.householdId,
+      helperId: helper?._id,
+      helperHHId: helper?.householdId,
+      memberId: member?._id,
+      memberHHId: member?.householdId,
+      locationId: location?._id,
+    };
+  }
+
   // Create deacon household
   const deaconHHRes = await apiCall(request, 'POST', '/api/households', {
     lastName: DEMO.deaconLastName + '-Deacon',
