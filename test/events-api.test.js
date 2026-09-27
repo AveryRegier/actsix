@@ -353,6 +353,48 @@ describe('events API routes', () => {
     expect(body.requiredGender).toBe('male');
   });
 
+  test('admin-tagged deacon can manage event assignments in event and date views', async () => {
+    const { createApp } = await import('../src/api.js');
+    const app = createApp();
+    mockState.members.push({ _id: 'script-generator', tags: ['admin'] });
+
+    const createResponse = await app.request('/api/events', {
+      method: 'POST',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        eventType: 'service-a',
+        serviceDate: '2026-06-07',
+        serviceTime: '08:30'
+      })
+    });
+    const created = await createResponse.json();
+
+    const eventAssignmentsResponse = await app.request(`/api/events/${created.id}/assignments`, {
+      headers: { 'x-api-key': 'test-generation-key' }
+    });
+    expect(eventAssignmentsResponse.status).toBe(200);
+    expect((await eventAssignmentsResponse.json()).canManageAssignments).toBe(true);
+
+    const dateAssignmentsResponse = await app.request('/api/event-assignments?serviceDate=2026-06-07', {
+      headers: { 'x-api-key': 'test-generation-key' }
+    });
+    expect(dateAssignmentsResponse.status).toBe(200);
+    expect((await dateAssignmentsResponse.json())[0].canManageAssignments).toBe(true);
+
+    const saveResponse = await app.request(`/api/events/${created.id}/assignments`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ assignments: [{ positionId: 'P2', memberId: 'member-1' }] })
+    });
+    expect(saveResponse.status).toBe(200);
+  });
+
   test('PUT /api/events/:id/assignments keeps member on explicitly selected position', async () => {
     const { createApp } = await import('../src/api.js');
     const app = createApp();

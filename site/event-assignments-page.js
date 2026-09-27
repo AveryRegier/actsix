@@ -595,9 +595,11 @@ async function loadAssignmentsForDate(date) {
       item.event,
       item.positions || [],
       item.openPositions || [],
-      false // canManage will be determined on-demand when user tries to edit
+      item.canManageAssignments === true
     ))
     .join('');
 
-  wireAssignmentEditTriggers();
+  if (validEvents.some(item => item.canManageAssignments === true)) {
+    wireAssignmentEditTriggers();
+  }
 }

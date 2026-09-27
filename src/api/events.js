@@ -788,8 +788,8 @@ async function canManageAssignments(c, loaded, eventTypeConfigMap = null) {
   if (!memberId) {
     return false;
   }
-  // get the member from sengo
-  if(await safeCollectionFindOne('members', { _id: memberId})?.tags?.includes('admin')) {
+  const member = await safeCollectionFindOne('members', { _id: memberId });
+  if (member?.tags?.includes('admin')) {
     return true;
   }
 
@@ -979,7 +979,7 @@ async function assignMemberToPosition(loaded, memberId, positionId) {
   const calendarId = loaded.calendarSlot._id;
   const now = new Date().toISOString();
 
-  const previousOccupantId = await clearPositionOccupant(calendarId, positionId);
+  await clearPositionOccupant(calendarId, positionId);
 
   const signup = await findMemberSignup(calendarId, memberId);
   const fields = {
@@ -998,8 +998,6 @@ async function assignMemberToPosition(loaded, memberId, positionId) {
   } else {
     await safeCollectionInsert('event_signups', { ...fields, positionId: null, createdAt: now });
   }
-
-  return previousOccupantId;
 }
 
 async function loadSignupsForCalendar(calendarId, eventId = null) {
@@ -1329,7 +1327,7 @@ export default function registerEventRoutes(app) {
       }
 
       const canManage = await canManageAssignments(c, loaded, eventTypeConfigMap);
-      if (!canManage && !verifyRole(c, config.allowedRoles)) {
+      if (!canManage && !(await verifyRole(c, config.allowedRoles))) {
         return c.json({ error: 'Unauthorized access' }, 403);
       }
 
@@ -1444,7 +1442,9 @@ export default function registerEventRoutes(app) {
    */
   app.get('/api/event-assignments', async (c) => {
     try {
-      verifyRole(c, ['deacon', 'staff', 'elder', 'usher', 'helper']);
+      if (!(await verifyRole(c, ['deacon', 'staff', 'elder', 'usher', 'helper']))) {
+        return c.json({ error: 'Unauthorized access' }, 403);
+      }
       const serviceDate = c.req.query('serviceDate');
 
       if (!serviceDate) {
@@ -1487,7 +1487,7 @@ export default function registerEventRoutes(app) {
       const memberMap = new Map(members.map(m => [m._id, m]));
 
       // 5. Combine all data and format for frontend
-      const results = events.map(event => {
+      const results = await Promise.all(events.map(async event => {
         const definition = definitionsByType.get(event.eventType);
         const eventTypeConfig = eventTypeConfigMap[event.eventType];
         const assignedByPosition = assignedByCalendarId.get(event._id) || new Map();
@@ -1507,15 +1507,20 @@ export default function registerEventRoutes(app) {
         const filledPositions = enrichedPositions.filter(p => p.assignedMemberId);
         const openPositions = enrichedPositions.filter(p => !p.assignedMemberId);
 
+        const canManage = definition
+          ? await canManageAssignments(c, { calendarSlot: event, eventDefinition: definition }, eventTypeConfigMap)
+          : false;
+
         return {
           event,
           positions: enrichedPositions,
           filledPositions,
           openPositions,
           status: deriveEventStatusFromPositions(enrichedPositions),
-          eventType: eventTypeConfig ? eventTypeConfig.title : event.eventType
+          eventType: eventTypeConfig ? eventTypeConfig.title : event.eventType,
+          canManageAssignments: canManage
         };
-      });
+      }));
 
       return c.json(results);
     } catch (error) {
