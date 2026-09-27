@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 let membersCache = [];
 let currentSort = { key: 'lastName', asc: true };
 let currentTagFilter = '';
+let filteredMembersCache = [];
 
 async function fetchMembers() {
   try {
@@ -182,6 +183,25 @@ function wireInteractions() {
   if (tagFilter) {
     tagFilter.addEventListener('change', filterByTag);
   }
+
+  const emailBtn = document.getElementById('emailFilteredBtn');
+  if (emailBtn) {
+    emailBtn.addEventListener('click', emailFilteredMembers);
+  }
+}
+
+function emailFilteredMembers() {
+  const recipients = filteredMembersCache
+    .filter((member) => member.email)
+    .map((member) => `"${member.firstName} ${member.lastName}" <${member.email}>`);
+
+  if (!recipients.length) {
+    window.alert('None of the currently filtered members have an email address on file.');
+    return;
+  }
+
+  const mailtoUrl = `mailto:?to=${encodeURIComponent(recipients.join(', '))}`;
+  window.location.href = mailtoUrl;
 }
 
 async function renderMemberTable() {
@@ -217,6 +237,8 @@ async function renderMemberTable() {
     }
     return 0;
   });
+
+  filteredMembersCache = filteredMembers;
 
   tbody.innerHTML = '';
   if (!filteredMembers.length) {
