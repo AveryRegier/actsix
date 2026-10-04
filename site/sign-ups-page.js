@@ -1,4 +1,5 @@
 import { apiFetch } from './fetch-utils.js';
+import { renderAssignedAisleMap } from './worship-map.js';
 var pageMessage = document.getElementById('pageMessage');
 var eventsList = document.getElementById('eventsList');
 var canViewAssignments = window.__CAN_VIEW_ASSIGNMENTS__ === true;
@@ -142,6 +143,16 @@ function getSignupForMember(eventDetails) {
   return null;
 }
 
+function getPositionNote(definition, positionId) {
+  var positions = (definition && definition.defaultPositions) || [];
+  for (var i = 0; i < positions.length; i++) {
+    if (positions[i] && positions[i].positionId === positionId) {
+      return positions[i].note || '';
+    }
+  }
+  return '';
+}
+
 function buildAssignmentText(signup) {
   if (!signup) {
     return 'Not responded';
@@ -230,6 +241,7 @@ function loadMemberAssignments() {
       var eventDetails = rows.map(function(context) {
         return {
           event: context.event,
+          definition: context.definition || null,
           signups: context.signup ? [context.signup] : []
         };
       });
@@ -299,6 +311,7 @@ function renderEvents(eventDetails) {
           '<div class="signups-event-actions" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px;">' +
             availabilityActions +
           '</div>' +
+          ((signup && signup.isAvailable && signup.assignedPositionId) ? renderAssignedAisleMap(signup.assignedPositionId, getPositionNote(groupedDetail.definition, signup.assignedPositionId)) : '') +
         '</div>'
       );
     }

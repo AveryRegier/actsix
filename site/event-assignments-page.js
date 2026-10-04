@@ -1,5 +1,6 @@
 import { apiFetch } from './fetch-utils.js';
 import { createAssignmentPicker } from './assignment-picker-widget.js';
+import { renderWorshipMap } from './worship-map.js';
 
 const params = new URLSearchParams(window.location.search);
 const eventId = params.get('eventId');
@@ -445,6 +446,7 @@ function renderAssignmentBlock(event, openPositions, canManage, assignmentCandid
       <div style="margin-top:14px;">
         ${renderAssignmentsTable(event, canManage)}
       </div>
+      ${renderWorshipMap(event.positions)}
       ${assignmentHint}
     </section>
   `;
@@ -475,6 +477,7 @@ function renderAssignmentBlockWithPositions(event, positions, openPositions, can
       <div style="margin-top:14px;">
         ${renderAssignmentsTableWithPositions(event, positions, canManage)}
       </div>
+      ${renderWorshipMap(positions)}
       ${assignmentHint}
     </section>
   `;
