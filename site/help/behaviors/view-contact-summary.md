@@ -27,3 +27,16 @@ Use the **Filter** dropdown in the top-right corner to limit the report:
 ![Assignment filter dropdown](../images/contact-summary-filter.png)
 
 The filter defaults to the type that matches your role when you first open the page.
+
+### Sorting the Report
+
+Use the **Sort** dropdown next to the Filter to change the order of the rows:
+
+- **Name (A–Z)** — alphabetical by household last name, then first name
+- **Newest Contact** — households with the most recent contact appear first. Households that have never been contacted (shown as "(needed)") appear at the bottom.
+
+![Contact summary sorted by newest contact](../images/contact-summary-sort.png)
+
+Sorting works together with the filter, so changing the filter keeps your chosen sort. On a phone, the "Sort" label is hidden but the dropdown is still next to the Filter.
+
+Staff members see the report sorted by **Newest Contact** when they first open the page. Everyone else starts with **Name (A–Z)**. Your choice resets to these defaults each time you reopen the page.

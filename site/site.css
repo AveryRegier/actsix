@@ -889,6 +889,7 @@ th {
 	transform: translateY(-50%);
 	display: flex;
 	align-items: center;
+	gap: 12px;
 }
 
 .summary-filter-label {

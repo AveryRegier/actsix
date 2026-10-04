@@ -52,7 +52,8 @@ Do not finish capture work if any output category is non-empty (`missing-desktop
 | edit-member-tags.png | test/e2e/screenshots/edit-member.spec.js | Edit member tags section | Tag area |
 | edit-member-temp-address.png | test/e2e/screenshots/edit-member.spec.js | Edit member current location | Current location field |
 | contact-summary-table.png | test/e2e/screenshots/summary-quick-assign.spec.js | Contact summary table | None |
-| contact-summary-filter.png | test/e2e/screenshots/summary-quick-assign.spec.js | Contact summary filter control | Filter dropdown |
+| contact-summary-filter.png | test/e2e/screenshots/summary-quick-assign.spec.js | Contact summary filter and sort controls | Filter dropdown (blue), Sort dropdown (green) |
+| contact-summary-sort.png | test/e2e/screenshots/summary-quick-assign.spec.js | Contact summary sorted by Newest Contact | Sort dropdown (green) |
 | quick-contact-list.png | test/e2e/screenshots/summary-quick-assign.spec.js | Deacon quick contact list | None |
 | assign-deacons-list.png | test/e2e/screenshots/summary-quick-assign.spec.js | Assign deacons checkbox list | Deacon list |
 | assign-deacons-selection.png | test/e2e/screenshots/summary-quick-assign.spec.js | Assign deacons list with one person selected | Selected checkbox |

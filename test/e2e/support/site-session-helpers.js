@@ -1,4 +1,6 @@
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'actsix-e2e-secret';
 const E2E_PORT = Number(process.env.E2E_PORT || 3101);
@@ -32,7 +34,16 @@ export function getKnownHouseholdId(role = 'deacon') {
 }
 
 export async function authenticateAsRole(page, role = 'deacon') {
-  const principal = principalForRole(role);
+  return authenticateAsPrincipal(page, role, principalForRole(role));
+}
+
+// Uses members created in global-setup so server-side member lookups succeed.
+export async function authenticateAsSeededMember(page, role) {
+  const seed = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'test-results', 'e2e-summary-seed.json'), 'utf8'));
+  return authenticateAsPrincipal(page, role, seed[role]);
+}
+
+async function authenticateAsPrincipal(page, role, principal) {
   const token = jwt.sign(
     { id: principal.memberId, email: principal.email, role },
     JWT_SECRET,

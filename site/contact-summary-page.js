@@ -13,9 +13,15 @@ function escapeHtml(value) {
 }
 
 async function loadResolvedLocation(locationId) {
-    const response = await apiFetch('api/common-locations/' + locationId);
-    const data = await response.json();
-    return data.location || null;
+    // A deleted/missing location (404) must not block rendering the whole table.
+    try {
+        const response = await apiFetch('api/common-locations/' + locationId);
+        const data = await response.json();
+        return data.location || null;
+    } catch (error) {
+        console.warn('[contact-summary] could not load location', locationId, error);
+        return null;
+    }
 }
 
 function hasHelperAssignment(item) {
@@ -70,6 +76,10 @@ async function applyDefaultAssignmentFilter() {
 
         if (tags.includes('staff') || tags.includes('elder')) {
             assignmentFilter.value = 'all';
+            if (tags.includes('staff')) {
+                const sortSelect = document.getElementById('summarySort');
+                if (sortSelect) sortSelect.value = 'lastContact';
+            }
             console.log('[contact-summary] Defaulting filter to All based on staff/elder tags');
             return;
         }
@@ -97,7 +107,24 @@ async function renderSummary(items) {
     const tableBody = document.getElementById('summaryTable').querySelector('tbody');
     const filteredItems = filterSummaryItems(items, document.getElementById('assignmentFilter')?.value || 'all');
 
-    filteredItems.sort((a, b) => a.household.lastName.localeCompare(b.household.lastName));
+    const byName = (a, b) =>
+        (a.household.lastName || '').localeCompare(b.household.lastName || '') ||
+        (a.household.members?.[0]?.firstName || '').localeCompare(b.household.members?.[0]?.firstName || '');
+    const contactTime = item => {
+        const t = item.lastContact?.contactDate ? new Date(item.lastContact.contactDate).getTime() : NaN;
+        return Number.isNaN(t) ? -Infinity : t;
+    };
+    if (document.getElementById('summarySort')?.value === 'lastContact') {
+        // Never-contacted households sort last
+        filteredItems.sort((a, b) => {
+            const ta = contactTime(a);
+            const tb = contactTime(b);
+            if (ta === tb) return byName(a, b);
+            return ta < tb ? 1 : -1;
+        });
+    } else {
+        filteredItems.sort(byName);
+    }
 
     const resolvedLocationsByHouseholdId = {};
     await Promise.all(filteredItems.map(async item => {
@@ -190,6 +217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (assignmentFilter) {
         assignmentFilter.addEventListener('change', () => renderSummary(summaryData));
     }
+    document.getElementById('summarySort')?.addEventListener('change', () => renderSummary(summaryData));
     await applyDefaultAssignmentFilter();
     fetchSummary();
 });
