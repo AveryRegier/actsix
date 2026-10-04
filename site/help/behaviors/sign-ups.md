@@ -9,6 +9,10 @@ The Sign Ups page groups upcoming services by date. Use it to tell the team whet
 3. Click **Available** if you can serve, or **Unavailable** if you cannot.
    - The page saves your choice right away and updates the status badge.
    - After you pick one option, the page shows the opposite button so you can change your answer later.
-4. If an **Assignments** button appears for a date, open it to review that date's assignment list.
+4. After you mark yourself **Available** and a position is assigned, a small worship center map appears on the event card.
+   - The map highlights your aisle with its number.
+   - If the position has a note (for example, "Take 2 trays"), it appears next to the highlighted aisle.
+   - The map does not appear for events whose positions are not tied to an aisle.
+5. If an **Assignments** button appears for a date, open it to review that date's assignment list.
 
 ![Sign Ups availability buttons and status badge](../images/sign-ups-availability.png)

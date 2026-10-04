@@ -10,7 +10,11 @@ Use the Event Assignments page to review who is filled, what is still open, and 
    - The badge shows how many positions are filled.
    - The callout lists the positions that still need to be assigned.
 4. Review the table for priority, position ID, label, notes, and current assignment.
-5. Click **Print** to print the assignment sheet.
+5. Review the worship center map below the table.
+   - Each aisle shows the assigned person's name, with the position note underneath when there is one.
+   - Aisles with no one assigned show a blank line, so a name can be written in by hand on the printout.
+   - The map appears only for events whose positions are tied to aisle numbers.
+6. Click **Print** to print the assignment sheet, including the map.
 
 For editing assignments or adding new assignment candidates, see the Event Assignments help sections on changing assignments and quick-add.
 

@@ -18,8 +18,8 @@ async function seedSchedulableEventType(page, eventType, title) {
       allowedRoles: ['deacon', 'staff'],
       assignmentRoles: ['deacon', 'staff'],
       defaultPositions: [
-        { positionId: 'P1', label: 'Front', priority: 1, isCritical: true },
-        { positionId: 'P2', label: 'Back', priority: 2, isCritical: false }
+        { positionId: '4-FC', label: 'Aisle 4 Front Center', note: 'Take 2 trays', priority: 1, isCritical: true },
+        { positionId: '5-FCR', label: 'Aisle 5 Front Center Right', note: 'Take 2 trays', priority: 2, isCritical: false }
       ],
       isActive: true
     }
@@ -66,6 +66,7 @@ test.describe('event assignments help screenshots', () => {
     await expect(printButton).toBeVisible();
     await expect(assignmentHeader).toBeVisible();
     await expect(assignmentsTableWrap).toBeVisible();
+    await expect(page.locator('.worship-map').first()).toBeVisible();
 
     await highlightElement(page, assignmentHeader, 'green');
     await highlightElement(page, printButton, 'orange');
