@@ -484,18 +484,22 @@ function renderAssignmentBlockWithPositions(event, positions, openPositions, can
   `;
 }
 
-function renderCancelEventButton(event) {
-  if (event.isCancelled === true) {
+function renderCancelEventButton(events) {
+  const active = (Array.isArray(events) ? events : [events]).filter(event => event && event.isCancelled !== true);
+  if (active.length === 0) {
     return '';
   }
+
+  const label = active.length === 1
+    ? [active[0].title, [active[0].serviceDate, active[0].serviceTime].filter(Boolean).join(' at ')].filter(Boolean).join(' scheduled for ')
+    : `all ${active.length} events on ${active[0].serviceDate || 'this date'}`;
 
   return `<button
     type="button"
     class="btn cancel-event-button"
-    data-event-id="${escapeHtml(event._id)}"
-    data-event-title="${escapeHtml(event.title || '')}"
-    data-service-date="${escapeHtml(event.serviceDate || '')}"
-    data-service-time="${escapeHtml(event.serviceTime || '')}"
+    data-event-ids="${escapeHtml(active.map(event => event._id).join(','))}"
+    data-cancel-label="${escapeHtml(label || 'this event')}"
+    data-service-date="${escapeHtml(active[0].serviceDate || '')}"
     style="background:#9f1c1c;"
   >Cancel Event</button>`;
 }
@@ -503,21 +507,21 @@ function renderCancelEventButton(event) {
 function wireCancelEventButtons() {
   Array.from(eventActions.querySelectorAll('.cancel-event-button')).forEach(button => {
     button.addEventListener('click', async () => {
-      const calendarEventId = button.getAttribute('data-event-id');
-      const title = button.getAttribute('data-event-title') || 'this event';
+      const calendarEventIds = (button.getAttribute('data-event-ids') || '').split(',').filter(Boolean);
+      const label = button.getAttribute('data-cancel-label') || 'this event';
       const serviceDate = button.getAttribute('data-service-date') || '';
-      const serviceTime = button.getAttribute('data-service-time') || '';
-      const schedule = [serviceDate, serviceTime].filter(Boolean).join(' at ');
 
-      if (!window.confirm(`Cancel ${title}${schedule ? ` scheduled for ${schedule}` : ''}? It will no longer appear in upcoming sign-ups.`)) {
+      if (!window.confirm(`Cancel ${label}? It will no longer appear in upcoming sign-ups.`)) {
         return;
       }
 
       button.disabled = true;
       try {
-        await apiFetch(`/api/events/${encodeURIComponent(calendarEventId)}/cancel`, {
-          method: 'PUT'
-        });
+        for (const calendarEventId of calendarEventIds) {
+          await apiFetch(`/api/events/${encodeURIComponent(calendarEventId)}/cancel`, {
+            method: 'PUT'
+          });
+        }
         showMessage('Event cancelled.', false);
         if (eventId) {
           await loadAssignmentsForEvent(eventId);
@@ -531,7 +535,6 @@ function wireCancelEventButtons() {
     });
   });
 }
-
 async function saveSinglePositionAssignment(eventId, positionId, memberId) {
   try {
     await apiFetch(`/api/events/${encodeURIComponent(eventId)}/assignments`, {
@@ -654,10 +657,9 @@ async function loadAssignmentsForDate(date) {
     ))
     .join('');
 
-  eventActions.innerHTML = validEvents
-    .filter(item => item.canManageAssignments === true)
-    .map(item => renderCancelEventButton(item.event))
-    .join('');
+  eventActions.innerHTML = renderCancelEventButton(
+    validEvents.filter(item => item.canManageAssignments === true).map(item => item.event)
+  );
   wireCancelEventButtons();
 
   if (validEvents.some(item => item.canManageAssignments === true)) {

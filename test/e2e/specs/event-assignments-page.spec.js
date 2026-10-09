@@ -23,6 +23,15 @@ test.describe('event assignments page (site-only)', () => {
     await expect(page.getByRole('button', { name: 'Cancel Event' })).toHaveCount(0);
   });
 
+  test('date view shows a single Cancel Event button for all events', async ({ page }) => {
+    const seed = readCancelSeed();
+    await authenticateAsSeededMember(page, 'staff');
+
+    await page.goto(`/event-assignments.html?serviceDate=${encodeURIComponent(seed.serviceDate)}`);
+    await expect(page.locator('#assignmentsTableWrap')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cancel Event' })).toHaveCount(1);
+  });
+
   test('staff can dismiss then confirm cancelling an event', async ({ page }) => {
     const seed = readCancelSeed();
     await authenticateAsSeededMember(page, 'staff');
