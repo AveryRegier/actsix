@@ -60,3 +60,4 @@ Do not finish capture work if any output category is non-empty (`missing-desktop
 | sign-ups-availability.png | test/e2e/screenshots/sign-ups.spec.js | Sign Ups page with an upcoming event | Availability buttons |
 | event-schedule-form.png | test/e2e/screenshots/event-schedule.spec.js | Schedule Event form with selected service times | Event type select and service time controls |
 | event-assignments-event.png | test/e2e/screenshots/event-assignments.spec.js | Event Assignments page for a single event | Header and Print button |
+| event-assignments-cancel.png | test/e2e/screenshots/event-assignments.spec.js | Bottom of a single-event assignment page | Cancel Event button |

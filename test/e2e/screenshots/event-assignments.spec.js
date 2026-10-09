@@ -71,5 +71,13 @@ test.describe('event assignments help screenshots', () => {
     await highlightElement(page, assignmentHeader, 'green');
     await highlightElement(page, printButton, 'orange');
     await takeHelpScreenshot(page, 'event-assignments-event.png');
+
+    await page.goto(`/event-assignments.html?eventId=${encodeURIComponent(created.id)}`);
+    await page.waitForLoadState('networkidle');
+
+    const cancelButton = page.getByRole('button', { name: 'Cancel Event' });
+    await expect(cancelButton).toBeVisible();
+    await highlightElement(page, cancelButton, 'orange');
+    await takeHelpScreenshot(page, 'event-assignments-cancel.png');
   });
 });
