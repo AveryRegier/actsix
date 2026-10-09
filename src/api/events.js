@@ -1326,7 +1326,7 @@ export default function registerEventRoutes(app) {
       }
 
       const config = getEventTypeConfig(loaded.eventDefinition.eventType, eventTypeConfigMap);
-      if (!config || !(await verifyRole(c, config.assignmentRoles))) {
+      if (!config || !(await canManageAssignments(c, loaded, eventTypeConfigMap))) {
         return c.json({ error: 'Unauthorized access' }, 403);
       }
 

@@ -10,6 +10,7 @@ const pageMessage = document.getElementById('pageMessage');
 const assignmentHeader = document.getElementById('assignmentHeader');
 const openPositionsCallout = document.getElementById('openPositionsCallout');
 const assignmentsTableWrap = document.getElementById('assignmentsTableWrap');
+const eventActions = document.getElementById('eventActions');
 
 const assignmentCandidatesByEvent = new Map();
 const quickAddRoleByEvent = new Map();
@@ -482,6 +483,55 @@ function renderAssignmentBlockWithPositions(event, positions, openPositions, can
     </section>
   `;
 }
+
+function renderCancelEventButton(event) {
+  if (event.isCancelled === true) {
+    return '';
+  }
+
+  return `<button
+    type="button"
+    class="btn cancel-event-button"
+    data-event-id="${escapeHtml(event._id)}"
+    data-event-title="${escapeHtml(event.title || '')}"
+    data-service-date="${escapeHtml(event.serviceDate || '')}"
+    data-service-time="${escapeHtml(event.serviceTime || '')}"
+    style="background:#9f1c1c;"
+  >Cancel Event</button>`;
+}
+
+function wireCancelEventButtons() {
+  Array.from(eventActions.querySelectorAll('.cancel-event-button')).forEach(button => {
+    button.addEventListener('click', async () => {
+      const calendarEventId = button.getAttribute('data-event-id');
+      const title = button.getAttribute('data-event-title') || 'this event';
+      const serviceDate = button.getAttribute('data-service-date') || '';
+      const serviceTime = button.getAttribute('data-service-time') || '';
+      const schedule = [serviceDate, serviceTime].filter(Boolean).join(' at ');
+
+      if (!window.confirm(`Cancel ${title}${schedule ? ` scheduled for ${schedule}` : ''}? It will no longer appear in upcoming sign-ups.`)) {
+        return;
+      }
+
+      button.disabled = true;
+      try {
+        await apiFetch(`/api/events/${encodeURIComponent(calendarEventId)}/cancel`, {
+          method: 'PUT'
+        });
+        showMessage('Event cancelled.', false);
+        if (eventId) {
+          await loadAssignmentsForEvent(eventId);
+        } else {
+          await loadAssignmentsForDate(serviceDate);
+        }
+      } catch (error) {
+        button.disabled = false;
+        showMessage(error?.cause?.message || error.message || 'Failed to cancel event.', true);
+      }
+    });
+  });
+}
+
 async function saveSinglePositionAssignment(eventId, positionId, memberId) {
   try {
     await apiFetch(`/api/events/${encodeURIComponent(eventId)}/assignments`, {
@@ -537,8 +587,8 @@ async function loadAssignmentsForEvent(calendarEventId) {
   }
 
   const event = body.event;
-  const openPositions = body.openPositions || [];
   const canManage = body.canManageAssignments === true;
+  const openPositions = body.openPositions || [];
   const assignmentCandidates = Array.isArray(body.assignmentCandidates) ? body.assignmentCandidates : [];
   const quickAddAssigneeRole = String(body.quickAddAssigneeRole || '').trim();
   const allowQuickAddAssignee = body.allowQuickAddAssignee === true;
@@ -559,6 +609,8 @@ async function loadAssignmentsForEvent(calendarEventId) {
 
   openPositionsCallout.innerHTML = '';
   assignmentsTableWrap.innerHTML = renderAssignmentBlock(event, openPositions, canManage, assignmentCandidates);
+  eventActions.innerHTML = canManage ? renderCancelEventButton(event) : '';
+  wireCancelEventButtons();
   if (canManage) {
     wireAssignmentEditTriggers();
   }
@@ -601,6 +653,12 @@ async function loadAssignmentsForDate(date) {
       item.canManageAssignments === true
     ))
     .join('');
+
+  eventActions.innerHTML = validEvents
+    .filter(item => item.canManageAssignments === true)
+    .map(item => renderCancelEventButton(item.event))
+    .join('');
+  wireCancelEventButtons();
 
   if (validEvents.some(item => item.canManageAssignments === true)) {
     wireAssignmentEditTriggers();

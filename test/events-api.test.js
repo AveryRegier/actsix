@@ -431,6 +431,13 @@ describe('events API routes', () => {
       assignedPositionId: null
     });
 
+    const deniedResponse = await app.request('/api/events/calendar-cancelled/cancel', {
+      method: 'PUT',
+      headers: { 'x-api-key': 'test-generation-key' }
+    });
+    expect(deniedResponse.status).toBe(403);
+
+    mockState.members.push({ _id: 'script-generator', tags: ['admin'] });
     const cancelResponse = await app.request('/api/events/calendar-cancelled/cancel', {
       method: 'PUT',
       headers: { 'x-api-key': 'test-generation-key' }
