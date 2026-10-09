@@ -37,6 +37,9 @@ function matchesQuery(doc, query = {}) {
     if (value && typeof value === 'object' && '$ne' in value) {
       return doc[key] !== value.$ne;
     }
+    if (value && typeof value === 'object' && '$gte' in value) {
+      return doc[key] >= value.$gte;
+    }
     return doc[key] === value;
   });
 }
@@ -393,6 +396,59 @@ describe('events API routes', () => {
       body: JSON.stringify({ assignments: [{ positionId: 'P2', memberId: 'member-1' }] })
     });
     expect(saveResponse.status).toBe(200);
+  });
+
+  test('PUT /api/events/:id/cancel marks event cancelled and excludes it from upcoming member assignments', async () => {
+    const { createApp } = await import('../src/api.js');
+    const app = createApp();
+    const futureDate = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+
+    mockState.event_calendar.push(
+      {
+        _id: 'calendar-active',
+        eventId: 'definition-active',
+        eventType: 'service-a',
+        serviceDate: futureDate,
+        serviceTime: '08:30',
+        neededCount: 2,
+        criticalPositionIds: ['P1']
+      },
+      {
+        _id: 'calendar-cancelled',
+        eventId: 'definition-cancelled',
+        eventType: 'service-a',
+        serviceDate: futureDate,
+        serviceTime: '10:30',
+        neededCount: 2,
+        criticalPositionIds: ['P1']
+      }
+    );
+    mockState.event_signups.push({
+      _id: 'signup-cancelled',
+      calendarId: 'calendar-cancelled',
+      memberId: 'script-generator',
+      isAvailable: true,
+      assignedPositionId: null
+    });
+
+    const cancelResponse = await app.request('/api/events/calendar-cancelled/cancel', {
+      method: 'PUT',
+      headers: { 'x-api-key': 'test-generation-key' }
+    });
+
+    expect(cancelResponse.status).toBe(200);
+    const cancelBody = await cancelResponse.json();
+    expect(cancelBody.event.isCancelled).toBe(true);
+    expect(cancelBody.event.cancelledAt).toBeTruthy();
+    expect(cancelBody.event.cancelledBy).toBe('script-generator');
+
+    const assignmentsResponse = await app.request('/api/member/assignments', {
+      headers: { 'x-api-key': 'test-generation-key' }
+    });
+
+    expect(assignmentsResponse.status).toBe(200);
+    const assignments = await assignmentsResponse.json();
+    expect(assignments.map(assignment => assignment.event._id)).toEqual(['calendar-active']);
   });
 
   test('PUT /api/events/:id/assignments keeps member on explicitly selected position', async () => {

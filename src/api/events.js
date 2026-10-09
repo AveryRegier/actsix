@@ -472,6 +472,7 @@ async function createCalendarSlot({
     serviceDate,
     serviceTime,
     title: toStringOrNull(title) || fallbackTitle || buildDefaultTitle(eventDefinition.eventType, serviceDate, serviceTime),
+    isCancelled: false,
     status: deriveEventStatusFromPositions(eventDefinition.positions),
     neededCount: eventDefinition.positions.length,
     criticalPositionIds: eventDefinition.positions.filter(position => position.isCritical).map(position => position.positionId),
@@ -830,6 +831,9 @@ async function buildCalendarView(calendarSlot, eventDefinition) {
     neededCount: positions.length,
     criticalPositionIds,
     status,
+    isCancelled: calendarSlot.isCancelled === true,
+    cancelledAt: calendarSlot.cancelledAt || null,
+    cancelledBy: calendarSlot.cancelledBy || null,
     createdAt: calendarSlot.createdAt,
     updatedAt: calendarSlot.updatedAt
   };
@@ -1307,6 +1311,53 @@ export default function registerEventRoutes(app) {
   });
 
   /**
+   * @route PUT /api/events/:eventId/cancel
+   * @description Cancel one scheduled event occurrence.
+   * @usedByPage None found.
+   * @usedByScript None found.
+   */
+  app.put('/api/events/:eventId/cancel', async (c) => {
+    try {
+      const eventTypeConfigMap = await getEventTypeConfigMapFromDb();
+      const calendarId = c.req.param('eventId');
+      const loaded = await loadCalendarAndDefinition(calendarId, eventTypeConfigMap);
+      if (!loaded) {
+        return c.json({ error: 'Event not found' }, 404);
+      }
+
+      const config = getEventTypeConfig(loaded.eventDefinition.eventType, eventTypeConfigMap);
+      if (!config || !(await verifyRole(c, config.assignmentRoles))) {
+        return c.json({ error: 'Unauthorized access' }, 403);
+      }
+
+      let calendarSlot = loaded.calendarSlot;
+      if (calendarSlot.isCancelled !== true) {
+        const now = new Date().toISOString();
+        const cancellation = {
+          isCancelled: true,
+          cancelledAt: now,
+          cancelledBy: c.req.memberId || null,
+          updatedAt: now
+        };
+        await safeCollectionUpdate(
+          'event_calendar',
+          { _id: calendarId },
+          { $set: cancellation }
+        );
+        calendarSlot = { ...calendarSlot, ...cancellation };
+      }
+
+      return c.json({
+        message: 'Event cancelled',
+        event: await buildCalendarView(calendarSlot, loaded.eventDefinition)
+      });
+    } catch (error) {
+      getLogger().error(error, 'Error cancelling event:');
+      return c.json({ error: 'Failed to cancel event', message: error.message }, 500);
+    }
+  });
+
+  /**
    * @route GET /api/events/:eventId/assignments
    * @description Get assignment board view for one event, including candidates and manage flags.
    * @usedByPage site/event-assignments-page.js
@@ -1390,7 +1441,8 @@ export default function registerEventRoutes(app) {
 
       // 1. Get all future calendar events
       const today = new Date().toISOString().split('T')[0];
-      const futureEvents = await safeCollectionFind('event_calendar', { serviceDate: { $gte: today } });
+      const futureEvents = (await safeCollectionFind('event_calendar', { serviceDate: { $gte: today } }))
+        .filter(event => event.isCancelled !== true);
 
       if (!futureEvents || futureEvents.length === 0) {
         return c.json([]);
