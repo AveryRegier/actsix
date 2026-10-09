@@ -371,16 +371,19 @@ export function getEventTypeConfig(eventType, eventTypeConfigMap = null) {
 }
 
 // Schedulable types own their auto-scheduled dependents (e.g. setup/cleanup), so one cancel covers the whole activity.
-export function resolveCancelGroup(eventType, eventTypeConfigMap = null) {
+// presentTypes (event types scheduled that day) disambiguates dependents shared by several owner types.
+export function resolveCancelGroup(eventType, eventTypeConfigMap = null, presentTypes = null) {
   const source = eventTypeConfigMap || getDefaultEventTypeConfigMap();
   const config = source[eventType];
   let root = config && config.isSchedulable !== false ? config : null;
   if (!root) {
-    root = Object.values(source)
+    const owners = Object.values(source)
       .filter(candidate => candidate && candidate.isSchedulable !== false
         && Array.isArray(candidate.scheduleDependencies)
         && candidate.scheduleDependencies.some(dependency => dependency.eventType === eventType))
-      .sort((a, b) => String(a.eventType).localeCompare(String(b.eventType)))[0] || null;
+      .sort((a, b) => String(a.eventType).localeCompare(String(b.eventType)));
+    const present = presentTypes ? new Set(presentTypes) : null;
+    root = (present && owners.find(owner => present.has(owner.eventType))) || owners[0] || null;
   }
   if (!root) {
     return { key: eventType || null, title: config?.title || eventType || 'Event' };
@@ -1428,7 +1431,11 @@ export default function registerEventRoutes(app) {
           positions: printableAssignments
         },
         canManageAssignments: canManage,
-        cancelGroup: resolveCancelGroup(event.eventType, eventTypeConfigMap),
+        cancelGroup: resolveCancelGroup(
+          event.eventType,
+          eventTypeConfigMap,
+          (await safeCollectionFind('event_calendar', { serviceDate: event.serviceDate })).map(slot => slot.eventType)
+        ),
         assignmentCandidates: candidates,
         assigneeRoles,
         quickAddAssigneeRole,
@@ -1589,7 +1596,7 @@ export default function registerEventRoutes(app) {
           openPositions,
           status: deriveEventStatusFromPositions(enrichedPositions),
           eventType: eventTypeConfig ? eventTypeConfig.title : event.eventType,
-          cancelGroup: resolveCancelGroup(event.eventType, eventTypeConfigMap),
+          cancelGroup: resolveCancelGroup(event.eventType, eventTypeConfigMap, eventTypeNames),
           canManageAssignments: canManage
         };
       }));

@@ -398,6 +398,20 @@ describe('events API routes', () => {
     expect(saveResponse.status).toBe(200);
   });
 
+  test('resolveCancelGroup groups shared dependents under the owner type scheduled that day', async () => {
+    const { resolveCancelGroup } = await import('../src/api/events.js');
+    const shared = [{ eventType: 'ls-setup', offsetMinutes: -60, uniquePer: 'day' }];
+    const map = {
+      'ls-full': { eventType: 'ls-full', title: 'Full', isSchedulable: true, scheduleDependencies: shared },
+      'ls-standard': { eventType: 'ls-standard', title: 'Standard', isSchedulable: true, scheduleDependencies: shared },
+      'ls-setup': { eventType: 'ls-setup', title: 'Setup', isSchedulable: false, scheduleDependencies: [] }
+    };
+
+    expect(resolveCancelGroup('ls-setup', map, ['ls-standard', 'ls-setup']).key).toBe('ls-standard');
+    expect(resolveCancelGroup('ls-standard', map, ['ls-standard', 'ls-setup']).key).toBe('ls-standard');
+    expect(resolveCancelGroup('ls-setup', map, ['ls-full', 'ls-setup']).key).toBe('ls-full');
+  });
+
   test('PUT /api/events/:id/cancel marks event cancelled and excludes it from upcoming member assignments', async () => {
     const { createApp } = await import('../src/api.js');
     const app = createApp();
