@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import jwt from 'jsonwebtoken';
 import { resetMailbox } from '../../harness/fake-mailbox.js';
 
 function loadEnvFileIfPresent() {
@@ -83,8 +84,56 @@ async function seedSummarySortData() {
     }
   }
 
+  const cancelEvents = await seedCancellableEvents(post, staff);
+
   fs.writeFileSync(
     path.join(process.cwd(), 'test-results', 'e2e-summary-seed.json'),
-    JSON.stringify({ deacon, staff, helper }),
+    JSON.stringify({ deacon, staff, helper, cancelEvents }),
   );
+}
+
+function nextSundayIso() {
+  const date = new Date();
+  const day = date.getDay();
+  date.setDate(date.getDate() + (day === 0 ? 7 : 7 - day));
+  return date.toISOString().split('T')[0];
+}
+
+// Seeds one event type and separate events for each cancellation spec, since cancelling mutates the event.
+async function seedCancellableEvents(post, staff) {
+  const baseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${Number(process.env.E2E_PORT || 3101)}`;
+  const token = jwt.sign(
+    { id: staff.memberId, email: staff.email, role: 'staff' },
+    process.env.JWT_SECRET || 'actsix-e2e-secret',
+    { expiresIn: '1h' },
+  );
+  const staffPost = async (route, data) => {
+    const res = await fetch(baseURL + route, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`seed ${route} failed: ${res.status}`);
+    return res.json();
+  };
+
+  const eventType = 'e2e-cancel-service';
+  const title = 'E2E Cancel Service';
+  await staffPost('/api/events/types', {
+    eventType,
+    title,
+    allowedRoles: ['deacon', 'staff'],
+    assignmentRoles: ['deacon', 'staff'],
+    defaultPositions: [{ positionId: '4-FC', label: 'Aisle 4 Front Center', priority: 1, isCritical: true }],
+    isActive: true,
+  });
+
+  const serviceDate = nextSundayIso();
+  const create = async (serviceTime) => (await staffPost('/api/events', { eventType, serviceDate, serviceTime })).id;
+  return {
+    title,
+    serviceDate,
+    flowEventId: await create('09:00'),
+    deniedEventId: await create('10:00'),
+  };
 }

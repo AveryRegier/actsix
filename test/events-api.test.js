@@ -449,6 +449,19 @@ describe('events API routes', () => {
     expect(cancelBody.event.cancelledAt).toBeTruthy();
     expect(cancelBody.event.cancelledBy).toBe('script-generator');
 
+    const repeatResponse = await app.request('/api/events/calendar-cancelled/cancel', {
+      method: 'PUT',
+      headers: { 'x-api-key': 'test-generation-key' }
+    });
+    expect(repeatResponse.status).toBe(200);
+    expect((await repeatResponse.json()).event.cancelledAt).toBe(cancelBody.event.cancelledAt);
+
+    const missingResponse = await app.request('/api/events/does-not-exist/cancel', {
+      method: 'PUT',
+      headers: { 'x-api-key': 'test-generation-key' }
+    });
+    expect(missingResponse.status).toBe(404);
+
     const assignmentsResponse = await app.request('/api/member/assignments', {
       headers: { 'x-api-key': 'test-generation-key' }
     });
