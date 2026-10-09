@@ -484,42 +484,33 @@ function renderAssignmentBlockWithPositions(event, positions, openPositions, can
   `;
 }
 
-function getEventTypeName(event) {
-  const title = String(event.title || '');
-  const prefix = [event.serviceDate, event.serviceTime].filter(Boolean).join(' ');
-  const stripped = prefix && title.startsWith(`${prefix} `) ? title.slice(prefix.length + 1) : title;
-  return stripped || event.eventType || 'Event';
-}
-
-function renderCancelEventButtons(events) {
+// items: [{ event, cancelGroup: { key, title } }]; one button per group, cancelling all of the group's events.
+function renderCancelEventButtons(items) {
   const groups = new Map();
-  (Array.isArray(events) ? events : [events])
-    .filter(event => event && event.isCancelled !== true)
-    .forEach(event => {
-      const key = event.eventType || getEventTypeName(event);
+  items
+    .filter(item => item.event && item.event.isCancelled !== true)
+    .forEach(item => {
+      const key = item.cancelGroup?.key || item.event.eventType || item.event._id;
       if (!groups.has(key)) {
-        groups.set(key, []);
+        groups.set(key, { title: item.cancelGroup?.title || item.event.title || 'Event', events: [] });
       }
-      groups.get(key).push(event);
+      groups.get(key).events.push(item.event);
     });
 
   return Array.from(groups.values()).map(group => {
-    const typeName = getEventTypeName(group[0]);
-    const serviceDate = group[0].serviceDate || '';
-    const times = group.map(event => event.serviceTime).filter(Boolean).join(', ');
-    const label = `${typeName}${serviceDate ? ` on ${serviceDate}` : ''}${times ? ` (${times})` : ''}`;
+    const serviceDate = group.events[0].serviceDate || '';
+    const label = `${group.title}${serviceDate ? ` on ${serviceDate}` : ''} (${group.events.length} ${group.events.length === 1 ? 'activity' : 'activities'}, including setup and cleanup)`;
 
     return `<button
     type="button"
     class="btn cancel-event-button"
-    data-event-ids="${escapeHtml(group.map(event => event._id).join(','))}"
+    data-event-ids="${escapeHtml(group.events.map(event => event._id).join(','))}"
     data-cancel-label="${escapeHtml(label)}"
     data-service-date="${escapeHtml(serviceDate)}"
     style="background:#9f1c1c; margin-right:8px;"
-  >Cancel ${escapeHtml(typeName)}</button>`;
+  >Cancel ${escapeHtml(group.title)}</button>`;
   }).join('');
 }
-
 function wireCancelEventButtons() {
   Array.from(eventActions.querySelectorAll('.cancel-event-button')).forEach(button => {
     button.addEventListener('click', async () => {
@@ -596,6 +587,23 @@ function wireAssignmentEditTriggers() {
   });
 }
 
+// Finds every manageable event on the same date in the same activity group so one button cancels them all.
+async function loadCancelGroupItems(event, cancelGroup) {
+  const self = { event, cancelGroup };
+  if (!cancelGroup || !event.serviceDate) {
+    return [self];
+  }
+
+  try {
+    const sameDate = await apiFetch(`/api/event-assignments?serviceDate=${encodeURIComponent(event.serviceDate)}`);
+    const related = (Array.isArray(sameDate) ? sameDate : [])
+      .filter(item => item.event && item.canManageAssignments === true && item.cancelGroup?.key === cancelGroup.key);
+    return related.length > 0 ? related : [self];
+  } catch {
+    return [self];
+  }
+}
+
 async function loadAssignmentsForEvent(calendarEventId) {
   let body = null;
   try {
@@ -628,7 +636,7 @@ async function loadAssignmentsForEvent(calendarEventId) {
 
   openPositionsCallout.innerHTML = '';
   assignmentsTableWrap.innerHTML = renderAssignmentBlock(event, openPositions, canManage, assignmentCandidates);
-  eventActions.innerHTML = canManage ? renderCancelEventButtons(event) : '';
+  eventActions.innerHTML = canManage ? renderCancelEventButtons(await loadCancelGroupItems(event, body.cancelGroup)) : '';
   wireCancelEventButtons();
   if (canManage) {
     wireAssignmentEditTriggers();
@@ -674,7 +682,7 @@ async function loadAssignmentsForDate(date) {
     .join('');
 
   eventActions.innerHTML = renderCancelEventButtons(
-    validEvents.filter(item => item.canManageAssignments === true).map(item => item.event)
+    validEvents.filter(item => item.canManageAssignments === true)
   );
   wireCancelEventButtons();
 

@@ -117,23 +117,37 @@ async function seedCancellableEvents(post, staff) {
     return res.json();
   };
 
-  const eventType = 'e2e-cancel-service';
-  const title = 'E2E Cancel Service';
-  await staffPost('/api/events/types', {
-    eventType,
-    title,
-    allowedRoles: ['deacon', 'staff'],
-    assignmentRoles: ['deacon', 'staff'],
-    defaultPositions: [{ positionId: '4-FC', label: 'Aisle 4 Front Center', priority: 1, isCritical: true }],
-    isActive: true,
-  });
+  const positions = [{ positionId: '4-FC', label: 'Aisle 4 Front Center', priority: 1, isCritical: true }];
+  // A schedulable parent type plus a non-schedulable dependent (like Lord's Supper + Setup) that must cancel together.
+  const seedGroup = async (eventType, title, serviceDate) => {
+    await staffPost('/api/events/types', {
+      eventType: `${eventType}-setup`,
+      title: `${title} Setup`,
+      allowedRoles: ['deacon', 'staff'],
+      assignmentRoles: ['deacon', 'staff'],
+      defaultPositions: positions,
+      isSchedulable: false,
+      isActive: true,
+    });
+    await staffPost('/api/events/types', {
+      eventType,
+      title,
+      allowedRoles: ['deacon', 'staff'],
+      assignmentRoles: ['deacon', 'staff'],
+      defaultPositions: positions,
+      scheduleDependencies: [{ eventType: `${eventType}-setup`, offsetMinutes: -60, uniquePer: 'slot' }],
+      isActive: true,
+    });
+    const created = await staffPost('/api/events', { eventType, serviceDate, serviceTime: '09:00' });
+    return { title, serviceDate, eventId: created.id };
+  };
 
-  const serviceDate = nextSundayIso();
-  const create = async (serviceTime) => (await staffPost('/api/events', { eventType, serviceDate, serviceTime })).id;
+  const sunday = nextSundayIso();
+  const followingSunday = new Date(`${sunday}T12:00:00Z`);
+  followingSunday.setUTCDate(followingSunday.getUTCDate() + 7);
+
   return {
-    title,
-    serviceDate,
-    flowEventId: await create('09:00'),
-    deniedEventId: await create('10:00'),
+    denied: await seedGroup('e2e-cancel-view', 'E2E Cancel View', sunday),
+    flow: await seedGroup('e2e-cancel-flow', 'E2E Cancel Flow', followingSunday.toISOString().split('T')[0]),
   };
 }

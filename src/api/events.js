@@ -370,6 +370,24 @@ export function getEventTypeConfig(eventType, eventTypeConfigMap = null) {
   return eventType ? source[eventType] || null : null;
 }
 
+// Schedulable types own their auto-scheduled dependents (e.g. setup/cleanup), so one cancel covers the whole activity.
+export function resolveCancelGroup(eventType, eventTypeConfigMap = null) {
+  const source = eventTypeConfigMap || getDefaultEventTypeConfigMap();
+  const config = source[eventType];
+  let root = config && config.isSchedulable !== false ? config : null;
+  if (!root) {
+    root = Object.values(source)
+      .filter(candidate => candidate && candidate.isSchedulable !== false
+        && Array.isArray(candidate.scheduleDependencies)
+        && candidate.scheduleDependencies.some(dependency => dependency.eventType === eventType))
+      .sort((a, b) => String(a.eventType).localeCompare(String(b.eventType)))[0] || null;
+  }
+  if (!root) {
+    return { key: eventType || null, title: config?.title || eventType || 'Event' };
+  }
+  return { key: root.eventType, title: root.title || root.eventType };
+}
+
 function buildDefaultTitle(eventType, serviceDate, serviceTime, eventTypeConfigMap = null) {
   const config = getEventTypeConfig(eventType, eventTypeConfigMap);
   const typeTitle = config?.title || 'Event';
@@ -1410,6 +1428,7 @@ export default function registerEventRoutes(app) {
           positions: printableAssignments
         },
         canManageAssignments: canManage,
+        cancelGroup: resolveCancelGroup(event.eventType, eventTypeConfigMap),
         assignmentCandidates: candidates,
         assigneeRoles,
         quickAddAssigneeRole,
@@ -1570,6 +1589,7 @@ export default function registerEventRoutes(app) {
           openPositions,
           status: deriveEventStatusFromPositions(enrichedPositions),
           eventType: eventTypeConfig ? eventTypeConfig.title : event.eventType,
+          cancelGroup: resolveCancelGroup(event.eventType, eventTypeConfigMap),
           canManageAssignments: canManage
         };
       }));

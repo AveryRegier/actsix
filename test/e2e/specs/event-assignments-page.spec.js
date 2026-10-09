@@ -18,19 +18,19 @@ test.describe('event assignments page (site-only)', () => {
     const seed = readCancelSeed();
     await authenticateAsSeededMember(page, 'deacon');
 
-    await page.goto(`/event-assignments.html?eventId=${encodeURIComponent(seed.deniedEventId)}`);
+    await page.goto(`/event-assignments.html?eventId=${encodeURIComponent(seed.denied.eventId)}`);
     await expect(page.locator('#assignmentsTableWrap')).toBeVisible();
     await expect(page.locator('.cancel-event-button')).toHaveCount(0);
   });
 
-  test('date view shows a single Cancel Event button for all events', async ({ page }) => {
+  test('date view shows one Cancel button per activity group, named for the event type', async ({ page }) => {
     const seed = readCancelSeed();
     await authenticateAsSeededMember(page, 'staff');
 
-    await page.goto(`/event-assignments.html?serviceDate=${encodeURIComponent(seed.serviceDate)}`);
+    await page.goto(`/event-assignments.html?serviceDate=${encodeURIComponent(seed.denied.serviceDate)}`);
     await expect(page.locator('#assignmentsTableWrap')).toBeVisible();
     await expect(page.locator('.cancel-event-button')).toHaveCount(1);
-    await expect(page.locator('.cancel-event-button')).toHaveText(`Cancel ${seed.title}`);
+    await expect(page.locator('.cancel-event-button')).toHaveText(`Cancel ${seed.denied.title}`);
   });
 
   test('staff can dismiss then confirm cancelling an event', async ({ page }) => {
@@ -38,11 +38,10 @@ test.describe('event assignments page (site-only)', () => {
     await authenticateAsSeededMember(page, 'staff');
 
     await page.goto('/sign-ups.html');
-    await expect(page.locator('#eventsList')).toContainText(seed.title);
-    const cardsBefore = await page.locator('.signups-event-card', { hasText: seed.title }).count();
-    expect(cardsBefore).toBeGreaterThanOrEqual(2);
+    // Parent event plus its auto-scheduled setup both show up before cancelling.
+    await expect(page.locator('.signups-event-card', { hasText: seed.flow.title })).toHaveCount(2);
 
-    await page.goto(`/event-assignments.html?eventId=${encodeURIComponent(seed.flowEventId)}`);
+    await page.goto(`/event-assignments.html?eventId=${encodeURIComponent(seed.flow.eventId)}`);
     const cancelButton = page.locator('.cancel-event-button');
     await expect(cancelButton).toBeVisible();
 
@@ -57,6 +56,6 @@ test.describe('event assignments page (site-only)', () => {
     await expect(page.locator('.cancel-event-button')).toHaveCount(0);
 
     await page.goto('/sign-ups.html');
-    await expect(page.locator('.signups-event-card', { hasText: seed.title })).toHaveCount(cardsBefore - 1);
+    await expect(page.locator('.signups-event-card', { hasText: seed.flow.title })).toHaveCount(0);
   });
 });
