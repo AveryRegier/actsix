@@ -484,24 +484,40 @@ function renderAssignmentBlockWithPositions(event, positions, openPositions, can
   `;
 }
 
-function renderCancelEventButton(events) {
-  const active = (Array.isArray(events) ? events : [events]).filter(event => event && event.isCancelled !== true);
-  if (active.length === 0) {
-    return '';
-  }
+function getEventTypeName(event) {
+  const title = String(event.title || '');
+  const prefix = [event.serviceDate, event.serviceTime].filter(Boolean).join(' ');
+  const stripped = prefix && title.startsWith(`${prefix} `) ? title.slice(prefix.length + 1) : title;
+  return stripped || event.eventType || 'Event';
+}
 
-  const label = active.length === 1
-    ? [active[0].title, [active[0].serviceDate, active[0].serviceTime].filter(Boolean).join(' at ')].filter(Boolean).join(' scheduled for ')
-    : `all ${active.length} events on ${active[0].serviceDate || 'this date'}`;
+function renderCancelEventButtons(events) {
+  const groups = new Map();
+  (Array.isArray(events) ? events : [events])
+    .filter(event => event && event.isCancelled !== true)
+    .forEach(event => {
+      const key = event.eventType || getEventTypeName(event);
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key).push(event);
+    });
 
-  return `<button
+  return Array.from(groups.values()).map(group => {
+    const typeName = getEventTypeName(group[0]);
+    const serviceDate = group[0].serviceDate || '';
+    const times = group.map(event => event.serviceTime).filter(Boolean).join(', ');
+    const label = `${typeName}${serviceDate ? ` on ${serviceDate}` : ''}${times ? ` (${times})` : ''}`;
+
+    return `<button
     type="button"
     class="btn cancel-event-button"
-    data-event-ids="${escapeHtml(active.map(event => event._id).join(','))}"
-    data-cancel-label="${escapeHtml(label || 'this event')}"
-    data-service-date="${escapeHtml(active[0].serviceDate || '')}"
-    style="background:#9f1c1c;"
-  >Cancel Event</button>`;
+    data-event-ids="${escapeHtml(group.map(event => event._id).join(','))}"
+    data-cancel-label="${escapeHtml(label)}"
+    data-service-date="${escapeHtml(serviceDate)}"
+    style="background:#9f1c1c; margin-right:8px;"
+  >Cancel ${escapeHtml(typeName)}</button>`;
+  }).join('');
 }
 
 function wireCancelEventButtons() {
@@ -612,7 +628,7 @@ async function loadAssignmentsForEvent(calendarEventId) {
 
   openPositionsCallout.innerHTML = '';
   assignmentsTableWrap.innerHTML = renderAssignmentBlock(event, openPositions, canManage, assignmentCandidates);
-  eventActions.innerHTML = canManage ? renderCancelEventButton(event) : '';
+  eventActions.innerHTML = canManage ? renderCancelEventButtons(event) : '';
   wireCancelEventButtons();
   if (canManage) {
     wireAssignmentEditTriggers();
@@ -657,7 +673,7 @@ async function loadAssignmentsForDate(date) {
     ))
     .join('');
 
-  eventActions.innerHTML = renderCancelEventButton(
+  eventActions.innerHTML = renderCancelEventButtons(
     validEvents.filter(item => item.canManageAssignments === true).map(item => item.event)
   );
   wireCancelEventButtons();

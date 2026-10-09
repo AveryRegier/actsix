@@ -75,7 +75,7 @@ test.describe('event assignments help screenshots', () => {
     await page.goto(`/event-assignments.html?eventId=${encodeURIComponent(created.id)}`);
     await page.waitForLoadState('networkidle');
 
-    const cancelButton = page.getByRole('button', { name: 'Cancel Event' });
+    const cancelButton = page.locator('.cancel-event-button');
     await expect(cancelButton).toBeVisible();
     await highlightElement(page, cancelButton, 'orange');
     await takeHelpScreenshot(page, 'event-assignments-cancel.png');

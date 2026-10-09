@@ -20,7 +20,7 @@ test.describe('event assignments page (site-only)', () => {
 
     await page.goto(`/event-assignments.html?eventId=${encodeURIComponent(seed.deniedEventId)}`);
     await expect(page.locator('#assignmentsTableWrap')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cancel Event' })).toHaveCount(0);
+    await expect(page.locator('.cancel-event-button')).toHaveCount(0);
   });
 
   test('date view shows a single Cancel Event button for all events', async ({ page }) => {
@@ -29,7 +29,8 @@ test.describe('event assignments page (site-only)', () => {
 
     await page.goto(`/event-assignments.html?serviceDate=${encodeURIComponent(seed.serviceDate)}`);
     await expect(page.locator('#assignmentsTableWrap')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cancel Event' })).toHaveCount(1);
+    await expect(page.locator('.cancel-event-button')).toHaveCount(1);
+    await expect(page.locator('.cancel-event-button')).toHaveText(`Cancel ${seed.title}`);
   });
 
   test('staff can dismiss then confirm cancelling an event', async ({ page }) => {
@@ -42,7 +43,7 @@ test.describe('event assignments page (site-only)', () => {
     expect(cardsBefore).toBeGreaterThanOrEqual(2);
 
     await page.goto(`/event-assignments.html?eventId=${encodeURIComponent(seed.flowEventId)}`);
-    const cancelButton = page.getByRole('button', { name: 'Cancel Event' });
+    const cancelButton = page.locator('.cancel-event-button');
     await expect(cancelButton).toBeVisible();
 
     page.once('dialog', (dialog) => dialog.dismiss());
@@ -53,7 +54,7 @@ test.describe('event assignments page (site-only)', () => {
     page.once('dialog', (dialog) => dialog.accept());
     await cancelButton.click();
     await expect(page.getByText('Event cancelled.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cancel Event' })).toHaveCount(0);
+    await expect(page.locator('.cancel-event-button')).toHaveCount(0);
 
     await page.goto('/sign-ups.html');
     await expect(page.locator('.signups-event-card', { hasText: seed.title })).toHaveCount(cardsBefore - 1);

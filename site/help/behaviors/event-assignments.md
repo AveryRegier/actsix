@@ -19,14 +19,14 @@ Use the Event Assignments page to review who is filled, what is still open, and 
 ## Canceling an Event
 
 1. Open the event's assignment view, or open the full service-date view.
-2. Scroll to the bottom of the page. If you have permission, click **Cancel Event** under the assignment sheet. In a service-date view, each event you can manage has its own button.
-3. Confirm cancellation in the prompt. The cancelled event no longer appears in upcoming sign-ups.
+2. Scroll to the bottom of the page. If you have permission, click the red **Cancel <event type name>** button under the assignment sheet (for example, **Cancel Sunday Worship**). In a single-event view it cancels that event. In a service-date view there is one button per event type, and it cancels every service time of that type on that date.
+3. Confirm cancellation in the prompt, which lists the event type, date, and times being cancelled. The cancelled event no longer appears in upcoming sign-ups.
 
-Admins, staff, and event leaders with assignment-management access can cancel events. If you do not see **Cancel Event** and need an event cancelled, contact the event leader or an admin.
+Admins, staff, and event leaders with assignment-management access can cancel events. If you do not see a **Cancel** button and need an event cancelled, contact the event leader or an admin.
 
 Events cannot be moved to a new date. Sign-ups must be completed and confirmed again by everyone for the new date. Ask an event leader or admin to cancel the old event and schedule a new one; everyone must sign up for the new event again.
 
-![Cancel Event button at the bottom of the event assignment page](../images/event-assignments-cancel.png)
+![Cancel button at the bottom of the event assignment page](../images/event-assignments-cancel.png)
 
 For editing assignments or adding new assignment candidates, see the Event Assignments help sections on changing assignments and quick-add.
 
