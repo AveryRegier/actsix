@@ -146,8 +146,12 @@ async function seedCancellableEvents(post, staff) {
   const followingSunday = new Date(`${sunday}T12:00:00Z`);
   followingSunday.setUTCDate(followingSunday.getUTCDate() + 7);
 
+  const thirdSunday = new Date(followingSunday);
+  thirdSunday.setUTCDate(thirdSunday.getUTCDate() + 7);
+
   return {
     denied: await seedGroup('e2e-cancel-view', 'E2E Cancel View', sunday),
     flow: await seedGroup('e2e-cancel-flow', 'E2E Cancel Flow', followingSunday.toISOString().split('T')[0]),
+    dateView: await seedGroup('e2e-cancel-date', 'E2E Cancel Date', thirdSunday.toISOString().split('T')[0]),
   };
 }

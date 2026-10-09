@@ -630,6 +630,7 @@ async function loadAssignmentsForEvent(calendarEventId) {
       <div>
         <div style="font-weight:600; font-size:1.15em;">${escapeHtml(event.title || '')}</div>
         <div style="color:#666; margin-top:4px;">${escapeHtml(event.serviceDate || '')} at ${escapeHtml(event.serviceTime || '')}</div>
+        ${event.isCancelled === true ? '<span class="status-badge" style="background:#9f1c1c; color:#fff;">Cancelled</span>' : ''}
       </div>
     </div>
   `;
@@ -649,7 +650,9 @@ async function loadAssignmentsForDate(date) {
   
   const events = Array.isArray(allAssignments) ? allAssignments : [];
   if (events.length === 0) {
-    showMessage('No events found for this date.', true);
+    assignmentsTableWrap.innerHTML = '';
+    eventActions.innerHTML = '';
+    showMessage('No active events for this date. Cancelled events are not shown.', true);
     return;
   }
 

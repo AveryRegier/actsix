@@ -1530,7 +1530,8 @@ export default function registerEventRoutes(app) {
       }
 
       // 1. Get all events for the specified date
-      const events = await safeCollectionFind('event_calendar', { serviceDate });
+      const events = (await safeCollectionFind('event_calendar', { serviceDate }))
+        .filter(event => event.isCancelled !== true);
 
       if (!events || events.length === 0) {
         return c.json([]);

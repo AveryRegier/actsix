@@ -33,8 +33,25 @@ test.describe('event assignments page (site-only)', () => {
     await expect(page.locator('.cancel-event-button')).toHaveText(`Cancel ${seed.denied.title}`);
   });
 
-  test('staff can dismiss then confirm cancelling an event', async ({ page }) => {
+  test('cancelling from the date view removes the whole activity, including its setup', async ({ page }) => {
     const seed = readCancelSeed();
+    await authenticateAsSeededMember(page, 'staff');
+
+    await page.goto(`/event-assignments.html?serviceDate=${encodeURIComponent(seed.dateView.serviceDate)}`);
+    const cancelButton = page.locator('.cancel-event-button');
+    await expect(cancelButton).toHaveCount(1);
+    await expect(page.getByText(`${seed.dateView.title} Setup`).first()).toBeVisible();
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await cancelButton.click();
+    await expect(page.locator('.cancel-event-button')).toHaveCount(0);
+    await expect(page.getByText(seed.dateView.title)).toHaveCount(0);
+
+    await page.goto('/sign-ups.html');
+    await expect(page.locator('.signups-event-card', { hasText: seed.dateView.title })).toHaveCount(0);
+  });
+
+  test('staff can dismiss then confirm cancelling an event', async ({ page }) => {    const seed = readCancelSeed();
     await authenticateAsSeededMember(page, 'staff');
 
     await page.goto('/sign-ups.html');
