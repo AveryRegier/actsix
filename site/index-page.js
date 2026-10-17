@@ -1,4 +1,17 @@
 
+// Load reusable navigation bar.
+document.addEventListener('DOMContentLoaded', async () => {
+  const navContainer = document.getElementById('site-nav-container');
+  if (navContainer) {
+    const navResp = await fetch('site-nav.html');
+    if (navResp.ok) {
+      navContainer.innerHTML = await navResp.text();
+      const script = document.createElement('script');
+      script.src = 'site-nav.js';
+      document.body.appendChild(script);
+    }
+  }
+});
 
 // API status logic.
 const API_BASE_URL = '';

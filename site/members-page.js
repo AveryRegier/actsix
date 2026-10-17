@@ -3,6 +3,24 @@ import { apiFetch } from './fetch-utils.js';
 const pendingNavLinkHtml = [];
 let shouldHideCurrentPageNavLinks = false;
 
+// Load reusable navigation bar
+async function loadNav() {
+  const navContainer = document.getElementById('site-nav-container');
+  if (navContainer) {
+    try {
+      const navResp = await fetch('site-nav.html');
+      if (navResp.ok) {
+        navContainer.innerHTML = await navResp.text();
+        const script = document.createElement('script');
+        script.src = 'site-nav.js';
+        document.body.appendChild(script);
+      }
+    } catch (error) {
+      console.error('Error loading navigation:', error);
+    }
+  }
+}
+
 function applyBootstrapAddNavLink(html) {
   let applied = false;
   const desktopExtra = document.querySelector('.site-nav .nav-extra');
@@ -228,8 +246,19 @@ async function renderMemberTable() {
 window.filterByTag = filterByTag;
 window.sortTable = sortTable;
 
-wireInteractions();
-renderMemberTable();
+// Initialize page when DOM is ready
+async function initializePage() {
+  await loadNav();
+  wireInteractions();
+  renderMemberTable();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializePage);
+} else {
+  initializePage();
+}
+
 
 
 

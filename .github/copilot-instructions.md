@@ -3,6 +3,7 @@
 Always use Muninn DB.
 Do not say "Let me", instead say "I am" when you are taking action.
 Always use the caveman skill.
+Never commit unless instructed to do so.  Never push to remote on main branch.
 
 ## Muninn Lifecycle
 

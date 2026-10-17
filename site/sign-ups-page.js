@@ -13,7 +13,7 @@ if (!Array.from) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  .then(function() {
+  loadNav().then(function() {
     currentMemberId = localStorage.getItem('memberId');
     return loadMemberAssignments();
   }).catch(function(error) {
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-function  {
+function loadNav() {
   var navContainer = document.getElementById('site-nav-container');
   if (!navContainer) {
     return Promise.resolve();

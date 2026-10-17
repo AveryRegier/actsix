@@ -11,6 +11,21 @@ const serviceTimesHelp = document.getElementById('serviceTimesHelp');
 const selectedServiceTimes = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Load navigation first
+  const navContainer = document.getElementById('site-nav-container');
+  if (navContainer) {
+    try {
+      const navResp = await fetch('site-nav.html');
+      if (navResp.ok) {
+        navContainer.innerHTML = await navResp.text();
+        const script = document.createElement('script');
+        script.src = 'site-nav.js';
+        document.body.appendChild(script);
+      }
+    } catch (error) {
+      console.error('Error loading navigation:', error);
+    }
+  }
   
   setSmartDefaults();
   await loadSchedulableEventTypes();
