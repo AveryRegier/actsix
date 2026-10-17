@@ -10,6 +10,18 @@ test.describe('help links', () => {
     await expect(helpLink).toHaveAttribute('href', '/help.html?page=login');
   });
 
+  test('signed-out login header help link opens login guidance', async ({ page }) => {
+    await page.goto('/email-login.html');
+
+    const helpLink = page.locator('#siteNavHelpLink');
+    await expect(helpLink).toBeVisible();
+    await helpLink.click();
+
+    await expect(page).toHaveURL(/\/help\.html\?page=email-login$/);
+    await expect(page.locator('#help-content')).toContainText(/Logging In/i);
+    await expect(page.locator('#help-content')).toContainText(/validation code/i);
+  });
+
   test('members nav includes page-specific help link', async ({ page }) => {
     await authenticateAsRole(page, 'deacon');
 

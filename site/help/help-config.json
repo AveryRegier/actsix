@@ -2,6 +2,9 @@
   "login": [
     { "file": "login.md", "roles": ["*"] }
   ],
+  "email-login": [
+    { "file": "login.md", "roles": ["*"] }
+  ],
   "help-index": [
     { "file": "help-index.md", "roles": ["*"] }
   ],
