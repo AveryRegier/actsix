@@ -336,25 +336,32 @@ function formatDateHeading(dateValue) {
   });
 }
 
+const ASSIGNMENTS_TABLE_HEAD = `
+        <tr>
+          <th class="desktop-only">Priority</th>
+          <th class="desktop-only">Position ID</th>
+          <th>Label</th>
+          <th class="desktop-only">Note</th>
+          <th>Assigned To</th>
+        </tr>`;
+
+function renderPositionLeadCells(position) {
+  const note = position.note ? escapeHtml(position.note) : '';
+  return `
+            <td class="desktop-only">${escapeHtml(position.priority)}</td>
+            <td class="desktop-only">${escapeHtml(position.positionId)}</td>
+            <td>${escapeHtml(position.label)}${note ? `<div class="mobile-only position-note">${note}</div>` : ''}</td>
+            <td class="desktop-only">${note || '<span style="color:#6d7c82;">-</span>'}</td>`;
+}
+
 function renderAssignmentsTable(event, canManage) {
   return `
     <table class="summary-table">
-      <thead>
-        <tr>
-          <th>Priority</th>
-          <th>Position ID</th>
-          <th>Label</th>
-          <th>Note</th>
-          <th>Assigned To</th>
-        </tr>
+      <thead>${ASSIGNMENTS_TABLE_HEAD}
       </thead>
       <tbody>
         ${event.positions.map(position => `
-          <tr>
-            <td>${escapeHtml(position.priority)}</td>
-            <td>${escapeHtml(position.positionId)}</td>
-            <td>${escapeHtml(position.label)}</td>
-            <td>${position.note ? escapeHtml(position.note) : '<span style="color:#6d7c82;">-</span>'}</td>
+          <tr>${renderPositionLeadCells(position)}
             <td>
               ${canManage
                 ? `<button
@@ -383,22 +390,11 @@ function renderAssignmentsTableWithPositions(event, positions, canManage) {
   // Variant that accepts positions as a parameter instead of reading from event.positions
   return `
     <table class="summary-table">
-      <thead>
-        <tr>
-          <th>Priority</th>
-          <th>Position ID</th>
-          <th>Label</th>
-          <th>Note</th>
-          <th>Assigned To</th>
-        </tr>
+      <thead>${ASSIGNMENTS_TABLE_HEAD}
       </thead>
       <tbody>
         ${(positions || []).map(position => `
-          <tr>
-            <td>${escapeHtml(position.priority)}</td>
-            <td>${escapeHtml(position.positionId)}</td>
-            <td>${escapeHtml(position.label)}</td>
-            <td>${position.note ? escapeHtml(position.note) : '<span style="color:#6d7c82;">-</span>'}</td>
+          <tr>${renderPositionLeadCells(position)}
             <td>
               ${canManage
                 ? `<button

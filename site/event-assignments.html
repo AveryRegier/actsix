@@ -6,6 +6,14 @@
     <title>Event Assignments</title>
     <link rel="stylesheet" href="site.css">
     <link rel="stylesheet" href="print.css" media="print">
+    <style>
+        .mobile-only { display: none; }
+        .position-note { font-size: 0.8em; font-weight: bold; color: #6d7c82; }
+        @media screen and (max-width: 1000px) {
+            .desktop-only { display: none !important; }
+            .mobile-only { display: block !important; }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -31,6 +39,6 @@
         <div id="eventActions" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:20px;"></div>
     </div>
 
-    <script type="module" src="event-assignments-page.js"></script>
+    <script type="module" src="event-assignments-page.js?v=2"></script>
 </body>
 </html>
