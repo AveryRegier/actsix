@@ -11,6 +11,29 @@ test.describe('help content behavior', () => {
     await expect(page.locator('#help-content img')).toHaveCount(2);
   });
 
+  test('signed-out visitors can only view login help pages', async ({ page }) => {
+    for (const pageKey of ['help-index', 'index', 'sign-ups', 'household', 'edit-member']) {
+      await page.goto(`/help.html?page=${pageKey}`);
+      await expect(page.locator('#help-content')).toContainText(
+        'No help is available for your role on this page.',
+      );
+    }
+  });
+
+  test('signed-out visitors cannot fetch non-login help content directly', async ({ page }) => {
+    const loginGuide = await page.goto('/help/behaviors/login.md');
+    expect(loginGuide.status()).toBe(200);
+
+    const householdGuide = await page.goto('/help/behaviors/view-household.md');
+    expect(householdGuide.status()).toBe(403);
+
+    const loginScreenshot = await page.goto('/help/images/login-email-form.png');
+    expect(loginScreenshot.status()).toBe(200);
+
+    const householdScreenshot = await page.goto('/help/images/view-household.png');
+    expect(householdScreenshot.status()).toBe(403);
+  });
+
   test('deacon household help shows household details guidance', async ({ page }) => {
     await authenticateAsRole(page, 'deacon');
 

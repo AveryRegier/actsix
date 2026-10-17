@@ -2,6 +2,8 @@ import { deleteCookie, getCookie } from 'hono/cookie';
 import { authenticateUser, clearValidationCodesForMemberId, findMemberByEmail, generateToken, generateAndSendValidationCode, verifyToken } from './auth.js';
 import { addContext, follow, getLogger } from '../util/logger.js';
 
+const publicLoginHelpAssetPattern = /^\/help\/(?:behaviors\/login\.md|images\/login-(?:email|code)-form(?:\.mobile)?\.png)$/;
+
 export default function registerEmailLoginRoutes(app) {
     app.use('*', async (c, next) => await follow(async () => {
         const logger = getLogger();
@@ -55,6 +57,11 @@ export default function registerEmailLoginRoutes(app) {
                 }
             }
 
+
+            const isHelpContent = c.req.path.startsWith('/help/behaviors/') || c.req.path.startsWith('/help/images/');
+            if (isHelpContent && !publicLoginHelpAssetPattern.test(c.req.path)) {
+                return c.text('403 Forbidden', 403);
+            }
 
             if(c.req.path === '/signout' || c.req.path === '/site-nav.html' || c.req.path.startsWith('/help') || c.req.path.startsWith("/email") || c.req.path.startsWith("/form") || c.req.path.endsWith(".js") || c.req.path.endsWith(".css") || c.req.path.endsWith(".png") || c.req.path.endsWith(".jpg") || c.req.path.endsWith(".jpeg") || c.req.path.endsWith(".gif") || c.req.path.endsWith(".ico") || c.req.path.endsWith('.md') ) {
                 return await next();

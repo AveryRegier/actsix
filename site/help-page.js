@@ -53,6 +53,14 @@ async function getCurrentRole() {
 
 // Filter behavior entries from config for this page and role
 function getBehaviorsForRole(config, pageKey, role) {
+  let hasStoredMemberId = false;
+  try {
+    hasStoredMemberId = Boolean(localStorage.getItem('memberId'));
+  } catch {
+    // Treat unavailable browser storage as signed out.
+  }
+  if (!hasStoredMemberId && pageKey !== 'login' && pageKey !== 'email-login') return [];
+
   const entries = config[pageKey];
   if (!Array.isArray(entries)) return [];
   return entries.filter(entry => {
