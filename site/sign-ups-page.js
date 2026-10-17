@@ -13,7 +13,7 @@ if (!Array.from) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  loadNav().then(function() {
+  .then(function() {
     currentMemberId = localStorage.getItem('memberId');
     return loadMemberAssignments();
   }).catch(function(error) {
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-function loadNav() {
+function  {
   var navContainer = document.getElementById('site-nav-container');
   if (!navContainer) {
     return Promise.resolve();
@@ -360,3 +360,7 @@ function updateAvailability(eventId, isAvailable) {
       showMessage(error.message || 'Failed to update availability.', true);
     });
 }
+
+
+
+

@@ -11,27 +11,12 @@ const serviceTimesHelp = document.getElementById('serviceTimesHelp');
 const selectedServiceTimes = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadNav();
+  
   setSmartDefaults();
   await loadSchedulableEventTypes();
 });
 
-async function loadNav() {
-  const navContainer = document.getElementById('site-nav-container');
-  if (!navContainer) {
-    return;
-  }
 
-  const navResp = await fetch('site-nav.html');
-  if (!navResp.ok) {
-    return;
-  }
-
-  navContainer.innerHTML = await navResp.text();
-  const script = document.createElement('script');
-  script.src = 'site-nav.js';
-  document.body.appendChild(script);
-}
 
 function setSmartDefaults() {
   const dateInput = document.getElementById('serviceDate');
@@ -214,3 +199,7 @@ form.addEventListener('submit', async (event) => {
     : '/sign-ups.html';
   window.location.href = target;
 });
+
+
+
+

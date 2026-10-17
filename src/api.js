@@ -192,7 +192,16 @@ function isLinkVisible(link, role, visibility) {
   return Boolean(role) && link.roles.includes(role)
 }
 
+function renderPageWithNav(templatePath, role, visibility = {}) {
+  const nav = renderRoleAwareSiteNav(role, visibility)
+  const template = readSiteTemplate(templatePath)
+  return template
+    .replace('<div id="site-nav-container"></div>', `<div id="site-nav-container">${nav}</div>`)
+    .replace('</body>', '<script src="site-nav.js"></script>\n</body>')
+}
+
 function renderRoleAwareHomePage(role, visibility = {}) {
+  const navHtml = renderRoleAwareSiteNav(role, visibility)
   const template = readSiteTemplate('index.html')
   const cards = APP_LINKS
     .filter(link => link.card && isLinkVisible(link, role, visibility))
@@ -202,7 +211,9 @@ function renderRoleAwareHomePage(role, visibility = {}) {
                 <p>${link.card.description}</p>
             </a>`)
     .join('\n')
-  return template.replace('<!--HOME_NAV_CARDS-->', cards)
+  return template
+    .replace('<div id="site-nav-container"></div>', `<div id="site-nav-container">${navHtml}</div>`)
+    .replace('<!--HOME_NAV_CARDS-->', cards)
 }
 
 function renderRoleAwareSignUpsPage(role) {
@@ -291,8 +302,9 @@ export function createApp() {
       return c.redirect('/')
     }
 
-    const html = renderRoleAwareSignUpsPage(role)
-    // Role-aware content must not be shared across users.
+    const visibility = await getEventsNavVisibility(role)
+    const html = renderPageWithNav('sign-ups.html', role, visibility)
+      .replace('<!--ASSIGNMENTS_ACCESS_SCRIPT-->', `<script>window.__CAN_VIEW_ASSIGNMENTS__ = ${canViewAssignments(role) ? 'true' : 'false'};</script>`)
     c.header('Cache-Control', 'private, no-store, max-age=0')
     c.header('Pragma', 'no-cache')
     c.header('Vary', 'Cookie')
@@ -371,19 +383,31 @@ export function createApp() {
     return c.html(html)
   })
 
-  // Generic static file handler for other assets
   app.get('/:filename', async (c) => {
     addContext('routeType', 'static');
     const filename = c.req.param('filename')
-    // Only serve specific file types for security
     const allowedExtensions = ['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.json']
     const ext = extname(filename).toLowerCase()
 
-    if (allowedExtensions.includes(ext)) {
-      return await serveStatic(c, filename)
+    if (!allowedExtensions.includes(ext)) {
+      return c.text('404 Not Found', 404)
     }
 
-    return c.text('404 Not Found', 404)
+    // HTML pages that need role-aware nav embedded
+    const navEmbedPages = ['deacon-quick-contact.html', 'members.html', 'contact-summary.html', 'event-schedule.html', 'sign-ups.html', 'event-assignments.html', 'help.html', 'edit-member.html', 'edit-household.html', 'record-contact.html']
+    
+    if (navEmbedPages.includes(filename)) {
+      const role = c.req.role || null
+      const visibility = await getEventsNavVisibility(role)
+      const html = renderPageWithNav(filename, role, visibility)
+      c.header('Cache-Control', 'private, no-store, max-age=0')
+      c.header('Vary', 'Cookie')
+      c.header('Content-Type', 'text/html')
+      c.header('Last-Modified', deploymentTime)
+      return c.html(html)
+    }
+
+    return await serveStatic(c, filename)
   })
 
   // Error handling

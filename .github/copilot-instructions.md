@@ -1,6 +1,8 @@
 # Copilot Instructions
 
 Always use Muninn DB.
+Do not say "Let me", instead say "I am" when you are taking action.
+Always use the caveman skill.
 
 ## Muninn Lifecycle
 

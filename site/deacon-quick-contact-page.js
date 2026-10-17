@@ -247,3 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			alert('Failed to load quick contacts. Please try again.');
 		});
 });
+
+
+
+

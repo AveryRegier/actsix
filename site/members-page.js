@@ -66,49 +66,7 @@ if (typeof window.hideCurrentPageNavLinks !== 'function') {
   };
 }
 
-async function loadNav() {
-  const navContainer = document.getElementById('site-nav-container');
-  if (!navContainer) {
-    return;
-  }
 
-  const navResp = await fetch('site-nav.html');
-  if (!navResp.ok) {
-    return;
-  }
-
-  navContainer.innerHTML = await navResp.text();
-
-  await new Promise((resolve) => {
-    const script = document.createElement('script');
-    script.src = 'site-nav.js';
-    script.onload = resolve;
-    script.onerror = resolve;
-    document.body.appendChild(script);
-  });
-
-  while (pendingNavLinkHtml.length > 0) {
-    const html = pendingNavLinkHtml.shift();
-    if (typeof window.addNavLink === 'function') {
-      window.addNavLink(html);
-    } else {
-      applyBootstrapAddNavLink(html);
-    }
-  }
-
-  if (shouldHideCurrentPageNavLinks) {
-    if (typeof window.hideCurrentPageNavLinks === 'function') {
-      window.hideCurrentPageNavLinks();
-    } else {
-      applyBootstrapHideCurrentPageNavLinks();
-    }
-  }
-}
-
-// Load reusable navigation bar.
-document.addEventListener('DOMContentLoaded', async () => {
-  await loadNav();
-});
 
 let membersCache = [];
 let currentSort = { key: 'lastName', asc: true };
@@ -272,3 +230,6 @@ window.sortTable = sortTable;
 
 wireInteractions();
 renderMemberTable();
+
+
+

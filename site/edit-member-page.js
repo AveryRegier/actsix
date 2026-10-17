@@ -388,3 +388,6 @@ document.getElementById('cancelBtn').onclick = function(e) {
     e.preventDefault();
     window.location.href = 'household.html?id=' + householdId;
 };
+
+
+

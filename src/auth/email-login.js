@@ -148,8 +148,20 @@ export default function registerEmailLoginRoutes(app) {
     deleteCookie(c, 'id_token', { path: '/', sameSite: 'Lax' });
     deleteCookie(c, 'refresh_token', { path: '/', sameSite: 'Lax' });
 
-    // Redirect directly to login so sign-out has an immediate visible effect.
-    return c.redirect('/email-login.html');
+    // Clear client-side cache on logout to prevent cached nav from showing the previous user's links
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Signing out...</title>
+  <script>
+    try { sessionStorage.removeItem('actsix.siteNav'); } catch (e) {}
+    window.location.href = '/email-login.html';
+  </script>
+</head>
+<body>Signing out...</body>
+</html>`;
+    c.header('Content-Type', 'text/html');
+    return c.html(html);
   };
 
   app.get('/signout', signOutHandler);

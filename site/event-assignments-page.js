@@ -21,7 +21,7 @@ let assignmentModalPicker = null;
 let assignmentModalElements = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadNav();
+  
   document.getElementById('printAssignmentsBtn').addEventListener('click', () => window.print());
 
   if (!eventId && !serviceDate) {
@@ -37,22 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadAssignmentsForEvent(eventId);
 });
 
-async function loadNav() {
-  const navContainer = document.getElementById('site-nav-container');
-  if (!navContainer) {
-    return;
-  }
 
-  const navResp = await fetch('site-nav.html');
-  if (!navResp.ok) {
-    return;
-  }
-
-  navContainer.innerHTML = await navResp.text();
-  const script = document.createElement('script');
-  script.src = 'site-nav.js';
-  document.body.appendChild(script);
-}
 
 function showMessage(message, isError) {
   pageMessage.style.display = 'block';
@@ -689,3 +674,7 @@ async function loadAssignmentsForDate(date) {
     wireAssignmentEditTriggers();
   }
 }
+
+
+
+
