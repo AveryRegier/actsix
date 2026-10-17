@@ -398,7 +398,7 @@ This document describes what each API endpoint is used for and the input/output 
 - Input:
   - Query: required `serviceDate` (`YYYY-MM-DD`)
 - Output:
-  - 200: `Array<{ event, positions, filledPositions, openPositions, status, eventType }>`
+  - 200: `Array<{ event, positions, filledPositions, openPositions, status, eventType }>`; `event.status` carries the same counts as the top-level `status` (derived from the already-loaded positions, no extra queries)
   - 400: missing query
 
 ### `PUT /api/events/:eventId/assignments`

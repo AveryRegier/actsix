@@ -385,7 +385,10 @@ describe('events API routes', () => {
       headers: { 'x-api-key': 'test-generation-key' }
     });
     expect(dateAssignmentsResponse.status).toBe(200);
-    expect((await dateAssignmentsResponse.json())[0].canManageAssignments).toBe(true);
+    const dateAssignments = await dateAssignmentsResponse.json();
+    expect(dateAssignments[0].canManageAssignments).toBe(true);
+    expect(dateAssignments[0].event.status).toEqual(dateAssignments[0].status);
+    expect(dateAssignments[0].event.status.totalPositions).toBeGreaterThan(0);
 
     const saveResponse = await app.request(`/api/events/${created.id}/assignments`, {
       method: 'PUT',
@@ -396,6 +399,37 @@ describe('events API routes', () => {
       body: JSON.stringify({ assignments: [{ positionId: 'P2', memberId: 'member-1' }] })
     });
     expect(saveResponse.status).toBe(200);
+
+    const clearResponse = await app.request(`/api/events/${created.id}/assignments`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': 'test-generation-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ assignments: [{ positionId: 'P2', memberId: null }] })
+    });
+    expect(clearResponse.status).toBe(200);
+    const cleared = await clearResponse.json();
+    expect(cleared.event.positions.find(p => p.positionId === 'P2').assignedMember).toBeNull();
+
+    const afterClear = await (await app.request('/api/event-assignments?serviceDate=2026-06-07', {
+      headers: { 'x-api-key': 'test-generation-key' }
+    })).json();
+    expect(afterClear[0].positions.find(p => p.positionId === 'P2').assignedMember).toBeNull();
+    expect(afterClear[0].status.filledCount).toBe(0);
+
+    // Duplicate signups holding the same position must all be released by one clear.
+    for (const memberId of ['member-1', 'member-1b']) {
+      mockState.event_signups.push({
+        _id: `dup-${memberId}`, calendarId: created.id, memberId, isAvailable: true, assignedPositionId: 'P2'
+      });
+    }
+    const dupClear = await app.request(`/api/events/${created.id}/assignments`, {
+      method: 'PUT',
+      headers: { 'x-api-key': 'test-generation-key', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignments: [{ positionId: 'P2', memberId: null }] })
+    });
+    expect((await dupClear.json()).event.positions.find(p => p.positionId === 'P2').assignedMember).toBeNull();
   });
 
   test('resolveCancelGroup groups shared dependents under the owner type scheduled that day', async () => {

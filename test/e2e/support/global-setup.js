@@ -149,7 +149,28 @@ async function seedCancellableEvents(post, staff) {
   const thirdSunday = new Date(followingSunday);
   thirdSunday.setUTCDate(thirdSunday.getUTCDate() + 7);
 
+  // One event with a pre-filled position so specs can verify Filled counts and Clear Assignment.
+  const fourthSunday = new Date(thirdSunday);
+  fourthSunday.setUTCDate(fourthSunday.getUTCDate() + 7);
+  const fourthDate = fourthSunday.toISOString().split('T')[0];
+  await staffPost('/api/events/types', {
+    eventType: 'e2e-assign-clear',
+    title: 'E2E Assign Clear',
+    allowedRoles: ['deacon', 'staff'],
+    assignmentRoles: ['deacon', 'staff'],
+    defaultPositions: [{ positionId: 'AC-1', label: 'Assign Clear Spot', priority: 1, isCritical: true }],
+    isActive: true,
+  });
+  const assignCreated = await staffPost('/api/events', { eventType: 'e2e-assign-clear', serviceDate: fourthDate, serviceTime: '09:00' });
+  const assignRes = await fetch(`${baseURL}/api/events/${assignCreated.id}/assignments`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+    body: JSON.stringify({ assignments: [{ positionId: 'AC-1', memberId: staff.memberId }] }),
+  });
+  if (!assignRes.ok) throw new Error(`seed assignment failed: ${assignRes.status}`);
+
   return {
+    assignClear: { title: 'E2E Assign Clear', serviceDate: fourthDate, eventId: assignCreated.id },
     denied: await seedGroup('e2e-cancel-view', 'E2E Cancel View', sunday),
     flow: await seedGroup('e2e-cancel-flow', 'E2E Cancel Flow', followingSunday.toISOString().split('T')[0]),
     dateView: await seedGroup('e2e-cancel-date', 'E2E Cancel Date', thirdSunday.toISOString().split('T')[0]),

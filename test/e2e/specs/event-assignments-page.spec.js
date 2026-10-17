@@ -14,6 +14,37 @@ test.describe('event assignments page (site-only)', () => {
     await expect(page).toHaveURL(/email-login\.html/);
   });
 
+  test('date view shows real Filled counts and Clear Assignment empties the position', async ({ page }) => {
+    const seed = readCancelSeed().assignClear;
+    await authenticateAsSeededMember(page, 'staff');
+
+    await page.goto(`/event-assignments.html?serviceDate=${encodeURIComponent(seed.serviceDate)}`);
+    await expect(page.getByText('Filled: 1/1')).toBeVisible();
+
+    await page.locator('.assignment-edit-trigger', { hasText: 'SortStaff' }).click();
+    await page.getByRole('button', { name: 'Clear Assignment' }).click();
+
+    await expect(page.getByText('Assignments updated.')).toBeVisible();
+    await expect(page.getByText('Filled: 0/1')).toBeVisible();
+    await expect(page.locator('.assignment-edit-trigger', { hasText: 'Open' })).toHaveCount(1);
+    await expect(page.locator('.assignment-edit-trigger', { hasText: 'SortStaff' })).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.getByText('Filled: 0/1')).toBeVisible();
+
+    await page.goto('/sign-ups.html');
+    const card = page.locator('.signups-event-card', { hasText: seed.title });
+    await expect(card.getByText('Filled: 0/1')).toBeVisible();
+  });
+
+  test('single event view shows real Filled count', async ({ page }) => {
+    const seed = readCancelSeed().denied;
+    await authenticateAsSeededMember(page, 'staff');
+
+    await page.goto(`/event-assignments.html?eventId=${encodeURIComponent(seed.eventId)}`);
+    await expect(page.getByText(/Filled: \d+\/1/)).toBeVisible();
+  });
+
   test('deacon without leader access does not see Cancel Event', async ({ page }) => {
     const seed = readCancelSeed();
     await authenticateAsSeededMember(page, 'deacon');

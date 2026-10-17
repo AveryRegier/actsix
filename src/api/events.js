@@ -982,19 +982,18 @@ async function markMemberUnavailable(loaded, memberId, unavailableReason = null)
   }
 }
 
-// Free whichever single signup currently holds this position; returns their memberId, if any.
+// Free every signup that currently holds this position (duplicates can exist); returns the freed memberIds.
 async function clearPositionOccupant(calendarId, positionId) {
-  const occupant = await safeCollectionFindOne('event_signups', { calendarId, assignedPositionId: positionId });
-  if (!occupant) {
-    return null;
+  const occupants = await safeCollectionFind('event_signups', { calendarId, assignedPositionId: positionId });
+  const now = new Date().toISOString();
+  for (const occupant of occupants) {
+    await safeCollectionUpdate(
+      'event_signups',
+      { _id: occupant._id },
+      { $set: { assignedPositionId: null, updatedAt: now } }
+    );
   }
-
-  await safeCollectionUpdate(
-    'event_signups',
-    { _id: occupant._id },
-    { $set: { assignedPositionId: null, updatedAt: new Date().toISOString() } }
-  );
-  return occupant.memberId;
+  return occupants.map(occupant => occupant.memberId);
 }
 
 // Directly place one member into a position. Frees whoever previously held that position
@@ -1590,12 +1589,15 @@ export default function registerEventRoutes(app) {
           ? await canManageAssignments(c, { calendarSlot: event, eventDefinition: definition }, eventTypeConfigMap)
           : false;
 
+        // Derived from positions already loaded above; no extra queries.
+        const status = deriveEventStatusFromPositions(enrichedPositions);
+
         return {
-          event,
+          event: { ...event, status },
           positions: enrichedPositions,
           filledPositions,
           openPositions,
-          status: deriveEventStatusFromPositions(enrichedPositions),
+          status,
           eventType: eventTypeConfig ? eventTypeConfig.title : event.eventType,
           cancelGroup: resolveCancelGroup(event.eventType, eventTypeConfigMap, eventTypeNames),
           canManageAssignments: canManage
