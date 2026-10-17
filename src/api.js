@@ -155,25 +155,54 @@ async function getEventsNavVisibility(role) {
   }
 }
 
+// Single source of truth for which role sees which link, used by site-nav.html and the home page.
+const APP_LINKS = [
+  { id: 'home', href: '/', cssClass: 'home-link', title: 'Home', icon: '🏠', mobileIcon: true, visible: () => true },
+  {
+    id: 'deacon-quick-contact', href: '/deacon-quick-contact.html', cssClass: 'deacon-link', title: 'Deacon Quick Contact', icon: '📞', mobileIcon: true,
+    roles: ['deacon', 'staff', 'helper'],
+    card: { title: 'Deacon Quick Contact', description: 'Contact your assigned members' }
+  },
+  {
+    id: 'members', href: '/members.html', cssClass: 'members-link', title: 'Members', icon: '👥', mobileIcon: true,
+    roles: ['deacon', 'staff', 'helper', 'admin'],
+    card: { title: 'Members', description: 'Manage household information and member details' }
+  },
+  {
+    id: 'summary', href: '/contact-summary.html', cssClass: 'summary-link', title: 'Summary', icon: '📋', mobileIcon: true,
+    roles: ['deacon', 'staff', 'elder', 'helper'],
+    card: { title: 'Current Status Report', description: 'Printable report of all household assignments and recent contacts' }
+  },
+  {
+    id: 'sign-ups', href: '/sign-ups.html', cssClass: 'sign-ups-link', title: 'Sign Ups', icon: '✅', mobileIcon: true,
+    visible: (role, visibility) => visibility.showSignUpsLink === true,
+    card: { title: 'Sign Ups', description: 'Sign up for upcoming events' }
+  },
+  {
+    id: 'schedule-event', href: '/event-schedule.html', cssClass: 'schedule-event-link', title: 'Schedule Event', icon: '🗓️', desktop: false,
+    visible: (role, visibility) => visibility.showScheduleLink === true,
+    card: { title: 'Schedule Event', description: 'Schedule events and assign people to positions' }
+  }
+]
+
+function isLinkVisible(link, role, visibility) {
+  if (typeof link.visible === 'function') {
+    return link.visible(role, visibility)
+  }
+  return Boolean(role) && link.roles.includes(role)
+}
+
 function renderRoleAwareHomePage(role, visibility = {}) {
   const template = readSiteTemplate('index.html')
-  const links = []
-  if (canSeeSignUps(role)) {
-    links.push('<a href="/sign-ups.html">Sign Ups</a>')
-  }
-  if (visibility.showScheduleLink === true) {
-    links.push('<a href="/event-schedule.html">Schedule Event</a>')
-  }
-
-  const secondaryLinks = links.length > 0
-    ? `
-        <div style="margin-top:16px; text-align:center; color:#666; font-size:0.95em;">
-            <span style="margin-right:8px;">Quick Link:</span>
-            ${links.join(' | ')}
-        </div>`
-    : ''
-
-  return template.replace('<!--HOME_SECONDARY_LINKS-->', secondaryLinks)
+  const cards = APP_LINKS
+    .filter(link => link.card && isLinkVisible(link, role, visibility))
+    .map(link => `
+            <a href="${link.href}" class="nav-card ${link.cssClass}">
+                <h3>${link.card.title}</h3>
+                <p>${link.card.description}</p>
+            </a>`)
+    .join('\n')
+  return template.replace('<!--HOME_NAV_CARDS-->', cards)
 }
 
 function renderRoleAwareSignUpsPage(role) {
@@ -185,25 +214,22 @@ function renderRoleAwareSignUpsPage(role) {
 
 function renderRoleAwareSiteNav(role, visibility = {}) {
   const template = readSiteTemplate('site-nav.html')
-  const showSignUpsLink = visibility.showSignUpsLink === true
-  const showScheduleLink = visibility.showScheduleLink === true
+  const links = APP_LINKS.filter(link => isLinkVisible(link, role, visibility))
+  const icons = links
+    .filter(link => link.mobileIcon)
+    .map(link => `<a href="${link.href}" class="nav-icon-link ${link.cssClass}" title="${link.title}"><span>${link.icon}</span></a>`)
+    .join('\n    ')
 
-  const desktopLink = showSignUpsLink
-    ? '<a href="/sign-ups.html" class="nav-link sign-ups-link" title="Sign Ups"><span>✅</span> Sign Ups</a>'
-    : ''
-  const desktopScheduleLink = ''
-  const mobileLink = showSignUpsLink
-    ? '<a href="/sign-ups.html" class="nav-link sign-ups-link" title="Sign Ups"><span>✅</span> Sign Ups</a>'
-    : ''
-  const mobileScheduleLink = showScheduleLink
-    ? '<a href="/event-schedule.html" class="nav-link schedule-event-link" title="Schedule Event"><span>🗓️</span> Schedule Event</a>'
-    : ''
+  const renderLinks = list => list
+    .map(link => `<a href="${link.href}" class="nav-link ${link.cssClass}" title="${link.title}"><span>${link.icon}</span> ${link.title}</a>`)
+    .join('\n    ')
+  const desktopLinks = renderLinks(links.filter(link => link.desktop !== false))
+  const mobileLinks = renderLinks(links)
 
   return template
-    .replace('<!--SIGN_UPS_NAV_LINK_DESKTOP-->', desktopLink)
-    .replace('<!--SCHEDULE_EVENT_NAV_LINK_DESKTOP-->', desktopScheduleLink)
-    .replace('<!--SIGN_UPS_NAV_LINK_MOBILE-->', mobileLink)
-    .replace('<!--SCHEDULE_EVENT_NAV_LINK_MOBILE-->', mobileScheduleLink)
+    .replace('<!--NAV_ICONS_MOBILE-->', icons)
+    .replace('<!--NAV_LINKS_DESKTOP-->', desktopLinks)
+    .replace('<!--NAV_LINKS_MOBILE-->', mobileLinks)
 }
 
 export function createApp() {
@@ -328,7 +354,8 @@ export function createApp() {
     const role = c.req.role || null
     const visibility = await getEventsNavVisibility(role)
     const html = renderRoleAwareHomePage(role, visibility)
-    c.header('Cache-Control', 'public, max-age=300')
+    c.header('Cache-Control', 'private, no-store, max-age=0')
+    c.header('Vary', 'Cookie')
     c.header('Last-Modified', deploymentTime)
     return c.html(html)
   })
@@ -338,7 +365,8 @@ export function createApp() {
     const role = c.req.role || null
     const visibility = await getEventsNavVisibility(role)
     const html = renderRoleAwareHomePage(role, visibility)
-    c.header('Cache-Control', 'public, max-age=300')
+    c.header('Cache-Control', 'private, no-store, max-age=0')
+    c.header('Vary', 'Cookie')
     c.header('Last-Modified', deploymentTime)
     return c.html(html)
   })
