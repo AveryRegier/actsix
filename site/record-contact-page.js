@@ -9,22 +9,6 @@ import { formatAddressForDisplay, formatAddressForMaps } from './address-utils.j
 
 // Load reusable navigation bar and initialize page
 document.addEventListener('DOMContentLoaded', async function() {
-    // Load navigation first
-    const navContainer = document.getElementById('site-nav-container');
-    if (navContainer) {
-        try {
-            const navResp = await fetch('site-nav.html');
-            if (navResp.ok) {
-                navContainer.innerHTML = await navResp.text();
-                const script = document.createElement('script');
-                script.src = 'site-nav.js';
-                document.body.appendChild(script);
-            }
-        } catch (error) {
-            console.error('Error loading navigation:', error);
-        }
-    }
-
     // get household id from request parameter
     const urlParams = new URLSearchParams(window.location.search);
     const currentHouseholdId = urlParams.get('householdId');

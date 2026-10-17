@@ -41,27 +41,6 @@ function attachTagBadgeHandlers() {
 
 // Consolidated DOMContentLoaded listener
 document.addEventListener('DOMContentLoaded', function() {
-    // Load reusable navigation bar
-    var navContainer = document.getElementById('site-nav-container');
-    if (navContainer) {
-        fetch('site-nav.html')
-            .then(function(navResp) {
-                if (navResp.ok) {
-                    return navResp.text();
-                }
-                throw new Error('Failed to load navigation');
-            })
-            .then(function(navHtml) {
-                navContainer.innerHTML = navHtml;
-                var script = document.createElement('script');
-                script.src = 'site-nav.js';
-                document.body.appendChild(script);
-            })
-            .catch(function(error) {
-                console.error('Error loading navigation:', error);
-            });
-    }
-
     // Clear temporary location button
     document.getElementById('clearTempBtn').addEventListener('click', function(e) {
         e.preventDefault();

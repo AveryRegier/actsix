@@ -10,21 +10,6 @@
     <div class="container">
         <!-- Reusable navigation bar -->
         <div id="site-nav-container"></div>
-        <script type="module">
-            // Load reusable navigation bar
-            document.addEventListener('DOMContentLoaded', async () => {
-                const navContainer = document.getElementById('site-nav-container');
-                if (navContainer) {
-                    const navResp = await fetch('site-nav.html');
-                    if (navResp.ok) {
-                        navContainer.innerHTML = await navResp.text();
-                        const script = document.createElement('script');
-                        script.src = 'site-nav.js';
-                        document.body.appendChild(script);
-                    }
-                }
-            });
-        </script>
         <div class="header">
             <h1 id="householdTitle">Household Details</h1>
             <p>Manage household members and information</p>

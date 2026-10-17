@@ -18,25 +18,6 @@ function closeMenu() {
   }
 }
 
-// Hide nav link for current page
-function hideCurrentPageNavLinks() {
-  let page = window.location.pathname.split('/').pop();
-  if (!page.endsWith('.html')) {
-    page += '.html';
-  }
-  const navMap = {
-    'deacon-quick-contact.html': '.deacon-link',
-    'members.html': '.members-link',
-    'contact-summary.html': '.summary-link',
-    'sign-ups.html': '.sign-ups-link',
-    'event-schedule.html': '.schedule-event-link'
-  };
-  Object.entries(navMap).forEach(([key, selector]) => {
-    document.querySelectorAll(selector).forEach(el => {
-      el.style.display = (key === page) ? 'none' : '';
-    });
-  });
-}
 
 // Auto-close mobile menu when a link is clicked
 document.addEventListener('DOMContentLoaded', function() {
@@ -91,9 +72,6 @@ document.addEventListener('DOMContentLoaded', function() {
   if (backLinkMobile) {
     backLinkMobile.style.display = showBack ? '' : 'none';
   }
-
-  // Hide nav link for current page
-  hideCurrentPageNavLinks();
 
   // Add auto-close for mobile menu
   const mobileMenu = document.getElementById('navMobileMenu');

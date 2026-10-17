@@ -190,20 +190,6 @@ async function renderSummary(items) {
     }).join('');
 }
 
-// Load reusable navigation bar
-document.addEventListener('DOMContentLoaded', async () => {
-    const navContainer = document.getElementById('site-nav-container');
-    if (navContainer) {
-        const navResp = await fetch('site-nav.html');
-        if (navResp.ok) {
-            navContainer.innerHTML = await navResp.text();
-            const script = document.createElement('script');
-            script.src = 'site-nav.js';
-            document.body.appendChild(script);
-        }
-    }
-});
-
 async function fetchSummary() {
     const response = await apiFetch('api/reports/summary');
     const data = await response.json();

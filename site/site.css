@@ -255,7 +255,7 @@
 }
 @media (min-width: 601px) {
 	.nav-content { display: flex; }
-	.nav-menu-btn { display: block; }
+	.nav-menu-btn { display: none; }
 }
 
 /* Reserve space in normal flow for fixed top nav across all pages that include the nav container */

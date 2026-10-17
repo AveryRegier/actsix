@@ -214,6 +214,7 @@ function renderRoleAwareHomePage(role, visibility = {}) {
   return template
     .replace('<div id="site-nav-container"></div>', `<div id="site-nav-container">${navHtml}</div>`)
     .replace('<!--HOME_NAV_CARDS-->', cards)
+    .replace('</body>', '<script src="site-nav.js"></script>\n</body>')
 }
 
 function renderRoleAwareSignUpsPage(role) {
@@ -319,9 +320,13 @@ export function createApp() {
       return c.redirect('/sign-ups.html')
     }
 
-    c.header('Cache-Control', 'public, max-age=300')
+    const visibility = await getEventsNavVisibility(role)
+    const html = renderPageWithNav('event-schedule.html', role, visibility)
+    c.header('Cache-Control', 'private, no-store, max-age=0')
+    c.header('Vary', 'Cookie')
+    c.header('Content-Type', 'text/html')
     c.header('Last-Modified', deploymentTime)
-    return await serveStatic(c, 'event-schedule.html')
+    return c.html(html)
   })
 
   app.get('/event-assignments.html', async (c) => {
@@ -331,9 +336,13 @@ export function createApp() {
       return c.redirect('/')
     }
 
-    c.header('Cache-Control', 'public, max-age=300')
+    const visibility = await getEventsNavVisibility(role)
+    const html = renderPageWithNav('event-assignments.html', role, visibility)
+    c.header('Cache-Control', 'private, no-store, max-age=0')
+    c.header('Vary', 'Cookie')
+    c.header('Content-Type', 'text/html')
     c.header('Last-Modified', deploymentTime)
-    return await serveStatic(c, 'event-assignments.html')
+    return c.html(html)
   })
 
   // Help subdirectory — serves site/help/** for the help viewer
@@ -394,7 +403,7 @@ export function createApp() {
     }
 
     // HTML pages that need role-aware nav embedded
-    const navEmbedPages = ['deacon-quick-contact.html', 'members.html', 'contact-summary.html', 'event-schedule.html', 'sign-ups.html', 'event-assignments.html', 'help.html', 'edit-member.html', 'edit-household.html', 'record-contact.html']
+    const navEmbedPages = ['deacon-quick-contact.html', 'members.html', 'contact-summary.html', 'event-schedule.html', 'sign-ups.html', 'event-assignments.html', 'help.html', 'edit-member.html', 'edit-household.html', 'record-contact.html', 'household.html']
     
     if (navEmbedPages.includes(filename)) {
       const role = c.req.role || null
