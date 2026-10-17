@@ -21,22 +21,6 @@ let assignmentModalPicker = null;
 let assignmentModalElements = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Load navigation first
-  const navContainer = document.getElementById('site-nav-container');
-  if (navContainer) {
-    try {
-      const navResp = await fetch('site-nav.html');
-      if (navResp.ok) {
-        navContainer.innerHTML = await navResp.text();
-        const script = document.createElement('script');
-        script.src = 'site-nav.js';
-        document.body.appendChild(script);
-      }
-    } catch (error) {
-      console.error('Error loading navigation:', error);
-    }
-  }
-  
   document.getElementById('printAssignmentsBtn').addEventListener('click', () => window.print());
 
   if (!eventId && !serviceDate) {

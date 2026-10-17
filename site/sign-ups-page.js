@@ -13,40 +13,11 @@ if (!Array.from) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  loadNav().then(function() {
-    currentMemberId = localStorage.getItem('memberId');
-    return loadMemberAssignments();
-  }).catch(function(error) {
+  currentMemberId = localStorage.getItem('memberId');
+  loadMemberAssignments().catch(function(error) {
     showMessage('Failed to load page. ' + error.message, true);
   });
 });
-
-function loadNav() {
-  var navContainer = document.getElementById('site-nav-container');
-  if (!navContainer) {
-    return Promise.resolve();
-  }
-
-  return fetch('site-nav.html')
-    .then(function(navResp) {
-      if (!navResp.ok) {
-        return '';
-      }
-      return navResp.text();
-    })
-    .then(function(navHtml) {
-      if (!navHtml) {
-        return;
-      }
-      navContainer.innerHTML = navHtml;
-      var script = document.createElement('script');
-      script.src = 'site-nav.js';
-      document.body.appendChild(script);
-    })
-    .catch(function(error) {
-      console.error('Error loading navigation:', error);
-    });
-}
 
 function showMessage(message, isError) {
   if (!pageMessage) {
