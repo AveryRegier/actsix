@@ -919,6 +919,15 @@ async function findMemberSignup(calendarId, memberId) {
   return signup;
 }
 
+// Duplicate signup rows can exist from past races; unavailable must clear every one.
+async function findMemberSignups(calendarId, memberId) {
+  let signups = await safeCollectionFind('event_signups', { calendarId, memberId });
+  if (signups.length === 0) {
+    signups = await safeCollectionFind('event_signups', { eventId: calendarId, memberId });
+  }
+  return signups;
+}
+
 // Sign a member up as available and, if a position is open, grab it directly.
 // Does not touch any other member's signup - no reassignment loop.
 async function markMemberAvailable(loaded, memberId, { requestedPositionId = null, unavailableReason = null } = {}) {
@@ -958,7 +967,7 @@ async function markMemberAvailable(loaded, memberId, { requestedPositionId = nul
 // Mark a member unavailable and free only their own position - no loop over other signups.
 async function markMemberUnavailable(loaded, memberId, unavailableReason = null) {
   const calendarId = loaded.calendarSlot._id;
-  const signup = await findMemberSignup(calendarId, memberId);
+  const signups = await findMemberSignups(calendarId, memberId);
   const now = new Date().toISOString();
   const fields = {
     calendarId,
@@ -970,8 +979,10 @@ async function markMemberUnavailable(loaded, memberId, unavailableReason = null)
     updatedAt: now
   };
 
-  if (signup) {
-    await safeCollectionUpdate('event_signups', { _id: signup._id }, { $set: fields });
+  if (signups.length > 0) {
+    for (const signup of signups) {
+      await safeCollectionUpdate('event_signups', { _id: signup._id }, { $set: fields });
+    }
   } else {
     await safeCollectionInsert('event_signups', {
       ...fields,

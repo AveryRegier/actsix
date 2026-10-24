@@ -169,7 +169,22 @@ async function seedCancellableEvents(post, staff) {
   });
   if (!assignRes.ok) throw new Error(`seed assignment failed: ${assignRes.status}`);
 
+  // Self-signup event for the sign-ups availability spec (deacon toggles Available/Unavailable).
+  const fifthSunday = new Date(fourthSunday);
+  fifthSunday.setUTCDate(fifthSunday.getUTCDate() + 7);
+  const fifthDate = fifthSunday.toISOString().split('T')[0];
+  await staffPost('/api/events/types', {
+    eventType: 'e2e-signup-toggle',
+    title: 'E2E Signup Toggle',
+    allowedRoles: ['deacon', 'staff'],
+    assignmentRoles: ['deacon', 'staff'],
+    defaultPositions: [{ positionId: 'ST-1', label: 'Signup Toggle Spot', priority: 1, isCritical: true }],
+    isActive: true,
+  });
+  const signupToggleCreated = await staffPost('/api/events', { eventType: 'e2e-signup-toggle', serviceDate: fifthDate, serviceTime: '09:00' });
+
   return {
+    signupToggle: { title: 'E2E Signup Toggle', serviceDate: fifthDate, eventId: signupToggleCreated.id },
     assignClear: { title: 'E2E Assign Clear', serviceDate: fourthDate, eventId: assignCreated.id },
     denied: await seedGroup('e2e-cancel-view', 'E2E Cancel View', sunday),
     flow: await seedGroup('e2e-cancel-flow', 'E2E Cancel Flow', followingSunday.toISOString().split('T')[0]),

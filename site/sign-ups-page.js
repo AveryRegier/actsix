@@ -312,12 +312,40 @@ function renderEvents(eventDetails) {
     buttons[b].addEventListener('click', function() {
       var eventId = this.getAttribute('data-event-id');
       var isAvailable = this.getAttribute('data-available') === 'true';
-      updateAvailability(eventId, isAvailable);
+      updateAvailability(eventId, isAvailable, this);
     });
   }
 }
 
-function updateAvailability(eventId, isAvailable) {
+function setActionsBusy(clickedButton, busy, isAvailable) {
+  var siblings = clickedButton.parentNode.querySelectorAll('.signup-action-btn');
+  for (var i = 0; i < siblings.length; i++) {
+    siblings[i].disabled = busy;
+  }
+
+  if (busy) {
+    clickedButton.setAttribute('data-label', clickedButton.textContent);
+    clickedButton.setAttribute('aria-busy', 'true');
+    clickedButton.classList.add('btn-busy');
+    clickedButton.textContent = isAvailable ? 'Signing Up...' : 'Marking Unavailable...';
+  } else {
+    clickedButton.removeAttribute('aria-busy');
+    clickedButton.classList.remove('btn-busy');
+    clickedButton.textContent = clickedButton.getAttribute('data-label') || clickedButton.textContent;
+  }
+}
+
+var availabilityInFlight = {};
+
+function updateAvailability(eventId, isAvailable, button) {
+  if (availabilityInFlight[eventId]) {
+    return Promise.resolve();
+  }
+  availabilityInFlight[eventId] = true;
+  if (button) {
+    setActionsBusy(button, true, isAvailable);
+  }
+
   return apiFetch('/api/events/' + encodeURIComponent(eventId) + '/signup', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -328,7 +356,13 @@ function updateAvailability(eventId, isAvailable) {
       return loadMemberAssignments();
     })
     .catch(function(error) {
+      if (button && button.parentNode) {
+        setActionsBusy(button, false, isAvailable);
+      }
       showMessage(error.message || 'Failed to update availability.', true);
+    })
+    .then(function() {
+      delete availabilityInFlight[eventId];
     });
 }
 

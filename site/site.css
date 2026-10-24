@@ -503,6 +503,27 @@ body {
 	transform: translateY(-2px);
 	box-shadow: 0 5px 15px rgba(240, 82, 61, 0.35);
 }
+.btn:disabled {
+	opacity: 0.7;
+	cursor: wait;
+	transform: none;
+	box-shadow: none;
+}
+.btn-busy::before {
+	content: "";
+	display: inline-block;
+	width: 0.9em;
+	height: 0.9em;
+	margin-right: 8px;
+	vertical-align: -0.1em;
+	border: 2px solid rgba(255, 255, 255, 0.5);
+	border-top-color: #fff;
+	border-radius: 50%;
+	animation: btn-spin 0.8s linear infinite;
+}
+@keyframes btn-spin {
+	to { transform: rotate(360deg); }
+}
 
 /* Form, modal, and member list styles from record-contact.html */
 .content {
