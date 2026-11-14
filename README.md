@@ -87,6 +87,7 @@ See `scripts/deploy-cloudformation.ps1` for the environment-variable expectation
 `ALLOWED_FRAME_HOST` must be a single hostname without a scheme, port, path, or wildcard.
 Only that HTTPS host may embed the app; if unset or empty, embedding is blocked. Direct access remains available.
 The deployment script passes the variable to CloudFormation; set it on each deployment to retain embedding.
+On mobile devices, an embedded app provides an **Open mobile site** link because the forwarding page may not support mobile layouts. The direct site may require a separate login.
 
 ## Cost optimization (why this stays cheap)
 

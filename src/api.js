@@ -42,6 +42,10 @@ const mimeTypes = {
   '.md': 'text/markdown; charset=utf-8'
 }
 
+function addMobileFrameScript(html) {
+  return html.replace('</head>', '    <script defer src="/mobile-frame.js"></script>\n</head>')
+}
+
 // Static file serving middleware
 async function serveStatic(c, filePath) {
   try {
@@ -53,8 +57,10 @@ async function serveStatic(c, filePath) {
       return c.text('403 Forbidden', 403)
     }
 
-    const content = readFileSync(fullPath)
     const ext = extname(filePath).toLowerCase()
+    const content = ext === '.html'
+      ? addMobileFrameScript(readFileSync(fullPath, 'utf8'))
+      : readFileSync(fullPath)
     const contentType = mimeTypes[ext] || 'application/octet-stream'
 
     c.header('Content-Type', contentType)
@@ -83,7 +89,7 @@ function escapeHtml(value) {
 function readSiteTemplate(filePath) {
   const siteDir = join(__dirname, '..', 'site')
   const fullPath = join(siteDir, filePath)
-  return readFileSync(fullPath, 'utf8')
+  return addMobileFrameScript(readFileSync(fullPath, 'utf8'))
 }
 
 function canSeeSignUps(role) {
