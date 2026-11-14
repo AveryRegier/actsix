@@ -57,7 +57,7 @@ const POSITION_MAPS = {
   lords_supper_cleanup_team: [
     { positionId: 'CLEAN1', label: 'Cleanup Team 1', priority: 1, isCritical: true },
     { positionId: 'CLEAN2', label: 'Cleanup Team 2', priority: 2, isCritical: true },
-    { positionId: 'CLEAN3', label: 'Cleanup Team 3', priority: 3, isCritical: false }
+    { positionId: 'CLEAN3', label: 'Cleanup Team 3    npm run seed:event-types -- --only=ballot-collection', priority: 3, isCritical: false }
   ],
   baptism: [
     { positionId: 'BAP-ASSIST', label: 'Baptism Assistant', priority: 1, isCritical: true },
@@ -65,6 +65,18 @@ const POSITION_MAPS = {
   ],
   baptism_cleanup: [
     { positionId: 'TOWELS', label: 'Baptism Towels', priority: 1, isCritical: true }
+  ],
+  ballot_collection: [
+    { positionId: 'BALLOT1', label: 'Ballot Collector 1', priority: 1, isCritical: true },
+    { positionId: 'BALLOT2', label: 'Ballot Collector 2', priority: 2, isCritical: true },
+    { positionId: 'BALLOT3', label: 'Ballot Collector 3', priority: 3, isCritical: true },
+    { positionId: 'BALLOT4', label: 'Ballot Collector 4', priority: 4, isCritical: true },
+    { positionId: 'BALLOT5', label: 'Ballot Collector 5', priority: 5, isCritical: true },
+    { positionId: 'BALLOT6', label: 'Ballot Collector 6', priority: 6, isCritical: true },
+    { positionId: 'BALLOT7', label: 'Ballot Collector 7', priority: 7, isCritical: true },
+    { positionId: 'BALLOT8', label: 'Ballot Collector 8', priority: 8, isCritical: true },
+    { positionId: 'BALLOT9', label: 'Ballot Collector 9', priority: 9, isCritical: true },
+    { positionId: 'BALLOT10', label: 'Ballot Collector 10', priority: 10, isCritical: true }
   ]
 };
 
@@ -73,6 +85,16 @@ const POSITION_MAPS = {
  * Add new variants by adding objects here and referencing a POSITION_MAPS key.
  */
 const EVENT_TYPE_VARIANTS = [
+  {
+    eventType: 'ballot-collection',
+    title: 'Ballot Collection',
+    positionMap: 'ballot_collection',
+    allowedRoles: ['deacon', 'staff', 'elder', 'usher', 'admin'],
+    assignmentRoles: ['deacon', 'staff'],
+    assigneeRoles: ['deacon', 'elder', 'usher'],
+    quickAddAssigneeRole: 'usher',
+    isActive: true
+  },
   {
     eventType: 'lords-supper-standard',
     title: "Lord's Supper",
