@@ -34,6 +34,13 @@ Parameters:
     Type: String
     Description: The allowed organization id for the application
     Default: ""
+  AllowedFrameHost:
+    Type: String
+    Description: HTTPS hostname allowed to embed the app; empty disables framing
+    Default: ""
+    MaxLength: 253
+    AllowedPattern: '\A(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)?\z'
+    ConstraintDescription: Must be a single hostname without a scheme, port, path, or wildcard
   CustomDomainName:
     Type: String
     Description: Optional custom domain name to create for API Gateway (e.g. dcs.example.com)
@@ -142,6 +149,7 @@ Resources:
           OIDC_DISCOVERY_URL: !Ref OIDCDiscoveryUrl
           PLANNING_CENTER_API_URL: !Ref PlanningCenterApiUrl
           ALLOWED_ORGANIZATION_ID: !Ref AllowedOrganizationId
+          ALLOWED_FRAME_HOST: !Ref AllowedFrameHost
           GENERATION_API_KEY: !Ref GENERATIONAPIKEY
           JWT_SECRET: !Ref JWTSECRET
           GMAIL_APP_PASSWORD: !Ref GMAILAPPPASSWORD

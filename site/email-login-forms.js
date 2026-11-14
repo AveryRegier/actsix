@@ -1,5 +1,37 @@
 import { apiFetch } from './fetch-utils.js';
 
+function isEmbedded() {
+    return window.self !== window.top;
+}
+
+function hasCrossSiteCookieAccess() {
+    const name = 'actsix_storage_probe';
+    document.cookie = `${name}=1; path=/; SameSite=None; Secure`;
+    const available = document.cookie.split(';').some(part => part.trim() === `${name}=1`);
+    document.cookie = `${name}=; path=/; SameSite=None; Secure; max-age=0`;
+    return available;
+}
+
+export async function ensureLoginStorage() {
+    if (!isEmbedded()) return;
+    if (!window.isSecureContext || location.protocol !== 'https:') {
+        throw new Error('Embedded login requires HTTPS for both the forwarding page and the app.');
+    }
+    if (hasCrossSiteCookieAccess()) return;
+    if (typeof document.requestStorageAccess !== 'function') {
+        throw new Error('Your browser blocks cookies in the embedded app.');
+    }
+    try {
+        await document.requestStorageAccess();
+    } catch (error) {
+        console.error('Browser denied storage access:', error);
+        throw new Error('Your browser did not grant cookie access to the embedded app.');
+    }
+    if (!hasCrossSiteCookieAccess()) {
+        throw new Error('Your browser still blocks cookies in the embedded app.');
+    }
+}
+
 export async function loadSiteNav() {
     const navContainer = document.getElementById('site-nav-container');
     if (!navContainer) return;
@@ -39,9 +71,21 @@ export function initializeEmailLoginForms() {
     const validationEmailInput = document.getElementById('validationEmail');
     const codeInput = document.getElementById('code');
     const changeEmailBtn = document.getElementById('changeEmailBtn');
+    const storageError = document.getElementById('loginStorageError');
+    const storageErrorMessage = document.getElementById('loginStorageErrorMessage');
 
     if (!emailForm || !validationForm || !validationEmailInput || !changeEmailBtn) {
         return;
+    }
+
+    function showStorageError(message) {
+        console.error('Login storage error:', message);
+        if (storageError && storageErrorMessage) {
+            storageErrorMessage.textContent = message;
+            storageError.hidden = false;
+        } else {
+            alert(message);
+        }
     }
 
     // Show the validation form with the provided email and hide the email form.
@@ -70,6 +114,13 @@ export function initializeEmailLoginForms() {
         const email = (emailForm.email && emailForm.email.value || '').trim();
         if (!email) {
             alert('Please enter your email address.');
+            return;
+        }
+        try {
+            await ensureLoginStorage();
+            if (storageError) storageError.hidden = true;
+        } catch (err) {
+            showStorageError(err.message);
             return;
         }
         try {
@@ -105,13 +156,20 @@ export function initializeEmailLoginForms() {
                 body: JSON.stringify({ email, validationCode: code })
             });
             console.log('[validationForm.onsubmit] Validation successful, received token');
-            // Store token and redirect (cookie set to expire in ~60 days).
-            localStorage.setItem('authToken', data.token);
-            localStorage.setItem('memberId', data.memberId);
-            const _expires = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toUTCString();
-            const _attrs = [`expires=${_expires}`, 'path=/', 'SameSite=Lax'];
-            if (location.protocol === 'https:') _attrs.push('Secure');
-            document.cookie = `actsix=${encodeURIComponent(data.token)}; ${_attrs.join('; ')}`;
+            try {
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('memberId', data.memberId);
+                const expires = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toUTCString();
+                const attrs = [`expires=${expires}`, 'path=/', isEmbedded() ? 'SameSite=None' : 'SameSite=Lax'];
+                if (location.protocol === 'https:') attrs.push('Secure');
+                document.cookie = `actsix=${encodeURIComponent(data.token)}; ${attrs.join('; ')}`;
+                if (!document.cookie.split(';').some(part => part.trim() === `actsix=${encodeURIComponent(data.token)}`)) {
+                    throw new Error('Your browser blocked the login cookie.');
+                }
+            } catch (err) {
+                showStorageError(`Unable to save your login: ${err.message}`);
+                return;
+            }
             window.location.href = '/';
         } catch (err) {
             console.error('[validationForm.onsubmit] Error:', err);

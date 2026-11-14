@@ -246,7 +246,17 @@ function renderRoleAwareSiteNav(role, visibility = {}) {
 
 export function createApp() {
   const app = new Hono()
-
+  const allowedFrameHost = process.env.ALLOWED_FRAME_HOST || ''
+  const hostnameLabel = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i
+  if (allowedFrameHost && (allowedFrameHost.length > 253 || /[^a-z0-9.-]/i.test(allowedFrameHost) ||
+      !allowedFrameHost.split('.').every(label => hostnameLabel.test(label)))) {
+    throw new Error('ALLOWED_FRAME_HOST must be a hostname without a scheme, port, path, or wildcard')
+  }
+  const frameAncestors = allowedFrameHost ? `https://${allowedFrameHost}` : "'none'"
+  app.use('*', async (c, next) => {
+    c.header('Content-Security-Policy', `frame-ancestors ${frameAncestors}`)
+    await next()
+  })
 
   registerEmailLoginRoutes(app)
   // registerOidcRoutes(app)

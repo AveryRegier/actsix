@@ -87,6 +87,8 @@ $pcApiUrl = $env:PLANNING_CENTER_API_URL
 if (-not $pcApiUrl) { $pcApiUrl = "" }
 $allowedOrgId = $env:ALLOWED_ORGANIZATION_ID
 if (-not $allowedOrgId) { $allowedOrgId = "" }
+$allowedFrameHost = $env:ALLOWED_FRAME_HOST
+if (-not $allowedFrameHost) { $allowedFrameHost = "" }
 $customDomainName = $env:CUSTOM_DOMAIN_NAME
 if (-not $customDomainName) { $customDomainName = "" }
 $customDomainCert = $env:CUSTOM_DOMAIN_CERT_ARN
@@ -123,7 +125,7 @@ aws cloudformation deploy `
     --template-file $TemplateFile `
     --parameter-overrides S3BucketName=$S3Bucket S3ObjectVersion=$S3ObjectVersion `
         PlanningCenterClientId="$pcClientId" PlanningCenterClientSecret="$pcClientSecret" `
-        OIDCDiscoveryUrl="$oidcDiscovery" PlanningCenterApiUrl="$pcApiUrl" AllowedOrganizationId="$allowedOrgId" `
+        OIDCDiscoveryUrl="$oidcDiscovery" PlanningCenterApiUrl="$pcApiUrl" AllowedOrganizationId="$allowedOrgId" AllowedFrameHost="$allowedFrameHost" `
         CustomDomainName="$customDomainName" CustomDomainCertificateArn="$customDomainCert" `
     GENERATIONAPIKEY="$generationApiKey" JWTSECRET="$jwtSecret" GMAILAPPPASSWORD="$gmailAppPassword" GMAILFROMADDRESS="$gmailFromAddress" `
     --capabilities CAPABILITY_NAMED_IAM

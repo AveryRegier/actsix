@@ -79,10 +79,14 @@ npm run clean
 npm run build
 # deploy CloudFormation stack
 npm run dist # create zip file for the lambda.  It takes a while.
+$env:ALLOWED_FRAME_HOST = "allowed.host.com" # optional HTTPS embedding host
 npm run deploy
 ```
 
 See `scripts/deploy-cloudformation.ps1` for the environment-variable expectations and deployment details.
+`ALLOWED_FRAME_HOST` must be a single hostname without a scheme, port, path, or wildcard.
+Only that HTTPS host may embed the app; if unset or empty, embedding is blocked. Direct access remains available.
+The deployment script passes the variable to CloudFormation; set it on each deployment to retain embedding.
 
 ## Cost optimization (why this stays cheap)
 

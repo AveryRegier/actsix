@@ -40,6 +40,12 @@ The code is a **6-digit number**. Copy or note it down.
 
 After a successful code validation, the app redirects you to the Home page automatically. You do not need to do anything else.
 
+### If browser storage is blocked
+
+When the app is embedded in another website, your browser may ask permission to use cookies. Allow access to continue signing in. If access is blocked or unavailable, select **Open the login page directly in a new tab** and sign in there instead.
+
+Use an HTTPS address for the page containing the app as well as the app itself.
+
 ---
 
 > If you did not receive a code or cannot access your email, contact your site administrator.

@@ -15,6 +15,16 @@ export default function registerEmailLoginRoutes(app) {
             if (actsixCookie) {
                 const decoded = verifyToken(actsixCookie);  
                 if (decoded) {
+                    if (!['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) {
+                        const origin = c.req.header('origin');
+                        const sameOrigin = origin
+                            ? origin === new URL(c.req.url).origin
+                            : c.req.header('sec-fetch-site') === 'same-origin';
+                        if (!sameOrigin) {
+                            logger.warn('Rejected cross-origin cookie-authenticated request');
+                            return c.text('Forbidden', 403);
+                        }
+                    }
                     // already logged in
                     c.req.memberId = addContext("memberId", decoded.id);
                     c.req.role = addContext("role", decoded.role);
