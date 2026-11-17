@@ -912,11 +912,15 @@ async function findMemberSignup(calendarId, memberId) {
 
 // Duplicate signup rows can exist from past races; unavailable must clear every one.
 async function findMemberSignups(calendarId, memberId) {
-  let signups = await safeCollectionFind('event_signups', { calendarId, memberId });
-  if (signups.length === 0) {
-    signups = await safeCollectionFind('event_signups', { eventId: calendarId, memberId });
+  const [calendarSignups, legacySignups] = await Promise.all([
+    safeCollectionFind('event_signups', { calendarId, memberId }),
+    safeCollectionFind('event_signups', { eventId: calendarId, memberId })
+  ]);
+  const signupsById = new Map();
+  for (const signup of [...calendarSignups, ...legacySignups]) {
+    signupsById.set(signup._id, signup);
   }
-  return signups;
+  return Array.from(signupsById.values());
 }
 
 function isDuplicateKeyError(error) {
@@ -1024,7 +1028,15 @@ async function markMemberUnavailable(loaded, memberId, unavailableReason = null)
 
   if (signups.length > 0) {
     for (const signup of signups) {
-      await safeCollectionUpdate('event_signups', { _id: signup._id }, { $set: fields });
+      const updateFields = !signup.calendarId && signup.eventId === calendarId
+        ? {
+            isAvailable: false,
+            assignedPositionId: null,
+            unavailableReason,
+            updatedAt: now
+          }
+        : fields;
+      await safeCollectionUpdate('event_signups', { _id: signup._id }, { $set: updateFields });
     }
   } else {
     const signupFields = { ...fields, memberId, positionId: null };

@@ -45,8 +45,9 @@ async function loadSnapshot() {
     db.collection('event_calendar').find({}).toArray(),
     signupCollection.listIndexes()
   ]);
-  const calendarIds = new Set(calendarSlots.map(slot => normalizedId(slot._id)).filter(Boolean));
-  return { signups, calendarIds, indexes };
+  const calendarById = new Map(calendarSlots.map(slot => [normalizedId(slot._id), slot]));
+  const calendarIds = new Set(Array.from(calendarById.keys()).filter(Boolean));
+  return { signups, calendarIds, calendarById, indexes };
 }
 
 function analyzeSnapshot(snapshot) {
@@ -85,6 +86,7 @@ function analyzeSnapshot(snapshot) {
     .map(group => ({
       calendarId: group.calendarId,
       memberId: group.memberId,
+      serviceDate: snapshot.calendarById.get(group.calendarId)?.serviceDate || null,
       signups: group.signups.map(signup => ({
         ...signupLabel(signup),
         inferredCalendarId: signup.inferredCalendarId ? group.calendarId : null
@@ -121,6 +123,81 @@ function requireWriteConfirmation(options) {
   if (options.confirmBucket !== bucketName) {
     throw new Error(`Write operation requires --confirm-bucket ${bucketName}; current target is ${bucketName}.`);
   }
+}
+
+function buildPastDuplicateCleanupPlan(snapshot, analysis) {
+  const today = new Date().toISOString().slice(0, 10);
+  const plans = [];
+  const skippedGroups = [];
+
+  for (const duplicateGroup of analysis.duplicateGroups) {
+    const serviceDate = duplicateGroup.serviceDate;
+    if (!serviceDate || serviceDate >= today) {
+      skippedGroups.push({
+        calendarId: duplicateGroup.calendarId,
+        memberId: duplicateGroup.memberId,
+        serviceDate,
+        reason: serviceDate ? 'not before today' : 'calendar date unavailable'
+      });
+      continue;
+    }
+
+    const group = analysis.groups.get(JSON.stringify([duplicateGroup.calendarId, duplicateGroup.memberId]));
+    const ranked = [...group.signups].sort((left, right) => {
+      const assignedDifference = Number(Boolean(right.assignedPositionId)) - Number(Boolean(left.assignedPositionId));
+      if (assignedDifference !== 0) return assignedDifference;
+
+      const updatedDifference = Date.parse(right.updatedAt || right.createdAt || 0) - Date.parse(left.updatedAt || left.createdAt || 0);
+      if (Number.isFinite(updatedDifference) && updatedDifference !== 0) return updatedDifference;
+      return normalizedId(left._id).localeCompare(normalizedId(right._id));
+    });
+
+    const keep = ranked[0];
+    plans.push({
+      calendarId: duplicateGroup.calendarId,
+      memberId: duplicateGroup.memberId,
+      serviceDate,
+      keepId: normalizedId(keep._id),
+      deleteIds: ranked.slice(1).map(signup => normalizedId(signup._id)),
+      assignedDeleteIds: ranked.slice(1)
+        .filter(signup => normalizedId(signup.assignedPositionId))
+        .map(signup => normalizedId(signup._id))
+    });
+  }
+
+  return { today, plans, skippedGroups };
+}
+
+async function cleanPastDuplicates(options, snapshot, analysis) {
+  const { today, plans, skippedGroups } = buildPastDuplicateCleanupPlan(snapshot, analysis);
+  console.log(JSON.stringify({
+    bucket: bucketName,
+    today,
+    groupsToClean: plans.length,
+    duplicateRowsToDelete: plans.reduce((count, plan) => count + plan.deleteIds.length, 0),
+    assignedRowsAmongDeletes: plans.reduce((count, plan) => count + plan.assignedDeleteIds.length, 0),
+    plans,
+    skippedGroups
+  }, null, 2));
+
+  if (!options.apply) {
+    console.log('Dry run only. Re-run with --apply --confirm-bucket <bucket> to keep one row and delete duplicate rows for past events.');
+    return;
+  }
+  requireWriteConfirmation(options);
+
+  for (const plan of plans) {
+    for (const id of plan.deleteIds) {
+      const result = await signupCollection.deleteOne({ _id: id });
+      if (result.deletedCount > 1) throw new Error(`Delete for signup ${id} reported deletedCount ${result.deletedCount}.`);
+    }
+    await signupCollection.updateOne(
+      { _id: plan.keepId },
+      { $set: { calendarId: plan.calendarId, memberId: plan.memberId } }
+    );
+  }
+
+  console.log(`Cleaned ${plans.length} past duplicate group(s). Re-run report to inspect remaining duplicates and unresolved rows.`);
 }
 
 async function normalizeLegacy(options, snapshot) {
@@ -299,11 +376,14 @@ async function main() {
     case 'resolve':
       await resolveDuplicates(options, snapshot);
       break;
+    case 'clean-past-duplicates':
+      await cleanPastDuplicates(options, snapshot, analysis);
+      break;
     case 'create-index':
       await createUniqueIndex(options, snapshot);
       break;
     default:
-      throw new Error('Usage: node scripts/event-signups-index.js <report|normalize-legacy|resolve|create-index> [--apply --confirm-bucket <bucket>] [--file <json>] [--allow-delete-assigned]');
+      throw new Error('Usage: node scripts/event-signups-index.js <report|normalize-legacy|clean-past-duplicates|resolve|create-index> [--apply --confirm-bucket <bucket>] [--file <json>] [--allow-delete-assigned]');
   }
 }
 

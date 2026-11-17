@@ -345,6 +345,53 @@ describe('events API routes', () => {
     });
   });
 
+  test('PUT signup reuses one row across Available, Unavailable, Available', async () => {
+    const { createApp } = await import('../src/api.js');
+    const app = createApp();
+    const calendarId = 'calendar-signup-toggle-cycle';
+    const eventId = 'definition-signup-toggle-cycle';
+    mockState.events.push({
+      _id: eventId,
+      eventType: 'service-a',
+      positions: [{ positionId: 'P1', label: 'Position 1', priority: 1 }]
+    });
+    mockState.event_calendar.push({
+      _id: calendarId,
+      eventId,
+      eventType: 'service-a',
+      serviceDate: '2026-12-01',
+      serviceTime: '08:30'
+    });
+
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'actsix-e2e-secret';
+    const token = jwt.sign(
+      { id: 'member-1', email: 'ada@example.com', role: 'deacon' },
+      process.env.JWT_SECRET
+    );
+    const toggleAvailability = isAvailable => app.request(`/api/events/${calendarId}/signup`, {
+      method: 'PUT',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ isAvailable })
+    });
+
+    expect((await toggleAvailability(true)).status).toBe(200);
+    const originalSignupId = mockState.event_signups[0]._id;
+    expect(mockState.event_signups).toHaveLength(1);
+    expect(mockState.event_signups[0].assignedPositionId).toBe('P1');
+
+    expect((await toggleAvailability(false)).status).toBe(200);
+    expect(mockState.event_signups).toHaveLength(1);
+    expect(mockState.event_signups[0].assignedPositionId).toBeNull();
+
+    expect((await toggleAvailability(true)).status).toBe(200);
+    expect(mockState.event_signups).toHaveLength(1);
+    expect(mockState.event_signups[0]._id).toBe(originalSignupId);
+    expect(mockState.event_signups[0].assignedPositionId).toBe('P1');
+  });
+
   test('PUT unavailable treats concurrent duplicate-key insert as success and clears winning position', async () => {
     const { createApp } = await import('../src/api.js');
     const app = createApp();
@@ -403,6 +450,62 @@ describe('events API routes', () => {
       isAvailable: false,
       assignedPositionId: null
     });
+  });
+
+  test('PUT unavailable clears matching canonical and legacy signup rows', async () => {
+    const { createApp } = await import('../src/api.js');
+    const app = createApp();
+    const calendarId = 'calendar-mixed-signups';
+    const eventId = 'definition-mixed-signups';
+    mockState.events.push({
+      _id: eventId,
+      eventType: 'service-a',
+      positions: [{ positionId: 'P1', label: 'Position 1', priority: 1 }]
+    });
+    mockState.event_calendar.push({
+      _id: calendarId,
+      eventId,
+      eventType: 'service-a',
+      serviceDate: '2026-12-01',
+      serviceTime: '08:30'
+    });
+    mockState.event_signups.push(
+      {
+        _id: 'signup-canonical',
+        calendarId,
+        eventId,
+        memberId: 'member-1',
+        isAvailable: true,
+        assignedPositionId: null
+      },
+      {
+        _id: 'signup-legacy',
+        eventId: calendarId,
+        memberId: 'member-1',
+        isAvailable: true,
+        assignedPositionId: 'P1'
+      }
+    );
+
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'actsix-e2e-secret';
+    const token = jwt.sign(
+      { id: 'member-1', email: 'ada@example.com', role: 'deacon' },
+      process.env.JWT_SECRET
+    );
+    const response = await app.request(`/api/events/${calendarId}/signup`, {
+      method: 'PUT',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ isAvailable: false })
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockState.event_signups).toHaveLength(2);
+    expect(mockState.event_signups.every(signup => signup.isAvailable === false)).toBe(true);
+    expect(mockState.event_signups.every(signup => signup.assignedPositionId === null)).toBe(true);
+    expect(mockState.event_signups.find(signup => signup._id === 'signup-legacy').eventId).toBe(calendarId);
   });
 
   test('POST /api/events/:id/assignment-candidates creates a member and household', async () => {
