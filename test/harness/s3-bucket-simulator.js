@@ -53,7 +53,7 @@ export class S3BucketSimulator {
     return matched;
   }
 
-  putObject({ Key, Body }) {
+  putObject({ Key, Body, IfMatch, IfNoneMatch }) {
     if (!Key) {
       throw new Error('Missing Key for putObject');
     }
@@ -61,6 +61,17 @@ export class S3BucketSimulator {
     if (this.shouldConflict(Key)) {
       const err = new Error('ConditionalRequestConflict');
       err.Code = 'ConditionalRequestConflict';
+      throw err;
+    }
+
+    const currentEtag = this.etags.get(Key);
+    const preconditionFailed = (IfNoneMatch === '*' && this.files.has(Key))
+      || (IfMatch !== undefined && (!this.files.has(Key) || IfMatch !== currentEtag));
+    if (preconditionFailed) {
+      const err = new Error('PreconditionFailed');
+      err.name = 'PreconditionFailed';
+      err.Code = 'PreconditionFailed';
+      err.$metadata = { httpStatusCode: 412 };
       throw err;
     }
 

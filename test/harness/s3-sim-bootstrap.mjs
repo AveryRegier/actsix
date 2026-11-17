@@ -77,3 +77,87 @@ awsS3.S3Client.prototype.send = function patchedSend(command, ...args) {
 console.log('[s3-sim-bootstrap] S3 simulator patch complete');
 
 globalThis.__ACTSIX_S3SIM__ = simulator;
+
+async function initializeSimulatorIndexes() {
+  if (process.env.USE_S3_SIMULATOR !== '1') return;
+
+  const { SengoClient } = require('sengo');
+  const client = new SengoClient({ logger: { level: 'error' } });
+  const db = client.db(process.env.S3_BUCKET || 'deacon-care-system-e2e');
+  const indexesByCollection = {
+    members: [
+      { keys: { email: 1 } },
+      { keys: { householdId: 1 } },
+      { keys: { tag: 1 } },
+      { keys: { tags: 1 } },
+    ],
+    households: [],
+    assignments: [
+      { keys: { deaconMemberId: 1 } },
+      { keys: { householdId: 1 } },
+    ],
+    contacts: [
+      { keys: { memberId: 1, contactDate: 1 } },
+    ],
+    event_types: [
+      { keys: { eventType: 1 } },
+      { keys: { isActive: 1 } },
+    ],
+    event_calendar: [
+      { keys: { date: 1 } },
+      { keys: { eventType: 1, serviceDate: 1 } },
+    ],
+    event_signups: [
+      { keys: { calendarId: 1 } },
+      { keys: { calendarId: 1, assignedPositionId: 1 } },
+      { keys: { calendarId: 1, memberId: 1 }, options: { unique: true } },
+      { keys: { eventId: 1, assignedPositionId: 1 } },
+      { keys: { memberId: 1 } },
+    ],
+  };
+
+  try {
+    for (const [collectionName, definitions] of Object.entries(indexesByCollection)) {
+      const collection = db.collection(collectionName);
+      for (const definition of definitions) {
+        await collection.createIndex(definition.keys, definition.options);
+      }
+
+      const actualIndexes = await collection.listIndexes();
+      for (const definition of definitions) {
+        const expectedName = Object.entries(definition.keys)
+          .map(([field, order]) => `${field}_${order}`)
+          .join('_');
+        const actual = actualIndexes.find(index => index.name === expectedName);
+        const actualUnique = actual?.unique === true;
+        const expectedUnique = definition.options?.unique === true;
+        if (!actual || actualUnique !== expectedUnique) {
+          throw new Error(`Simulator index verification failed for ${collectionName}.${expectedName}`);
+        }
+      }
+    }
+
+    const signups = db.collection('event_signups');
+    const probeId = `__e2e_unique_index_probe_${process.pid}_${Date.now()}`;
+    const probeCalendarId = `${probeId}_calendar`;
+    const probeMemberId = `${probeId}_member`;
+    let duplicateRejected = false;
+    await signups.insertOne({ _id: `${probeId}_first`, calendarId: probeCalendarId, memberId: probeMemberId });
+    try {
+      await signups.insertOne({ _id: `${probeId}_duplicate`, calendarId: probeCalendarId, memberId: probeMemberId });
+    } catch (error) {
+      if (error?.name !== 'DuplicateKeyError') throw error;
+      duplicateRejected = true;
+    } finally {
+      await signups.deleteOne({ _id: `${probeId}_first` });
+      await signups.deleteOne({ _id: `${probeId}_duplicate` });
+    }
+    if (!duplicateRejected) throw new Error('Simulator unique signup index accepted a duplicate calendarId/memberId pair');
+
+    console.log('[s3-sim-bootstrap] Production-shaped indexes initialized, including unique event_signups(calendarId, memberId)');
+  } finally {
+    await client.close();
+  }
+}
+
+await initializeSimulatorIndexes();

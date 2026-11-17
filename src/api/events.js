@@ -117,22 +117,12 @@ function formatLocalTime(date) {
 }
 
 function applyMinuteOffset(serviceDate, serviceTime, offsetMinutes) {
-  // Parse as local time manually to avoid UTC interpretation.
-  // Input: serviceDate (YYYY-MM-DD), serviceTime (HH:MM) - both in local timezone
-  const [year, month, day] = serviceDate.split('-').map(Number);
-  const [hours, minutes] = serviceTime.split(':').map(Number);
-
-  // Create date as local time by constructing from parts
-  const base = new Date(year, month - 1, day, hours, minutes, 0);
-  
+  const base = new Date(`${serviceDate}T${serviceTime}:00`);
   if (Number.isNaN(base.getTime())) {
     return null;
   }
 
-  // Apply the offset
   base.setMinutes(base.getMinutes() + offsetMinutes);
-
-  // Format back as local time
   return {
     serviceDate: formatLocalDate(base),
     serviceTime: formatLocalTime(base)
@@ -512,21 +502,7 @@ async function createCalendarSlot({
     updatedAt: now
   };
 
-  let result;
-  try {
-    result = await safeCollectionInsert('event_calendar', createdCalendar);
-  } catch (error) {
-    if (!failOnDuplicate) {
-      // If we're in lenient mode (for dependencies), treat insertion errors as skips
-      getLogger().warn(`Skipping dependent event creation due to insertion error: ${error.message}`);
-      return {
-        skipped: true,
-        calendarSlot: null
-      };
-    }
-    throw error;
-  }
-
+  const result = await safeCollectionInsert('event_calendar', createdCalendar);
   const calendarId = result.insertedId?.toString();
 
   const normalizedPositions = normalizeDefinitionPositions(eventDefinition.positions || []);

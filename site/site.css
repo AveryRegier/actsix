@@ -13,24 +13,6 @@
 	--gh-link: hsl(192.6, 89.29%, 21.96%);
 }
 
-.mobile-frame-link {
-	position: fixed;
-	z-index: 10000;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	padding: calc(12px * var(--mobile-frame-scale, 1));
-	background: var(--gh-dark);
-	color: white;
-	font-size: calc(18px * var(--mobile-frame-scale, 1));
-	font-weight: 600;
-	text-align: center;
-}
-
-@media print {
-	.mobile-frame-link { display: none; }
-}
-
 /* Mobile table grouping for contact-summary.html */
 @media (max-width: 700px) {
 	.summary-group tr {

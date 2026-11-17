@@ -139,7 +139,6 @@ async function seedCancellableEvents(post, staff) {
       isActive: true,
     });
     const created = await staffPost('/api/events', { eventType, serviceDate, serviceTime: '09:00' });
-    console.log(`[E2E] Seeded ${eventType}: autoScheduledCount=${created.autoScheduledCount}, eventId=${created.id}`);
     return { title, serviceDate, eventId: created.id };
   };
 
