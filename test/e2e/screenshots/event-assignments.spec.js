@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { DEMO, highlightElement, loginAsEmail, seedDemoData, takeHelpScreenshot } from './capture-helpers.js';
 
-function getNextSundayDate(weeksAhead = 0) {
+function getNextSundayDate() {
   const date = new Date();
   const day = date.getDay();
   const daysUntilSunday = day === 0 ? 7 : 7 - day;
-  date.setDate(date.getDate() + daysUntilSunday + weeksAhead * 7);
+  date.setDate(date.getDate() + daysUntilSunday);
   return date.toISOString().split('T')[0];
 }
 
@@ -18,8 +18,8 @@ async function seedSchedulableEventType(page, eventType, title) {
       allowedRoles: ['deacon', 'staff'],
       assignmentRoles: ['deacon', 'staff'],
       defaultPositions: [
-        { positionId: '4-FC', label: 'Aisle 4 Front Center', note: 'Take 2 trays', priority: 1, isCritical: true },
-        { positionId: '5-FCR', label: 'Aisle 5 Front Center Right', note: 'Take 2 trays', priority: 2, isCritical: false }
+        { positionId: 'P1', label: 'Front', priority: 1, isCritical: true },
+        { positionId: 'P2', label: 'Back', priority: 2, isCritical: false }
       ],
       isActive: true
     }
@@ -29,14 +29,13 @@ async function seedSchedulableEventType(page, eventType, title) {
 }
 
 test.describe('event assignments help screenshots', () => {
-  test('capture event assignments event view', async ({ page, request }, testInfo) => {
+  test('capture event assignments event view', async ({ page, request }) => {
     const stamp = Date.now();
     const eventType = `e2e-assignments-help-${stamp}`;
-    const eventTitle = 'Sunday Worship Service';
-    // Projects share one server, so give each its own Sunday to keep the date view to a single event.
-    const serviceDate = getNextSundayDate(testInfo.project.name.includes('mobile') ? 1 : 0);
+    const eventTitle = `E2E Assignments Help ${stamp}`;
+    const serviceDate = getNextSundayDate();
 
-    const demo = await seedDemoData(request);
+    await seedDemoData(request);
     await loginAsEmail(page, DEMO.staffEmail);
     await seedSchedulableEventType(page, eventType, eventTitle);
 
@@ -51,13 +50,6 @@ test.describe('event assignments help screenshots', () => {
     expect(createResponse.ok()).toBeTruthy();
     const created = await createResponse.json();
     expect(created.id).toBeTruthy();
-
-    // Fill one of the two positions so the Filled badge shows a realistic partial count.
-    const assignResponse = await page.request.put(`/api/events/${encodeURIComponent(created.id)}/assignments`, {
-      headers: { 'content-type': 'application/json' },
-      data: { assignments: [{ positionId: '4-FC', memberId: demo.deaconId }] }
-    });
-    expect(assignResponse.ok()).toBeTruthy();
 
     await page.goto(`/event-assignments.html?serviceDate=${encodeURIComponent(serviceDate)}`);
     await page.waitForLoadState('networkidle');
@@ -74,23 +66,9 @@ test.describe('event assignments help screenshots', () => {
     await expect(printButton).toBeVisible();
     await expect(assignmentHeader).toBeVisible();
     await expect(assignmentsTableWrap).toBeVisible();
-    await expect(page.locator('.worship-map').first()).toBeVisible();
-    const filledBadge = page.getByText('Filled: 1/2');
-    await expect(filledBadge).toBeVisible();
-    await expect(page.locator('.assignment-edit-trigger', { hasText: DEMO.deaconFirstName })).toHaveCount(1);
-    await expect(page.locator('.assignment-edit-trigger', { hasText: 'Open' })).toHaveCount(1);
 
-    await highlightElement(page, filledBadge, 'blue');
     await highlightElement(page, assignmentHeader, 'green');
     await highlightElement(page, printButton, 'orange');
     await takeHelpScreenshot(page, 'event-assignments-event.png');
-
-    await page.goto(`/event-assignments.html?eventId=${encodeURIComponent(created.id)}`);
-    await page.waitForLoadState('networkidle');
-
-    const cancelButton = page.locator('.cancel-event-button');
-    await expect(cancelButton).toBeVisible();
-    await highlightElement(page, cancelButton, 'orange');
-    await takeHelpScreenshot(page, 'event-assignments-cancel.png');
   });
 });

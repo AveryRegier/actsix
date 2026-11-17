@@ -45,9 +45,13 @@ export async function loadSiteNav() {
 
         // Load site-nav.js only if not already present on the page.
         if (!document.querySelector('script[src="site-nav.js"]')) {
-            const script = document.createElement('script');
-            script.src = 'site-nav.js';
-            document.body.appendChild(script);
+            await new Promise(function(resolve, reject) {
+                const script = document.createElement('script');
+                script.src = 'site-nav.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.body.appendChild(script);
+            });
         }
     } catch (err) {
         // Silently fail but keep the page usable.

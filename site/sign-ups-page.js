@@ -1,5 +1,4 @@
 import { apiFetch } from './fetch-utils.js';
-import { renderAssignedAisleMap } from './worship-map.js';
 var pageMessage = document.getElementById('pageMessage');
 var eventsList = document.getElementById('eventsList');
 var canViewAssignments = window.__CAN_VIEW_ASSIGNMENTS__ === true;
@@ -13,11 +12,47 @@ if (!Array.from) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  currentMemberId = localStorage.getItem('memberId');
-  loadMemberAssignments().catch(function(error) {
+  loadNav().then(function() {
+    currentMemberId = localStorage.getItem('memberId');
+    return loadMemberAssignments();
+  }).catch(function(error) {
     showMessage('Failed to load page. ' + error.message, true);
   });
 });
+
+function loadNav() {
+  var navContainer = document.getElementById('site-nav-container');
+  if (!navContainer) {
+    return Promise.resolve();
+  }
+
+  return fetch('site-nav.html')
+    .then(function(navResp) {
+      if (!navResp.ok) {
+        return '';
+      }
+      return navResp.text();
+    })
+    .then(function(navHtml) {
+      if (!navHtml) {
+        return Promise.resolve();
+      }
+      navContainer.innerHTML = navHtml;
+      
+      // Load site-nav.js and wait for it to load
+      var script = document.createElement('script');
+      script.src = 'site-nav.js';
+      
+      return new Promise(function(resolve, reject) {
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+    })
+    .catch(function(error) {
+      console.error('Error loading navigation:', error);
+    });
+}
 
 function showMessage(message, isError) {
   if (!pageMessage) {
@@ -114,16 +149,6 @@ function getSignupForMember(eventDetails) {
   return null;
 }
 
-function getPositionNote(definition, positionId) {
-  var positions = (definition && definition.defaultPositions) || [];
-  for (var i = 0; i < positions.length; i++) {
-    if (positions[i] && positions[i].positionId === positionId) {
-      return positions[i].note || '';
-    }
-  }
-  return '';
-}
-
 function buildAssignmentText(signup) {
   if (!signup) {
     return 'Not responded';
@@ -212,7 +237,6 @@ function loadMemberAssignments() {
       var eventDetails = rows.map(function(context) {
         return {
           event: context.event,
-          definition: context.definition || null,
           signups: context.signup ? [context.signup] : []
         };
       });
@@ -282,7 +306,6 @@ function renderEvents(eventDetails) {
           '<div class="signups-event-actions" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px;">' +
             availabilityActions +
           '</div>' +
-          ((signup && signup.isAvailable && signup.assignedPositionId) ? renderAssignedAisleMap(signup.assignedPositionId, getPositionNote(groupedDetail.definition, signup.assignedPositionId)) : '') +
         '</div>'
       );
     }
@@ -352,20 +375,15 @@ function updateAvailability(eventId, isAvailable, button) {
     body: JSON.stringify({ isAvailable: isAvailable })
   })
     .then(function() {
+      delete availabilityInFlight[eventId];
       showMessage('Availability updated.', false);
       return loadMemberAssignments();
     })
     .catch(function(error) {
+      delete availabilityInFlight[eventId];
       if (button && button.parentNode) {
         setActionsBusy(button, false, isAvailable);
       }
       showMessage(error.message || 'Failed to update availability.', true);
-    })
-    .then(function() {
-      delete availabilityInFlight[eventId];
     });
 }
-
-
-
-
