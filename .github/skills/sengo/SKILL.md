@@ -34,7 +34,7 @@ Skill versioning and update policy are documented in [VERSION.md](./VERSION.md).
 - `collection.find(query, options?)`
 - `collection.findOne(query, options?)`
 - `collection.countDocuments(filter?, options?)`
-- `collection.updateOne(filter, update)`
+- `collection.updateOne(filter, update, options?)`
 - `collection.deleteOne(filter)`
 - `collection.createIndex(keys)`
 - `collection.dropIndex(name)`
@@ -57,12 +57,21 @@ Skill versioning and update policy are documented in [VERSION.md](./VERSION.md).
   - `options.skip`
   - `options.limit`
   - `options.explain`
-- `updateOne(filter, update)`
-  - update document must use supported update operator(s): `$set`
+- `updateOne(filter, update, options?)`
+  - update document supports `$set` and `$setOnInsert`
+  - `options.upsert` inserts when no document matches
+  - `options.explain` reports write costs
 - `createIndex(keys)`
   - `string` key name
   - object key spec, e.g. `{ name: 1 }`
   - array key specs, e.g. `[{ name: 1 }, { age: -1 }]`
+  - optional `{ unique: true }` for unique single-field or compound indexes
+
+For unique-index behavior and operational limits, consult
+[Supported Index Features](./references/SUPPORTED-INDEX-FEATURES.md). In
+particular, treat `MongoWriteOutcomeUnknownError` as an unresolved insert, not
+a confirmed failure: Sengo retains the unique claim if the exact document
+write cannot be verified, and that S3 claim does not expire automatically.
 
 ## Rules to Produce Working Output
 1. Always start with `const collection = client.db(...).collection<...>(...)`.
@@ -154,6 +163,18 @@ const pagedCount = await collection.countDocuments(
 const updateResult = await collection.updateOne(
   { _id: 'abc123' },
   { $set: { status: 'completed', updatedAt: new Date().toISOString() } }
+);
+```
+
+### UpdateOne with upsert
+```ts
+const updateResult = await collection.updateOne(
+  { calendarId: 'event-1', memberId: 'member-1' },
+  {
+    $set: { isAvailable: true },
+    $setOnInsert: { createdAt: new Date().toISOString() }
+  },
+  { upsert: true }
 );
 ```
 
