@@ -39,6 +39,18 @@ function loadNav() {
       }
       navContainer.innerHTML = navHtml;
       
+      // Set up the hamburger button click handler as a fallback
+      var hamburgerBtn = navContainer.querySelector('.nav-menu-btn');
+      if (hamburgerBtn) {
+        hamburgerBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          var menu = document.getElementById('navMobileMenu');
+          if (menu) {
+            menu.classList.toggle('open');
+          }
+        });
+      }
+      
       // Load site-nav.js and wait for it to load
       var script = document.createElement('script');
       script.src = 'site-nav.js';
