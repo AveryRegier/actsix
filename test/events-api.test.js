@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import jwt from 'jsonwebtoken';
+import { safeCollectionInsert } from '../src/util/helpers.js';
 
 const initialMembers = [
   { _id: 'member-1', firstName: 'Ada', lastName: 'One', email: 'ada@example.com', gender: 'male', tags: ['deacon'] },
@@ -281,6 +283,126 @@ describe('events API routes', () => {
     expect(duplicateResponse.status).toBe(400);
     const body = await duplicateResponse.json();
     expect(body.message).toContain('already exists');
+  });
+
+  test('PUT signup treats concurrent duplicate-key insert as success and preserves winning position', async () => {
+    const { createApp } = await import('../src/api.js');
+    const app = createApp();
+    const calendarId = 'calendar-signup-race';
+    const eventId = 'definition-signup-race';
+    mockState.events.push({
+      _id: eventId,
+      eventType: 'service-a',
+      positions: [{ positionId: 'P1', label: 'Position 1', priority: 1 }]
+    });
+    mockState.event_calendar.push({
+      _id: calendarId,
+      eventId,
+      eventType: 'service-a',
+      serviceDate: '2026-12-01',
+      serviceTime: '08:30'
+    });
+
+    const winner = {
+      _id: 'signup-race-winner',
+      calendarId,
+      eventId,
+      eventType: 'service-a',
+      memberId: 'member-1',
+      isAvailable: true,
+      assignedPositionId: 'P1'
+    };
+    safeCollectionInsert.mockImplementationOnce(async (collectionName) => {
+      expect(collectionName).toBe('event_signups');
+      setTimeout(() => mockState.event_signups.push(clone(winner)), 10);
+      const error = new Error('E11000 duplicate key error');
+      error.name = 'DuplicateKeyError';
+      error.code = 11000;
+      throw error;
+    });
+
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'actsix-e2e-secret';
+    const token = jwt.sign(
+      { id: 'member-1', email: 'ada@example.com', role: 'deacon' },
+      process.env.JWT_SECRET
+    );
+    const response = await app.request(`/api/events/${calendarId}/signup`, {
+      method: 'PUT',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ isAvailable: true })
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ message: 'Availability updated successfully' });
+    expect(mockState.event_signups).toHaveLength(1);
+    expect(mockState.event_signups[0]).toMatchObject({
+      _id: winner._id,
+      isAvailable: true,
+      assignedPositionId: 'P1'
+    });
+  });
+
+  test('PUT unavailable treats concurrent duplicate-key insert as success and clears winning position', async () => {
+    const { createApp } = await import('../src/api.js');
+    const app = createApp();
+    const calendarId = 'calendar-unavailable-race';
+    const eventId = 'definition-unavailable-race';
+    mockState.events.push({
+      _id: eventId,
+      eventType: 'service-a',
+      positions: [{ positionId: 'P1', label: 'Position 1', priority: 1 }]
+    });
+    mockState.event_calendar.push({
+      _id: calendarId,
+      eventId,
+      eventType: 'service-a',
+      serviceDate: '2026-12-01',
+      serviceTime: '08:30'
+    });
+
+    const winner = {
+      _id: 'signup-unavailable-race-winner',
+      calendarId,
+      eventId,
+      eventType: 'service-a',
+      memberId: 'member-1',
+      isAvailable: true,
+      assignedPositionId: 'P1'
+    };
+    safeCollectionInsert.mockImplementationOnce(async (collectionName) => {
+      expect(collectionName).toBe('event_signups');
+      setTimeout(() => mockState.event_signups.push(clone(winner)), 10);
+      const error = new Error('E11000 duplicate key error');
+      error.name = 'DuplicateKeyError';
+      error.code = 11000;
+      throw error;
+    });
+
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'actsix-e2e-secret';
+    const token = jwt.sign(
+      { id: 'member-1', email: 'ada@example.com', role: 'deacon' },
+      process.env.JWT_SECRET
+    );
+    const response = await app.request(`/api/events/${calendarId}/signup`, {
+      method: 'PUT',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ isAvailable: false })
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ message: 'Availability updated successfully' });
+    expect(mockState.event_signups).toHaveLength(1);
+    expect(mockState.event_signups[0]).toMatchObject({
+      _id: winner._id,
+      isAvailable: false,
+      assignedPositionId: null
+    });
   });
 
   test('POST /api/events/:id/assignment-candidates creates a member and household', async () => {

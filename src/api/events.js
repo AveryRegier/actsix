@@ -513,38 +513,29 @@ async function createCalendarSlot({
   if (calendarId && createdBy && lockedPosition) {
     const existingCreatorSignup = await safeCollectionFindOne('event_signups', { calendarId, memberId: createdBy });
     const nowForSignup = new Date().toISOString();
+    const creatorSignupFields = {
+      calendarId,
+      eventId: eventDefinition._id,
+      eventType: eventDefinition.eventType,
+      memberId: createdBy,
+      positionId: lockedPosition.positionId,
+      isAvailable: true,
+      unavailableReason: null,
+      assignedPositionId: lockedPosition.positionId,
+      updatedAt: nowForSignup
+    };
 
     if (existingCreatorSignup) {
       await safeCollectionUpdate(
         'event_signups',
         { _id: existingCreatorSignup._id },
-        {
-          $set: {
-            calendarId,
-            eventId: eventDefinition._id,
-            eventType: eventDefinition.eventType,
-            memberId: createdBy,
-            positionId: lockedPosition.positionId,
-            isAvailable: true,
-            unavailableReason: null,
-            assignedPositionId: lockedPosition.positionId,
-            updatedAt: nowForSignup
-          }
-        }
+        { $set: creatorSignupFields }
       );
     } else {
-      await safeCollectionInsert('event_signups', {
-        calendarId,
-        eventId: eventDefinition._id,
-        eventType: eventDefinition.eventType,
-        memberId: createdBy,
-        positionId: lockedPosition.positionId,
-        isAvailable: true,
-        unavailableReason: null,
-        assignedPositionId: lockedPosition.positionId,
-        createdAt: nowForSignup,
-        updatedAt: nowForSignup
-      });
+      await insertSignupOrRecover(
+        { ...creatorSignupFields, createdAt: nowForSignup },
+        creatorSignupFields
+      );
     }
   }
 
@@ -928,6 +919,45 @@ async function findMemberSignups(calendarId, memberId) {
   return signups;
 }
 
+function isDuplicateKeyError(error) {
+  return error?.name === 'DuplicateKeyError' || error?.code === 11000;
+}
+
+async function findSignupAfterUniqueConflict(calendarId, memberId) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const signup = await findMemberSignup(calendarId, memberId);
+    if (signup) {
+      return signup;
+    }
+    if (attempt < 3) {
+      await new Promise(resolve => setTimeout(resolve, 25 * (2 ** attempt)));
+    }
+  }
+  return null;
+}
+
+async function insertSignupOrRecover(signupDocument, fieldsForExisting) {
+  try {
+    await safeCollectionInsert('event_signups', signupDocument);
+    return null;
+  } catch (error) {
+    if (!isDuplicateKeyError(error)) {
+      throw error;
+    }
+
+    const existingSignup = await findSignupAfterUniqueConflict(signupDocument.calendarId, signupDocument.memberId);
+    if (!existingSignup) {
+      throw error;
+    }
+
+    const fields = typeof fieldsForExisting === 'function'
+      ? fieldsForExisting(existingSignup)
+      : fieldsForExisting;
+    await safeCollectionUpdate('event_signups', { _id: existingSignup._id }, { $set: fields });
+    return { signup: existingSignup, fields };
+  }
+}
+
 // Sign a member up as available and, if a position is open, grab it directly.
 // Does not touch any other member's signup - no reassignment loop.
 async function markMemberAvailable(loaded, memberId, { requestedPositionId = null, unavailableReason = null } = {}) {
@@ -958,7 +988,20 @@ async function markMemberAvailable(loaded, memberId, { requestedPositionId = nul
   if (signup) {
     await safeCollectionUpdate('event_signups', { _id: signup._id }, { $set: fields });
   } else {
-    await safeCollectionInsert('event_signups', { ...fields, createdAt: now });
+    const recovered = await insertSignupOrRecover(
+      { ...fields, createdAt: now },
+      existingSignup => {
+        const existingPositionIsValid = existingSignup.assignedPositionId
+          && normalizeEventPositions(positions).some(position => position.positionId === existingSignup.assignedPositionId);
+        return {
+          ...fields,
+          assignedPositionId: existingPositionIsValid ? existingSignup.assignedPositionId : assignedPositionId
+        };
+      }
+    );
+    if (recovered) {
+      return recovered.fields.assignedPositionId;
+    }
   }
 
   return assignedPositionId;
@@ -984,12 +1027,11 @@ async function markMemberUnavailable(loaded, memberId, unavailableReason = null)
       await safeCollectionUpdate('event_signups', { _id: signup._id }, { $set: fields });
     }
   } else {
-    await safeCollectionInsert('event_signups', {
-      ...fields,
-      memberId,
-      positionId: null,
-      createdAt: now
-    });
+    const signupFields = { ...fields, memberId, positionId: null };
+    await insertSignupOrRecover(
+      { ...signupFields, createdAt: now },
+      signupFields
+    );
   }
 }
 
@@ -1031,7 +1073,10 @@ async function assignMemberToPosition(loaded, memberId, positionId) {
   if (signup) {
     await safeCollectionUpdate('event_signups', { _id: signup._id }, { $set: fields });
   } else {
-    await safeCollectionInsert('event_signups', { ...fields, positionId: null, createdAt: now });
+    await insertSignupOrRecover(
+      { ...fields, positionId: null, createdAt: now },
+      fields
+    );
   }
 }
 
